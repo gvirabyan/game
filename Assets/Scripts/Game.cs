@@ -211,17 +211,19 @@ namespace Corehold
             if (waveTimer >= w.duration + w.breakBetween) BeginWave(Wave + 1);
         }
 
-        void SpawnEnemy()
+        // A uniformly random point on the rectangle just outside the screen.
+        Vector2 RandomEdgePoint()
         {
             float halfH = cam.orthographicSize + SpawnMargin;
             float halfW = cam.orthographicSize * cam.aspect + SpawnMargin;
-
-            // Pick a uniformly random point on the rectangle just outside the screen.
             float t = UnityEngine.Random.value * 2f * (halfW + halfH);
-            Vector2 p;
-            if (t < 2f * halfW) p = new Vector2(t - halfW, UnityEngine.Random.value < 0.5f ? halfH : -halfH);
-            else p = new Vector2(UnityEngine.Random.value < 0.5f ? halfW : -halfW, t - 2f * halfW - halfH);
+            if (t < 2f * halfW) return new Vector2(t - halfW, UnityEngine.Random.value < 0.5f ? halfH : -halfH);
+            return new Vector2(UnityEngine.Random.value < 0.5f ? halfW : -halfW, t - 2f * halfW - halfH);
+        }
 
+        void SpawnEnemy()
+        {
+            var p = RandomEdgePoint();
             var e = enemies.Get();
             e.position = p;
             e.direction = -p.normalized;
@@ -251,8 +253,17 @@ namespace Corehold
                 e.position += e.direction * (e.speed * dt);
                 if (e.position.sqrMagnitude <= stopSqr)
                 {
-                    e.atTower = true;
-                    e.position = -e.direction * stop;
+                    if (StressMode)
+                    {
+                        // Keep all stress enemies walking: a crowd parked at the tower is cheaper than real play.
+                        e.position = RandomEdgePoint();
+                        e.direction = -e.position.normalized;
+                    }
+                    else
+                    {
+                        e.atTower = true;
+                        e.position = -e.direction * stop;
+                    }
                 }
                 e.transform.localPosition = e.position;
             }
