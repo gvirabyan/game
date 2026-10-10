@@ -8,13 +8,15 @@ namespace Corehold
     public static class UIFactory
     {
         static Font font;
-        public static Font Font => font != null ? font : font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        // Russo One (SIL OFL, see Resources/Fonts/RussoOne-OFL.txt); falls back to the built-in font.
+        public static Font Font => font != null ? font : font =
+            Resources.Load<Font>("Fonts/RussoOne-Regular") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
         public static readonly Color TextMain = Color.white;
         public static readonly Color TextDim = new Color(0.62f, 0.67f, 0.73f);
-        public static readonly Color PanelColor = new Color(0.06f, 0.08f, 0.11f, 0.9f);
-        public static readonly Color CardColor = new Color(0.13f, 0.16f, 0.21f, 1f);
-        public static readonly Color DisabledColor = new Color(0.2f, 0.22f, 0.26f, 1f);
+        public static readonly Color PanelColor = new Color(0.07f, 0.09f, 0.14f, 0.88f);
+        public static readonly Color CardColor = new Color(0.16f, 0.2f, 0.27f, 1f);
+        public static readonly Color DisabledColor = new Color(0.26f, 0.28f, 0.33f, 1f);
 
         public static Canvas CreateCanvas(string name, int sortingOrder)
         {
@@ -97,7 +99,8 @@ namespace Corehold
             t.font = Font;
             t.text = text;
             t.fontSize = size;
-            t.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
+            // Russo One is already heavy; synthetic bold only blurs it.
+            t.fontStyle = font != null && font.name.StartsWith("RussoOne") ? FontStyle.Normal : bold ? FontStyle.Bold : FontStyle.Normal;
             t.alignment = anchor;
             t.color = color;
             t.supportRichText = true;
@@ -107,9 +110,37 @@ namespace Corehold
             return t;
         }
 
+        // Soft drop shadow behind a panel: a sibling drawn just before it, offset down.
+        public static void Shadow(RectTransform rt, float spread = 18f, float drop = 10f)
+        {
+            var s = Rect(rt.name + "Shadow", rt.parent, rt.anchorMin, rt.anchorMax,
+                rt.offsetMin + new Vector2(-spread, -spread - drop), rt.offsetMax + new Vector2(spread, spread - drop));
+            s.pivot = rt.pivot;
+            if (rt.anchorMin == rt.anchorMax)
+            {
+                s.sizeDelta = rt.sizeDelta + new Vector2(spread * 2f, spread * 2f);
+                s.anchoredPosition = rt.anchoredPosition + new Vector2(0f, -drop);
+            }
+            var img = s.gameObject.AddComponent<Image>();
+            img.sprite = Art.PanelShadow;
+            img.type = UnityEngine.UI.Image.Type.Sliced;
+            img.raycastTarget = false;
+            s.SetSiblingIndex(rt.GetSiblingIndex());
+        }
+
+        // Button showing only an icon.
+        public static Button IconButton(RectTransform rt, Color color, Sprite icon, float iconSize)
+        {
+            var b = Button(rt, color, out var label, "", 10);
+            Object.Destroy(label.gameObject);
+            Icon(Box("Icon", rt, new Vector2(0.5f, 0.5f), new Vector2(0f, 3f), new Vector2(iconSize, iconSize)), icon).rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            return b;
+        }
+
         public static Button Button(RectTransform rt, Color color, out Text label, string text, int size)
         {
             var img = Image(rt, color, true);
+            img.sprite = Art.ButtonFace;
             var button = rt.gameObject.AddComponent<Button>();
             button.targetGraphic = img;
             var colors = button.colors;
@@ -117,6 +148,7 @@ namespace Corehold
             colors.fadeDuration = 0.05f;
             button.colors = colors;
             label = Text(Fill("Label", rt), text, size, TextAnchor.MiddleCenter, TextMain, true);
+            label.rectTransform.offsetMin = new Vector2(0f, 6f);     // sit above the button's bottom lip
             return button;
         }
     }

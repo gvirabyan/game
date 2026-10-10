@@ -8,13 +8,15 @@ namespace Corehold
 
     public sealed class Enemy
     {
-        public Transform root, body, hpFill;
-        public SpriteRenderer bodyRenderer, shadowRenderer, hpBackRenderer, hpFillRenderer;
+        public Transform root;              // under the stretched 3D world root
+        public MeshFilter filter;
+        public Transform hpRoot, hpFill;    // billboard outside the stretched root
+        public SpriteRenderer hpBackRenderer, hpFillRenderer;
         public EnemyConfig type;
         public Vector2 position;
         public float distance;              // travelled along the path
         public int segment;                 // current path segment, only ever increases
-        public float health, maxHealth, angle;
+        public float health, maxHealth, angle, height;
         public int generation;              // bumps on every release so stale references can be detected
         public int activeIndex;
     }
@@ -22,12 +24,13 @@ namespace Corehold
     public sealed class Projectile
     {
         public Transform transform;
-        public SpriteRenderer renderer;
+        public MeshFilter filter;
         public Tower source;
         public float damage;
         public Enemy target;
         public int targetGeneration;
         public Vector2 position, aim;
+        public float height;
         public int activeIndex;
     }
 
@@ -48,7 +51,7 @@ namespace Corehold
         public float cooldown, angle;
         public GameObject root;
         public Transform turret;
-        public SpriteRenderer[] pips;
+        public GameObject[] pips;
         public Enemy target;
         public int targetGeneration;
     }
@@ -57,10 +60,8 @@ namespace Corehold
     {
         public int index;
         public Vector2 position;
-        public SpriteRenderer marker;
         public Tower tower;
     }
-
     // Waypoint path with precomputed segment lengths for cheap sampling by travelled distance.
     public sealed class LevelPath
     {

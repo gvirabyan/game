@@ -59,30 +59,44 @@ namespace Corehold
 
         void BuildHud(RectTransform root)
         {
-            var bar = UIFactory.Rect("Hud", root, new Vector2(0, 1), Vector2.one, new Vector2(Margin, -Margin - 130), new Vector2(-Margin, -Margin));
-            UIFactory.Image(bar, UIFactory.PanelColor);
+            var bar = UIFactory.Rect("Hud", root, new Vector2(0, 1), Vector2.one, new Vector2(0, -Margin - 110), new Vector2(0, -Margin));
             hud = bar.gameObject;
 
-            UIFactory.Icon(UIFactory.Box("CoinIcon", bar, new Vector2(0, 0.5f), new Vector2(28, 0), new Vector2(64, 64)), Art.Coin);
-            coinsText = UIFactory.Text(UIFactory.Box("Coins", bar, new Vector2(0, 0.5f), new Vector2(104, 0), new Vector2(220, 80)),
-                "", 56, TextAnchor.MiddleLeft, Art.Palette.Gold, true);
-            UIFactory.Icon(UIFactory.Box("HeartIcon", bar, new Vector2(0, 0.5f), new Vector2(330, 0), new Vector2(60, 60)), Art.Heart);
-            livesText = UIFactory.Text(UIFactory.Box("Lives", bar, new Vector2(0, 0.5f), new Vector2(402, 0), new Vector2(140, 80)),
-                "", 56, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
-            waveText = UIFactory.Text(UIFactory.Box("Wave", bar, new Vector2(1, 0.5f), new Vector2(-270, 0), new Vector2(260, 80)),
-                "", 44, TextAnchor.MiddleRight, UIFactory.TextDim, true);
+            coinsText = Chip(bar, "CoinChip", Margin, 250, Art.Coin, Art.Palette.Gold);
+            livesText = Chip(bar, "LivesChip", Margin + 266, 190, Art.Heart, UIFactory.TextMain);
+            waveText = Chip(bar, "WaveChip", Margin + 472, 230, Art.Flag, UIFactory.TextMain);
 
-            var speedButton = UIFactory.Button(UIFactory.Box("SpeedButton", bar, new Vector2(1, 0.5f), new Vector2(-142, 0), new Vector2(110, 96)),
-                UIFactory.CardColor, out speedLabel, "x1", 40);
+            var pause = UIFactory.Box("PauseButton", bar, new Vector2(1, 1), new Vector2(-Margin, 0), new Vector2(104, 104));
+            UIFactory.Shadow(pause, 12f, 6f);
+            UIFactory.IconButton(pause, UIFactory.CardColor, Art.Pause, 44).onClick.AddListener(() => SetPaused(true));
+
+            var speedRt = UIFactory.Box("SpeedButton", bar, new Vector2(1, 1), new Vector2(-Margin - 120, 0), new Vector2(104, 104));
+            UIFactory.Shadow(speedRt, 12f, 6f);
+            var speedButton = UIFactory.Button(speedRt, UIFactory.CardColor, out speedLabel, "x1", 38);
             speedButton.onClick.AddListener(ToggleSpeed);
-            var pauseButton = UIFactory.Button(UIFactory.Box("PauseButton", bar, new Vector2(1, 0.5f), new Vector2(-18, 0), new Vector2(110, 96)),
-                UIFactory.CardColor, out _, "II", 40);
-            pauseButton.onClick.AddListener(() => SetPaused(true));
         }
 
+        // Shadow + background inside a panel container, so both hide together with it.
+        static void PanelFace(RectTransform panel)
+        {
+            var face = UIFactory.Fill("Face", panel);
+            UIFactory.Shadow(face);
+            UIFactory.Image(face, UIFactory.PanelColor, true);    // also blocks taps from reaching the map
+        }
+
+        // Rounded pill with an icon and a value.
+        static Text Chip(RectTransform parent, string name, float x, float width, Sprite icon, Color textColor)
+        {
+            var chip = UIFactory.Box(name, parent, new Vector2(0, 1), new Vector2(x, 0), new Vector2(width, 104));
+            UIFactory.Shadow(chip, 12f, 6f);
+            UIFactory.Image(chip, UIFactory.PanelColor);
+            UIFactory.Icon(UIFactory.Box("Icon", chip, new Vector2(0, 0.5f), new Vector2(22, 0), new Vector2(58, 58)), icon);
+            return UIFactory.Text(UIFactory.Rect("Value", chip, Vector2.zero, Vector2.one, new Vector2(94, 0), new Vector2(-14, 0)),
+                "", 48, TextAnchor.MiddleLeft, textColor, true);
+        }
         void BuildDebug(RectTransform root)
         {
-            var area = UIFactory.Rect("Debug", root, new Vector2(0, 1), Vector2.one, new Vector2(Margin + 8, -Margin - 300), new Vector2(-Margin, -Margin - 140));
+            var area = UIFactory.Rect("Debug", root, new Vector2(0, 1), Vector2.one, new Vector2(Margin + 8, -Margin - 290), new Vector2(-Margin, -Margin - 130));
             debugRoot = area.gameObject;
             debugText = UIFactory.Text(UIFactory.Rect("DebugText", area, Vector2.zero, new Vector2(0.6f, 1), Vector2.zero, Vector2.zero),
                 "", 26, TextAnchor.UpperLeft, new Color(0.75f, 1f, 0.75f, 0.9f));
@@ -94,7 +108,7 @@ namespace Corehold
         void BuildBottomBar(RectTransform root)
         {
             var bar = UIFactory.Rect("BottomBar", root, Vector2.zero, new Vector2(1, 0), new Vector2(Margin, Margin), new Vector2(-Margin, Margin + 150));
-            UIFactory.Image(bar, UIFactory.PanelColor, true);
+            PanelFace(bar);
             bottomBar = bar.gameObject;
 
             hintText = UIFactory.Text(UIFactory.Rect("Hint", bar, Vector2.zero, new Vector2(0.55f, 1), new Vector2(36, 0), Vector2.zero),
@@ -156,11 +170,11 @@ namespace Corehold
         RectTransform BottomPanel(string name, RectTransform root, out Text title)
         {
             var panel = UIFactory.Rect(name, root, Vector2.zero, new Vector2(1, 0), new Vector2(Margin, Margin), new Vector2(-Margin, Margin + 400));
-            UIFactory.Image(panel, UIFactory.PanelColor, true);
+            PanelFace(panel);
             title = UIFactory.Text(UIFactory.Rect("Title", panel, new Vector2(0, 1), Vector2.one, new Vector2(36, -90), new Vector2(-130, -10)),
                 "", 40, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
-            var close = UIFactory.Button(UIFactory.Box("Close", panel, Vector2.one, new Vector2(-20, -16), new Vector2(84, 70)),
-                UIFactory.CardColor, out _, "X", 34);
+            var close = UIFactory.IconButton(UIFactory.Box("Close", panel, Vector2.one, new Vector2(-20, -16), new Vector2(84, 76)),
+                UIFactory.CardColor, Art.Close, 32);
             close.onClick.AddListener(game.Deselect);
             return panel;
         }
@@ -203,7 +217,8 @@ namespace Corehold
             root = dim.gameObject;
             var card = UIFactory.Box("Card", dim, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(860, cardHeight));
             card.pivot = new Vector2(0.5f, 0.5f);
-            UIFactory.Image(card, new Color(0.09f, 0.11f, 0.15f, 0.98f));
+            UIFactory.Shadow(card, 30f, 16f);
+            UIFactory.Image(card, new Color(0.09f, 0.11f, 0.16f, 0.97f));
             return card;
         }
 
@@ -298,7 +313,7 @@ namespace Corehold
 
             coinsText.text = game.Coins.ToString();
             livesText.text = game.Lives.ToString();
-            waveText.text = $"Wave {game.WavesStarted}/{game.WaveCount}";
+            waveText.text = $"{game.WavesStarted}/{game.WaveCount}";
             speedLabel.text = speed > 1f ? "x2" : "x1";
 
             RefreshWaveButton();

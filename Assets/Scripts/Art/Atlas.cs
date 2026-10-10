@@ -129,6 +129,37 @@ namespace Corehold
             });
         }
 
+        // Convex polygon (any winding). Distance is the max over edge half-planes: exact on edges, good enough for AA.
+        public void Polygon(Vector2[] points, Color c, float soft = 0f)
+        {
+            var centroid = Vector2.zero;
+            float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+            foreach (var p in points)
+            {
+                centroid += p;
+                minX = Mathf.Min(minX, p.x); maxX = Mathf.Max(maxX, p.x);
+                minY = Mathf.Min(minY, p.y); maxY = Mathf.Max(maxY, p.y);
+            }
+            centroid /= points.Length;
+            var origins = new Vector2[points.Length];
+            var normals = new Vector2[points.Length];
+            for (int i = 0; i < points.Length; i++)
+            {
+                var a = points[i];
+                var e = points[(i + 1) % points.Length] - a;
+                var n = new Vector2(e.y, -e.x).normalized;
+                if (Vector2.Dot(centroid - a, n) > 0f) n = -n;     // make it point outward
+                origins[i] = a;
+                normals[i] = n;
+            }
+            Fill(minX, minY, maxX, maxY, soft, c, p =>
+            {
+                float d = float.MinValue;
+                for (int i = 0; i < origins.Length; i++) d = Mathf.Max(d, Vector2.Dot(p - origins[i], normals[i]));
+                return d;
+            });
+        }
+
         void Fill(float minX, float minY, float maxX, float maxY, float soft, Color c, Func<Vector2, float> sdf)
         {
             float unit = Unit;
