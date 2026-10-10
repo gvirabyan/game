@@ -54,3 +54,6 @@ sysinfo.txt
 # Local test results and logs
 /TestResults/
 *.log
+
+# Unity 6 Android build intermediates
+/.utmp/
