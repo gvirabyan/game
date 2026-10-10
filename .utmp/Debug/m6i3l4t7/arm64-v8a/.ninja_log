@@ -1,0 +1,12 @@
+# ninja log v5
+157	908	8133607923699764	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	bbe572282f726288
+911	1357	8133607927833694	D:/Corehold/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/Debug/m6i3l4t7/obj/arm64-v8a/libswappywrapper.so	9414ed0212ce5280
+86	3657	8133607951058729	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	444b3e07a3d221b2
+52	3674	8133607951089424	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	4e1fa2882555acde
+111	3682	8133607951325788	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	9eb75ee652dd9181
+34	3686	8133607951346528	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	80ebee233ca1f7d8
+18	3775	8133607952261454	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	6332df40d01bda1f
+69	4012	8133607954681539	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	f07e4b1deaa1c7e9
+134	4038	8133607954845193	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	22d975a9523e62a8
+1	4095	8133607955441985	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	c44fb163e5c4daec
+4095	4284	8133607957389389	D:/Corehold/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/Debug/m6i3l4t7/obj/arm64-v8a/libgame.so	f29e671fed4e1d19

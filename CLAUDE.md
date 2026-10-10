@@ -21,27 +21,32 @@ Single-tower idle defense for Android/iOS, portrait, one finger. Working title; 
 - Shell: PowerShell. Set `$u = "C:\Program Files\Unity\Hub\Editor\6000.6.5f1\Editor\Unity.exe"` first.
   Unity must not have the project open elsewhere, or batch mode fails with "another Unity instance is running".
 
-## Commands (run from the project root `D:\Corehold`)
-Use `-logFile <file>` and read the file; `Start-Process -Wait` makes PowerShell wait for Unity to exit.
+## Commands
+All paths absolute; Unity resolves relative `-logFile`/`-testResults` paths unreliably. `Start-Process -Wait -PassThru`
+makes PowerShell wait for Unity and gives the exit code. Always read the log afterwards.
+A `[Licensing::Module] Error: Access token is unavailable` line in logs is harmless.
 
 ```powershell
-# Compile (imports, compiles scripts, exits). Errors: search the log for "error CS" and "Compilation failed".
-Start-Process $u -ArgumentList '-batchmode','-quit','-nographics','-buildTarget','Android','-projectPath','.','-logFile','Logs/compile.log' -Wait -PassThru | % ExitCode
+$u = "C:\Program Files\Unity\Hub\Editor\6000.6.5f1\Editor\Unity.exe"; $P = "D:\Corehold"
 
-# Re-apply player settings and regenerate the bootstrap scene
-Start-Process $u -ArgumentList '-batchmode','-quit','-nographics','-buildTarget','Android','-projectPath','.','-executeMethod','ProjectSetup.Run','-logFile','Logs/setup.log' -Wait -PassThru | % ExitCode
+# Compile only. Check: Select-String $P\Logs\compile.log -Pattern "error CS|Compilation failed"
+(Start-Process $u -ArgumentList '-batchmode','-quit','-nographics','-buildTarget','Android','-projectPath',$P,'-logFile',"$P\Logs\compile.log" -Wait -PassThru).ExitCode
 
-# Tests (no -quit with -runTests). Results are NUnit XML.
-Start-Process $u -ArgumentList '-batchmode','-nographics','-projectPath','.','-runTests','-testPlatform','EditMode','-testResults','TestResults/editmode.xml','-logFile','Logs/editmode.log' -Wait -PassThru | % ExitCode
-Start-Process $u -ArgumentList '-batchmode','-nographics','-projectPath','.','-runTests','-testPlatform','PlayMode','-testResults','TestResults/playmode.xml','-logFile','Logs/playmode.log' -Wait -PassThru | % ExitCode
+# Re-apply player settings and regenerate the bootstrap scene (also compiles)
+(Start-Process $u -ArgumentList '-batchmode','-quit','-nographics','-buildTarget','Android','-projectPath',$P,'-executeMethod','ProjectSetup.Run','-logFile',"$P\Logs\setup.log" -Wait -PassThru).ExitCode
 
-# Debug APK  -> Builds/Android/Corehold-debug.apk   (development build)
-Start-Process $u -ArgumentList '-batchmode','-quit','-buildTarget','Android','-projectPath','.','-executeMethod','BuildScript.BuildAndroidDebug','-logFile','Logs/build.log' -Wait -PassThru | % ExitCode
-# Perf APK   -> Builds/Android/Corehold-perf.apk    (non-development, use for fps checks)
-Start-Process $u -ArgumentList '-batchmode','-quit','-buildTarget','Android','-projectPath','.','-executeMethod','BuildScript.BuildAndroidPerf','-logFile','Logs/build.log' -Wait -PassThru | % ExitCode
+# Tests (never pass -quit with -runTests). NUnit XML in TestResults\. PlayMode takes ~1 min.
+(Start-Process $u -ArgumentList '-batchmode','-nographics','-projectPath',$P,'-runTests','-testPlatform','EditMode','-testResults',"$P\TestResults\editmode.xml",'-logFile',"$P\Logs\editmode.log" -Wait -PassThru).ExitCode
+(Start-Process $u -ArgumentList '-batchmode','-nographics','-projectPath',$P,'-runTests','-testPlatform','PlayMode','-testResults',"$P\TestResults\playmode.xml",'-logFile',"$P\Logs\playmode.log" -Wait -PassThru).ExitCode
+# Summary: [xml]$x = Get-Content $P\TestResults\playmode.xml; $x.'test-run' | select result,total,passed,failed
 
-# Install on a USB-connected phone
-adb install -r Builds/Android/Corehold-debug.apk
+# Debug APK -> Builds\Android\Corehold-debug.apk (development build). Check the log for "[BuildScript] Succeeded".
+(Start-Process $u -ArgumentList '-batchmode','-quit','-nographics','-buildTarget','Android','-projectPath',$P,'-executeMethod','BuildScript.BuildAndroidDebug','-logFile',"$P\Logs\build-debug.log" -Wait -PassThru).ExitCode
+# Perf APK  -> Builds\Android\Corehold-perf.apk (non-development; use this one to judge fps)
+(Start-Process $u -ArgumentList '-batchmode','-quit','-nographics','-buildTarget','Android','-projectPath',$P,'-executeMethod','BuildScript.BuildAndroidPerf','-logFile',"$P\Logs\build-perf.log" -Wait -PassThru).ExitCode
+
+# Install on a USB-connected phone (adb from Android Studio's SDK or Unity's SDK\platform-tools)
+adb install -r D:\Corehold\Builds\Android\Corehold-debug.apk
 ```
 
 ## Layout
