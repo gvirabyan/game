@@ -1,0 +1,10 @@
+{
+    "name": "Corehold.Tests.EditMode",
+    "rootNamespace": "Corehold.Tests",
+    "references": [ "Corehold", "UnityEngine.TestRunner", "UnityEditor.TestRunner" ],
+    "includePlatforms": [ "Editor" ],
+    "overrideReferences": true,
+    "precompiledReferences": [ "nunit.framework.dll" ],
+    "autoReferenced": false,
+    "defineConstraints": [ "UNITY_INCLUDE_TESTS" ]
+}

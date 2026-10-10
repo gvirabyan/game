@@ -1,0 +1,6 @@
+{
+    "name": "Corehold",
+    "rootNamespace": "Corehold",
+    "references": [ "UnityEngine.UI" ],
+    "autoReferenced": true
+}

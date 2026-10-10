@@ -1,0 +1,7 @@
+# Unity writes LF; keep it that way regardless of core.autocrlf
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.wav binary
+*.ogg binary
+*.ttf binary

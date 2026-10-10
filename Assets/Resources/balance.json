@@ -1,0 +1,41 @@
+{
+  "_readme": "All balance numbers. n = wave number (starts at 1), level = upgrade level (starts at 0). Formulas are in Assets/Scripts/Balance.cs (class Formulas).",
+
+  "run": {
+    "startCoins": 0,
+    "worldHalfWidth": 5.0
+  },
+
+  "tower": {
+    "radius": 0.6,
+    "projectileSpeed": 14.0,
+    "projectileSize": 0.18
+  },
+
+  "waves": {
+    "_formulas": "count = min(maxCount, baseCount + floor(countPerWave*(n-1))) | health = baseHealth * healthGrowth^(n-1) | speed = min(maxSpeed, baseSpeed + speedPerWave*(n-1)) | damagePerSecond = baseDamage * damageGrowth^(n-1) | coinsPerKill = max(1, round(baseCoins * coinGrowth^(n-1)))",
+    "duration": 20.0,
+    "breakBetween": 3.0,
+    "baseCount": 8,
+    "countPerWave": 4.0,
+    "maxCount": 200,
+    "baseHealth": 4.0,
+    "healthGrowth": 1.15,
+    "baseSpeed": 1.0,
+    "speedPerWave": 0.05,
+    "maxSpeed": 2.5,
+    "baseDamage": 2.0,
+    "damageGrowth": 1.12,
+    "baseCoins": 1.0,
+    "coinGrowth": 1.08,
+    "enemySize": 0.35
+  },
+
+  "_upgradeFormulas": "value = baseValue + valuePerLevel*level | cost = round(baseCost * costGrowth^level) | maxLevel 0 = unlimited. Level 0 values are the tower's starting stats.",
+  "upgrades": [
+    { "id": "damage",    "label": "Damage",    "baseValue": 2.0,  "valuePerLevel": 1.0,  "baseCost": 10, "costGrowth": 1.35, "maxLevel": 0 },
+    { "id": "fireRate",  "label": "Fire rate", "baseValue": 1.5,  "valuePerLevel": 0.25, "baseCost": 15, "costGrowth": 1.40, "maxLevel": 30 },
+    { "id": "maxHealth", "label": "Health",    "baseValue": 20.0, "valuePerLevel": 8.0,  "baseCost": 10, "costGrowth": 1.30, "maxLevel": 0 },
+    { "id": "range",     "label": "Range",     "baseValue": 3.5,  "valuePerLevel": 0.3,  "baseCost": 20, "costGrowth": 1.50, "maxLevel": 15 }
+  ]
+}
