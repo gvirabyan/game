@@ -10,6 +10,12 @@ namespace Corehold
         static Font font;
         public static Font Font => font != null ? font : font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
+        public static readonly Color TextMain = Color.white;
+        public static readonly Color TextDim = new Color(0.62f, 0.67f, 0.73f);
+        public static readonly Color PanelColor = new Color(0.06f, 0.08f, 0.11f, 0.9f);
+        public static readonly Color CardColor = new Color(0.13f, 0.16f, 0.21f, 1f);
+        public static readonly Color DisabledColor = new Color(0.2f, 0.22f, 0.26f, 1f);
+
         public static Canvas CreateCanvas(string name, int sortingOrder)
         {
             var go = new GameObject(name);
@@ -52,20 +58,46 @@ namespace Corehold
         public static RectTransform Fill(string name, Transform parent) =>
             Rect(name, parent, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
 
-        public static Image Image(RectTransform rt, Color color, bool raycast = false)
+        // A box of fixed size placed relative to an anchor point of its parent.
+        public static RectTransform Box(string name, Transform parent, Vector2 anchor, Vector2 position, Vector2 size)
+        {
+            var rt = Rect(name, parent, anchor, anchor, Vector2.zero, Vector2.zero);
+            rt.pivot = anchor;
+            rt.sizeDelta = size;
+            rt.anchoredPosition = position;
+            return rt;
+        }
+
+        public static Image Image(RectTransform rt, Color color, bool raycast = false, bool rounded = true)
         {
             var img = rt.gameObject.AddComponent<Image>();
             img.color = color;
             img.raycastTarget = raycast;
+            if (rounded)
+            {
+                img.sprite = Art.Panel;
+                img.type = UnityEngine.UI.Image.Type.Sliced;
+            }
             return img;
         }
 
-        public static Text Text(RectTransform rt, string text, int size, TextAnchor anchor, Color color)
+        public static Image Icon(RectTransform rt, Sprite sprite, float rotation = 0f)
+        {
+            var img = rt.gameObject.AddComponent<Image>();
+            img.sprite = sprite;
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+            rt.localRotation = Quaternion.Euler(0f, 0f, rotation);
+            return img;
+        }
+
+        public static Text Text(RectTransform rt, string text, int size, TextAnchor anchor, Color color, bool bold = false)
         {
             var t = rt.gameObject.AddComponent<Text>();
             t.font = Font;
             t.text = text;
             t.fontSize = size;
+            t.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
             t.alignment = anchor;
             t.color = color;
             t.supportRichText = true;
@@ -80,19 +112,12 @@ namespace Corehold
             var img = Image(rt, color, true);
             var button = rt.gameObject.AddComponent<Button>();
             button.targetGraphic = img;
-            label = Text(Fill("Label", rt), text, size, TextAnchor.MiddleCenter, Color.white);
+            var colors = button.colors;
+            colors.pressedColor = new Color(0.75f, 0.75f, 0.75f);
+            colors.fadeDuration = 0.05f;
+            button.colors = colors;
+            label = Text(Fill("Label", rt), text, size, TextAnchor.MiddleCenter, TextMain, true);
             return button;
-        }
-
-        static readonly string[] Suffixes = { "K", "M", "B", "T", "q", "Q" };
-
-        // Format numbers compactly: 1.75, 950, 1.2K, 34.5M ...
-        public static string Number(float v)
-        {
-            if (v < 1000f) return v < 10f && v != Mathf.Floor(v) ? v.ToString("0.##") : Mathf.Floor(v).ToString("0");
-            int i = -1;
-            while (v >= 1000f && i < Suffixes.Length - 1) { v /= 1000f; i++; }
-            return v.ToString(v < 100f ? "0.#" : "0") + Suffixes[i];
         }
     }
 

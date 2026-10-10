@@ -7,85 +7,130 @@ using UnityEngine.UI;
 
 namespace Corehold.Tests
 {
-    // Plays a full run in the real scene, sped up, and drives it through the real UI buttons.
+    // Plays real levels in the real scene, sped up, driving them through the real UI buttons.
     public class RunTests
     {
         const float TimeScale = 20f;
-        const float TimeoutSeconds = 180f;
+        const float TimeoutSeconds = 240f;
 
         [TearDown]
         public void TearDown() => Time.timeScale = 1f;
 
-        [UnityTest]
-        public IEnumerator FullRun_WavesShootUpgradeDieRestart()
+        IEnumerator LoadScene()
         {
             SceneManager.LoadScene("Main");
             yield return null;
             yield return null;
-
-            var game = Game.Instance;
-            Assert.NotNull(game, "Bootstrap did not create the Game");
-            Assert.NotNull(Camera.main, "Bootstrap did not create a camera");
-            Assert.AreEqual(RunState.Playing, game.State);
-            Assert.AreEqual(1, game.Wave);
-
-            Time.timeScale = TimeScale;
-
-            // Waves arrive, the tower shoots and earns coins.
-            yield return WaitUntil(() => game.Wave >= 2 && game.Kills > 0, "reach wave 2 with kills");
-            Assert.Greater(game.ShotsFired, 0, "tower never fired");
-            Assert.Greater(game.Coins, 0f, "kills gave no coins");
-            Debug.Log($"[RunTests] wave {game.Wave}, kills {game.Kills}, shots {game.ShotsFired}, coins {game.Coins}");
-
-            // Buy each of the four upgrades through its button.
-            game.AddCoins(10000f);
-            for (int i = 0; i < 4; i++)
-            {
-                var kind = (UpgradeKind)i;
-                float before = game.StatValue(kind);
-                Click("Upgrade_" + kind);
-                Assert.AreEqual(1, game.UpgradeLevel(kind), $"{kind} button did not buy");
-                Assert.Greater(game.StatValue(kind), before, $"{kind} stat did not grow");
-            }
-
-            // Enemies outscale the tower; the run must end.
-            yield return WaitUntil(() => game.State == RunState.GameOver, "tower to die");
-            Assert.LessOrEqual(game.TowerHealth, 0f);
-            Assert.IsTrue(GameObject.Find("ResultPanel") != null, "result screen not shown");
-            Debug.Log($"[RunTests] died on wave {game.Wave} after {game.RunTime:0}s, kills {game.Kills}");
-
-            // Restart resets the run.
-            Click("RestartButton");
-            Assert.AreEqual(RunState.Playing, game.State);
-            Assert.AreEqual(1, game.Wave);
-            Assert.AreEqual(0, game.Kills);
-            Assert.AreEqual(0, game.EnemyCount);
-            Assert.AreEqual(0, game.UpgradeLevel(UpgradeKind.Damage));
-            Assert.AreEqual(game.MaxHealth, game.TowerHealth);
-            Assert.IsTrue(GameObject.Find("ResultPanel") == null, "result screen still shown");
+            Assert.NotNull(Game.Instance, "Bootstrap did not create the Game");
+            Assert.AreEqual(GameState.Menu, Game.Instance.State);
         }
 
         [UnityTest]
-        public IEnumerator StressMode_Holds200EnemiesWithoutPoolGrowth()
+        public IEnumerator Undefended_LevelFails_ThenRetryResets()
         {
-            SceneManager.LoadScene("Main");
-            yield return null;
-            yield return null;
-
+            yield return LoadScene();
             var game = Game.Instance;
+            Click("Level_1");
+            Assert.AreEqual(GameState.Playing, game.State);
+            int startCoins = game.Coins;
+
+            Click("WaveButton");
+            Assert.AreEqual(1, game.WavesStarted);
+            Time.timeScale = TimeScale;
+
+            yield return WaitUntil(() => game.State == GameState.Lost, "level to be lost");
+            Assert.AreEqual(0, game.Lives);
+            Assert.IsTrue(GameObject.Find("ResultPanel") != null, "result screen not shown");
+            Debug.Log($"[RunTests] undefended: lost on wave {game.WavesStarted}");
+
+            Click("RetryButton");
+            Assert.AreEqual(GameState.Playing, game.State);
+            Assert.AreEqual(0, game.WavesStarted);
+            Assert.AreEqual(startCoins, game.Coins);
+            Assert.AreEqual(game.Level.lives, game.Lives);
+            Assert.AreEqual(0, game.EnemyCount);
+        }
+
+        [UnityTest]
+        public IEnumerator BuildUpgradeSell_ThroughPanels()
+        {
+            yield return LoadScene();
+            var game = Game.Instance;
+            Click("Level_1");
+            game.AddCoins(1000);
+
+            game.Select(0);
+            Assert.IsTrue(GameObject.Find("BuildPanel") != null, "build panel not shown");
+            int before = game.Coins;
+            Click("Build_mg");
+            Assert.NotNull(game.Spots[0].tower, "tower not built");
+            Assert.AreEqual(before - game.Balance.Tower("mg").cost, game.Coins);
+            Assert.IsTrue(GameObject.Find("TowerPanel") != null, "tower panel not shown after building");
+
+            for (int i = 0; i < 3; i++) Click("UpgradeButton");
+            Assert.AreEqual(3, game.Spots[0].tower.level);
+            Assert.IsFalse(game.TryUpgrade(), "upgraded past max level");
+
+            int spent = game.Spots[0].tower.spent;
+            before = game.Coins;
+            Click("SellButton");
+            Assert.IsNull(game.Spots[0].tower, "tower not sold");
+            Assert.AreEqual(before + Formulas.SellValue(spent, game.Balance.economy), game.Coins);
+        }
+
+        [UnityTest]
+        public IEnumerator DefendedLevels_AreWonAndAdvance()
+        {
+            yield return LoadScene();
+            var game = Game.Instance;
+            Click("Level_1");
+
+            for (int level = 0; level < game.Balance.levels.Length; level++)
+            {
+                Assert.AreEqual(level, game.LevelIndex);
+                FortifyAllSpots(game);
+                Click("WaveButton");
+                Time.timeScale = TimeScale;
+                yield return WaitUntil(() => game.State != GameState.Playing, $"level {level + 1} to finish");
+                Assert.AreEqual(GameState.Won, game.State, $"level {level + 1} lost on wave {game.WavesStarted}");
+                Debug.Log($"[RunTests] level {level + 1} won, kills {game.Kills}, lives {game.Lives}/{game.Level.lives}");
+                if (level < game.Balance.levels.Length - 1) Click("NextLevelButton");
+            }
+        }
+
+        // Build a mix of towers on every pad, fully upgraded: mostly mg, a cannon and missiles where drones appear.
+        static void FortifyAllSpots(Game game)
+        {
+            game.AddCoins(100000);
+            for (int i = 0; i < game.Spots.Count; i++)
+            {
+                game.Select(i);
+                Click(i % 3 == 0 ? "Build_aa" : i % 3 == 1 ? "Build_cannon" : "Build_mg");
+                for (int u = 0; u < 3; u++) Click("UpgradeButton");
+            }
+            game.Deselect();
+        }
+
+        [UnityTest]
+        public IEnumerator StressMode_Holds200MovingEnemiesWithoutPoolGrowth()
+        {
+            yield return LoadScene();
+            var game = Game.Instance;
+            Click("Level_1");
             Click("StressButton");
             Assert.IsTrue(game.StressMode);
 
-            for (int i = 0; i < 120; i++) yield return null;
+            for (int i = 0; i < 300; i++) yield return null;
             Assert.AreEqual(Game.StressEnemyCount, game.EnemyCount);
-            Assert.AreEqual(RunState.Playing, game.State, "tower should not take damage in stress mode");
+            Assert.AreEqual(game.Level.lives, game.Lives, "stress mode must not cost lives");
+            Assert.AreEqual(GameState.Playing, game.State);
             Assert.AreEqual(0, game.PoolGrowth, "pools had to allocate during play");
         }
 
         static void Click(string name)
         {
             var go = GameObject.Find(name);
-            Assert.NotNull(go, $"UI object '{name}' not found");
+            Assert.NotNull(go, $"UI object '{name}' not found or not active");
             go.GetComponent<Button>().onClick.Invoke();
         }
 
