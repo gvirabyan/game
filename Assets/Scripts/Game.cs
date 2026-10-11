@@ -16,7 +16,7 @@ namespace Corehold
         const int ProjectilePrewarm = 200;
         const int EffectPrewarm = 260;
         const int BoltPrewarm = 32;
-        const int RipplePrewarm = 16;
+        const int RipplePrewarm = 48;
         const float TurretTurnSpeed = 540f;
         const float EnemyTurnSpeed = 360f;
         const float HitRadius = 0.12f;
@@ -35,6 +35,7 @@ namespace Corehold
         const float SpawnSpread = 0.35f;       // soldiers dropped by a destroyed APC spread along the road
         static readonly Color SmokeColor = new Color(0.42f, 0.42f, 0.4f, 0.55f);
         static readonly Color MuzzleColor = Art.Hex("FFE9A8"), SparkColor = Art.Hex("FFD27A"), FireCoreColor = Art.Hex("FFF4D6");
+        static readonly Color HealColor = Art.Hex("5CF08A");
         static readonly Color FlameColor = Art.Hex("FF8A3D"), BoltColor = Art.Hex("9EE8FF"), TracerColor = Art.Hex("FFF1B0"), IceColor = Art.Hex("9EE8FF");
         static readonly int FlashId = Shader.PropertyToID("_Flash");
 
@@ -56,9 +57,13 @@ namespace Corehold
         public BuildSpot Selected { get; private set; }
         public IReadOnlyList<BuildSpot> Spots => spots;
 
-        // Best results of this session (nothing is saved between launches).
-        public int[] LevelStars { get; private set; }
-        public int EndlessBest { get; private set; }
+        // Saved campaign progress (see Progress).
+        public int[] LevelStars => Progress.Stars(Balance.levels.Length);
+        public int EndlessBest => Progress.EndlessBest;
+        public bool IsLevelUnlocked(int index) => Progress.Unlocked(index);
+
+        // Towers unlock as the campaign goes on; Endless has them all.
+        public bool IsTowerUnlocked(string id) => Endless || Level == null || Level.number >= Balance.campaign.TowerLevel(id);
         public WorldMapView Map { get; private set; }        // the main menu's campaign map, null outside the menu
 
         public int EnemyCount => enemies.Active.Count;
@@ -108,7 +113,7 @@ namespace Corehold
             FitCamera();
             billboard = cam.transform.rotation;
             Balance = Corehold.Balance.Load();
-            LevelStars = new int[Balance.levels.Length];
+            Progress.Stars(Balance.levels.Length);
 
             // 3D models live under the world root; billboards (health bars, effects) live under the overlay.
             world = new GameObject("World").transform;
@@ -156,6 +161,9 @@ namespace Corehold
             peekIndex = -1;
 
             var view = FitCamera();
+            var style = BiomeStyle.Of(Level.biome);
+            cam.backgroundColor = style.Sky;
+            RenderSettings.fogColor = style.Sky;
             path = new LevelPath(LevelPath.Rounded(ExtendStartOffscreen(Level.path, view)));
             levelRoot = LevelView.Build(Level, path, Balance.economy.roadWidth, view, seed, world, spots);
 
@@ -176,7 +184,11 @@ namespace Corehold
             else LoadLevel(LevelIndex);
         }
 
-        public void NextLevel() => LoadLevel((LevelIndex + 1) % Balance.levels.Length);
+        public void NextLevel()
+        {
+            if (LevelIndex + 1 < Balance.levels.Length) LoadLevel(LevelIndex + 1);
+            else ShowMenu();
+        }
 
         void ClearLevel()
         {
@@ -337,6 +349,8 @@ namespace Corehold
         {
             var e = enemies.Get();
             e.type = type;
+            // Bosses scale with the mission, not with the wave they come in.
+            if (type.boss) waveIndex = 0;
             e.maxHealth = e.health = Endless
                 ? Formulas.EndlessHealth(type, Balance.endless, waveIndex)
                 : Formulas.EnemyHealth(type, Level, Balance.waves, waveIndex);
@@ -346,6 +360,7 @@ namespace Corehold
             e.angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
             e.height = type.air ? AirHeight : 0f;
             e.slow = e.slowTime = e.burnDps = e.burnTime = 0f;
+            e.abilityTimer = 1f;
 
             SetupParts(e, Models.Rig(type.id));
             e.root.localScale = Vector3.one * (type.size * UnitScale);
@@ -380,7 +395,13 @@ namespace Corehold
                         var fx = SpawnEffect(e.position, e.height + 0.35f, 0.4f, FlameColor, 0.25f, 0.45f);
                         fx.velocity = new Vector3(0f, 0.8f, 0f);
                     }
-                    if (Damage(e, e.burnDps * dt, false)) continue;
+                    if (Damage(e, e.burnDps * dt, false, true)) continue;
+                }
+
+                if (e.type.healRate > 0f || e.type.launchEvery > 0f)
+                {
+                    e.abilityTimer -= dt;
+                    if (e.abilityTimer <= 0f) UseAbility(e);
                 }
 
                 e.distance += speed * dt;
@@ -399,6 +420,33 @@ namespace Corehold
                 if (e.flash > 0f) SetFlash(e, Mathf.Max(0f, e.flash - FlashFade * dt));
                 if (e.hpRoot.gameObject.activeSelf) e.hpRoot.position = HealthBarPosition(e);
             }
+        }
+
+        // Medics heal everyone around them once a second; carriers launch drones.
+        void UseAbility(Enemy e)
+        {
+            var type = e.type;
+            if (type.healRate > 0f)
+            {
+                e.abilityTimer = 1f;
+                float r2 = type.healRadius * type.healRadius;
+                var list = enemies.Active;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    var o = list[i];
+                    if (o.health >= o.maxHealth || (o.position - e.position).sqrMagnitude > r2) continue;
+                    o.health = Mathf.Min(o.maxHealth, o.health + o.maxHealth * type.healRate);
+                    SetHealthBar(o);
+                }
+                SpawnRipple(e.position, type.healRadius, HealColor);
+            }
+            else if (!StressMode)
+            {
+                e.abilityTimer = type.launchEvery;
+                var drone = SpawnEnemy(Balance.Enemy(type.launch), Mathf.Max(0, WavesStarted - 1), e.distance - 0.3f);
+                Flash(drone.position, drone.height, 0.8f, MuzzleColor);
+            }
+            else e.abilityTimer = type.launchEvery;
         }
 
         Vector3 HealthBarPosition(Enemy e) => View.World(e.position, e.height + e.type.size * 1.3f * UnitScale + 0.2f);
@@ -420,9 +468,10 @@ namespace Corehold
             ReleaseEnemy(e);
         }
 
-        // Returns true when the enemy died (and was released).
-        bool Damage(Enemy e, float amount, bool flash = true)
+        // Returns true when the enemy died (and was released). Armour soaks part of every hit except burning.
+        bool Damage(Enemy e, float amount, bool flash = true, bool ignoreArmor = false)
         {
+            if (!ignoreArmor && e.type.armor > 0f) amount = Formulas.AfterArmor(amount, e.type.armor);
             e.health -= amount;
             if (e.health > 0f)
             {
@@ -489,6 +538,11 @@ namespace Corehold
                     for (int i = 0; i < e.rig.Parts.Length; i++)
                         e.parts[i].localRotation = Quaternion.Euler(0f, Mathf.Sin(time * (0.7f + i * 0.4f) + e.activeIndex + i) * (18f + i * 15f), 0f);
                     return Mathf.Sin(time * 40f + e.activeIndex) * 0.006f;      // engine rumble
+                case Models.Motion.Fan:
+                    e.parts[0].localRotation = Quaternion.Euler(time * 1400f, 0f, 0f);
+                    return 0.08f + Mathf.Sin(time * 6f + e.activeIndex) * 0.02f;     // floats on its air cushion
+                case Models.Motion.None:
+                    return Mathf.Sin(time * 2f + e.activeIndex) * 0.05f;
                 case Models.Motion.Tandem:
                     e.parts[0].localRotation = Quaternion.Euler(0f, time * 900f, 0f);
                     e.parts[1].localRotation = Quaternion.Euler(0f, -time * 900f, 0f);
@@ -496,7 +550,7 @@ namespace Corehold
                 case Models.Motion.Wheels:
                 {
                     var spin = Quaternion.Euler(0f, 0f, -e.distance * 320f / Mathf.Max(e.type.size, 0.1f));
-                    for (int i = 0; i < 4; i++) e.parts[i].localRotation = spin;
+                    for (int i = 0; i < e.rig.Parts.Length; i++) e.parts[i].localRotation = spin;
                     return Mathf.Sin(time * 25f + e.activeIndex) * 0.008f;
                 }
                 case Models.Motion.Heli:
@@ -611,7 +665,8 @@ namespace Corehold
         // ---------------- Building ----------------
 
         public bool CanBuild(string towerId) =>
-            State == GameState.Playing && Selected != null && Selected.tower == null && Coins >= Balance.Tower(towerId).cost;
+            State == GameState.Playing && Selected != null && Selected.tower == null && IsTowerUnlocked(towerId) &&
+            Coins >= Balance.Tower(towerId).cost;
 
         public bool TryBuild(string towerId)
         {
@@ -1175,9 +1230,8 @@ namespace Corehold
         {
             Deselect();
             shake = 0f;
-            if (Endless) EndlessBest = Mathf.Max(EndlessBest, Mathf.Max(0, WavesStarted - 1));
-            else if (result == GameState.Won)
-                LevelStars[LevelIndex] = Mathf.Max(LevelStars[LevelIndex], StarsFor(Lives, Level.lives));
+            if (Endless) Progress.EndlessBest = Mathf.Max(0, WavesStarted - 1);
+            else if (result == GameState.Won) Progress.SetStars(LevelIndex, StarsFor(Lives, Level.lives));
             Sfx.Music(null);
             Sfx.Play(result == GameState.Won ? Sounds.Victory : Sounds.Defeat, 0.8f, 0f, 0f);
             State = result;

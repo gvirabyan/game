@@ -13,8 +13,9 @@ namespace Corehold
         public WaveScaling waves;
         public EnemyConfig[] enemies;
         public TowerConfig[] towers;
-        public LevelConfig[] levels;
+        public LevelConfig[] levels;            // generated from campaign at load time
         public EndlessConfig endless;
+        public CampaignConfig campaign;
 
         public EnemyConfig Enemy(string id) =>
             Array.Find(enemies, e => e.id == id) ?? throw new InvalidOperationException($"balance.json: unknown enemy '{id}'");
@@ -41,8 +42,9 @@ namespace Corehold
     [Serializable]
     public class EnemyConfig
     {
-        public string id;               // soldier | jeep | drone | tank | apc | heli | boss
+        public string id;               // see balance.json; bosses have boss = true
         public string label;
+        public string info;             // one line shown when the enemy first appears
         public float health;
         public float speed;             // world units per second
         public int reward;              // coins per kill
@@ -53,6 +55,10 @@ namespace Corehold
         public string spawnOnDeath;     // e.g. an APC drops soldiers when destroyed
         public int spawnCount;
         public bool boss;               // big health bar, camera shake, own model
+        public float armor;             // flat damage reduction per hit (at least a quarter always gets through)
+        public float healRadius, healRate;      // heals others in reach by healRate * their max health per second
+        public string launch;           // keeps launching these while alive
+        public float launchEvery;
     }
 
     [Serializable]
@@ -85,12 +91,54 @@ namespace Corehold
     public class LevelConfig
     {
         public string name;
+        public int number;              // 1-based mission number
+        public Biome biome;
+        public string newEnemy;         // enemy introduced by this mission, if any
+        public string boss;             // boss of this mission, if any
         public int lives;
         public int startCoins;
         public float healthMultiplier;  // enemy health multiplier for the whole level
         public Vector2[] path;          // waypoints; the first is extended to the screen edge, the last is the base
         public Vector2[] spots;         // where towers can be built
         public WaveConfig[] waves;
+    }
+
+    [Serializable]
+    public class CampaignConfig
+    {
+        public int levels;
+        public BiomeStart[] biomes;
+        public string[] startEnemies;
+        public EnemyUnlock[] enemyIntro, bossIntro;
+        public TowerUnlock[] towerUnlock;
+        public int lives, bossLives;
+        public int startCoins, startCoinsPerLevel;
+        public float healthPerLevel;
+        public int waves, levelsPerExtraWave, maxWaves;
+        public float budget, budgetPerLevel, budgetGrowthPerWave, spawnInterval;
+        public int pads;
+
+        public int TowerLevel(string tower)
+        {
+            foreach (var u in towerUnlock) if (u.tower == tower) return u.level;
+            return 1;
+        }
+    }
+
+    public enum Biome { Grass, Desert, Snow, Autumn }
+
+    [Serializable]
+    public class BiomeStart
+    {
+        public string name;
+        public int from;
+    }
+
+    [Serializable]
+    public class TowerUnlock
+    {
+        public string tower;
+        public int level;
     }
 
     // Endless mode: one map, waves generated from a growing threat budget.
@@ -118,6 +166,7 @@ namespace Corehold
     {
         public string enemy;
         public int wave;                // first endless wave (0-based) that may contain it
+        public int level;               // campaign: first mission (1-based) that has it
     }
 
     [Serializable]
@@ -155,6 +204,9 @@ namespace Corehold
         public static int ChainTargets(TowerConfig t, int level) => t.chain + level;
         public static float Slow(TowerConfig t, int level) => Mathf.Clamp(t.slow + t.slowPerLevel * level, 0f, 0.9f);
 
+        // Armour soaks a flat amount per hit; at least a quarter of every hit gets through.
+        public static float AfterArmor(float damage, float armor) => Mathf.Max(damage * 0.25f, damage - armor);
+
         public static float EndlessBudget(EndlessConfig e, int waveIndex) => e.budget * Mathf.Pow(e.budgetGrowth, waveIndex);
         public static float EndlessHealth(EnemyConfig enemy, EndlessConfig e, int waveIndex) =>
             enemy.health * Mathf.Pow(e.healthGrowth, waveIndex);
@@ -167,7 +219,9 @@ namespace Corehold
             var asset = Resources.Load<TextAsset>("balance");
             if (asset == null)
                 throw new InvalidOperationException("Assets/Resources/balance.json is missing");
-            return JsonUtility.FromJson<BalanceData>(asset.text);
+            var data = JsonUtility.FromJson<BalanceData>(asset.text);
+            data.levels = Campaign.Generate(data);
+            return data;
         }
     }
 }

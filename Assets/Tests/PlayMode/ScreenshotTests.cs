@@ -28,13 +28,17 @@ namespace Corehold.Tests
             game.ShowMenu();
             yield return null;
             Capture("menu");
-            GameObject.Find("Level_6").GetComponent<Button>().onClick.Invoke();
+            GameObject.Find("Level_1").GetComponent<Button>().onClick.Invoke();
             yield return null;
             Capture("level_info");
+            Progress.ResetAll();
 
-            for (int level = 0; level < 4; level++)
+            var picks = new[] { 0, 30, 55, 80 };
+            for (int level = 0; level < picks.Length; level++)
             {
-                game.LoadLevel(level);
+                game.LoadLevel(picks[level]);
+                var ok = GameObject.Find("IntroOk");
+                if (ok != null) ok.GetComponent<Button>().onClick.Invoke();
                 game.AddCoins(10000);
                 for (int i = 0; i < game.Spots.Count; i += 2)
                 {
@@ -64,6 +68,21 @@ namespace Corehold.Tests
                     Capture("level1_zoom");
                 }
             }
+        }
+
+        [UnityTest]
+        public IEnumerator CaptureIntroCard()
+        {
+            Progress.ResetAll();
+            SceneManager.LoadScene("Main");
+            yield return null;
+            yield return null;
+            var cam = Camera.main;
+            cam.aspect = Width / (float)Height;
+            Game.Instance.LoadLevel(4);
+            yield return null;
+            Capture("intro");
+            Time.timeScale = 1f;
         }
 
         // Renders the main camera and every overlay canvas (switched to camera space) into one image.

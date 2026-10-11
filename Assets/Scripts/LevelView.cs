@@ -142,12 +142,11 @@ namespace Corehold
         // One level's terrain shape and prop placement rules.
         sealed class Site
         {
-            static readonly Color GrassLight = Art.Hex("74A843"), GrassDark = Art.Hex("4A8436"), GrassDry = Art.Hex("A0A852");
-            static readonly Color HillRock = Art.Hex("9A8F78"), HillTop = Art.Hex("8DBA55");
             const float Cell = 0.7f;
 
             public readonly Vector2 Hq;
             readonly LevelConfig level;
+            readonly BiomeStyle style;
             readonly LevelPath path;
             readonly float roadHalf;
             readonly System.Random random;
@@ -158,6 +157,7 @@ namespace Corehold
             {
                 this.level = level;
                 this.path = path;
+                style = BiomeStyle.Of(level.biome);
                 roadHalf = roadWidth * 0.5f;
                 random = new System.Random(seed);
                 nx = (float)random.NextDouble() * 100f;
@@ -216,17 +216,17 @@ namespace Corehold
                 var center = (a + b + c) / 3f;
                 var n = Vector3.Cross(b - a, c - a).normalized;
                 float m = Mathf.PerlinNoise(center.x * 0.22f + nx + 7f, center.z * 0.22f + ny + 3f);
-                var col = Color.Lerp(GrassDark, GrassLight, Mathf.SmoothStep(0f, 1f, m));
+                var col = Color.Lerp(style.GrassDark, style.GrassLight, Mathf.SmoothStep(0f, 1f, m));
                 float dry = Mathf.PerlinNoise(center.x * 0.45f + nx + 21f, center.z * 0.45f + ny + 11f);
-                col = Color.Lerp(col, GrassDry, Mathf.InverseLerp(0.6f, 0.8f, dry) * 0.75f);
-                col = Color.Lerp(col, HillRock, Mathf.InverseLerp(0.3f, 0.65f, 1f - Mathf.Abs(n.y)));
-                col = Color.Lerp(col, HillTop, Mathf.InverseLerp(1.2f, 3f, center.y) * 0.5f);     // sunlit hilltops
+                col = Color.Lerp(col, style.GrassDry, Mathf.InverseLerp(0.6f, 0.8f, dry) * 0.75f);
+                col = Color.Lerp(col, style.Slope, Mathf.InverseLerp(0.3f, 0.65f, 1f - Mathf.Abs(n.y)));
+                col = Color.Lerp(col, style.HillTop, Mathf.InverseLerp(1.2f, 3f, center.y) * 0.5f);     // sunlit hilltops
                 col *= 0.97f + 0.06f * (float)random.NextDouble();
                 col.a = 1f;
                 return col;
             }
 
-            public void Road(MeshBuilder b) => DirtRoad.Build(b, path.Points, roadHalf, random.Next());
+            public void Road(MeshBuilder b) => DirtRoad.Build(b, path.Points, roadHalf, random.Next(), style);
 
             public void Props(MeshBuilder b, Rect view)
             {
@@ -269,11 +269,16 @@ namespace Corehold
                 }
 
                 // Vegetation: trees mostly on the hills, bushes, rocks, grass and flowers on the field.
-                Scatter(area, 70, 0.42f, true, false, p => Models.Tree(b, Ground(p), Range(0.9f, 1.4f), random.Next()));
-                Scatter(area, 30, 0.3f, false, false, p => Models.Bush(b, Ground(p), Range(0.8f, 1.2f), random.Next()));
+                var biome = level.biome;
+                Scatter(area, 70, 0.42f, true, false, p => style.Tree(b, Ground(p), Range(0.9f, 1.4f), random.Next(), biome));
+                Scatter(area, 30, 0.3f, false, false, p => style.Bush(b, Ground(p), Range(0.8f, 1.2f), random.Next(), biome));
                 Scatter(area, 16, 0.3f, false, false, p => Models.Rock(b, Ground(p), Range(0.7f, 1.2f), random.Next()));
-                Scatter(area, 320, 0f, false, false, p => Models.GrassTuft(b, Ground(p), Range(0.7f, 1.3f), random.Next()));
-                Scatter(area, 90, 0f, false, false, p => Models.Flower(b, Ground(p), random.Next()));
+                if (biome == Biome.Grass || biome == Biome.Autumn)
+                {
+                    Scatter(area, 320, 0f, false, false, p => Models.GrassTuft(b, Ground(p), Range(0.7f, 1.3f), random.Next()));
+                    Scatter(area, 90, 0f, false, false, p => Models.Flower(b, Ground(p), random.Next()));
+                }
+                else Scatter(area, 60, 0f, false, false, p => Models.Rock(b, Ground(p), Range(0.25f, 0.5f), random.Next(), biome == Biome.Snow));
             }
 
             Vector3 Ground(Vector2 p) => View.World(p, Height(p));
@@ -334,12 +339,12 @@ namespace Corehold
     // patchy dirt colour, darker wheel ruts and the odd puddle. Built in map coordinates.
     public static class DirtRoad
     {
-        static readonly Color DirtLight = Art.Hex("C7A06A"), DirtDark = Art.Hex("A07E50"), Verge = Art.Hex("7E7A44");
-        static readonly Color Rut = Art.Hex("8C6C44"), Puddle = Art.Hex("6E7A82");
+        static readonly Color Puddle = Art.Hex("6E7A82");
         const float Step = 0.22f;
 
-        public static void Build(MeshBuilder b, Vector2[] points, float half, int seed)
+        public static void Build(MeshBuilder b, Vector2[] points, float half, int seed, BiomeStyle style)
         {
+            Color DirtLight = style.DirtLight, DirtDark = style.DirtDark, Verge = style.Verge, Rut = style.Rut;
             var random = new System.Random(seed);
             float nx = (float)random.NextDouble() * 100f, ny = (float)random.NextDouble() * 100f;
             var path = new LevelPath(points);

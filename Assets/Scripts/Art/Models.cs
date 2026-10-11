@@ -19,7 +19,7 @@ namespace Corehold
         static readonly Mesh[,] turrets = new Mesh[TowerIds.Length, TowerLevels];
 
         // How a unit's parts move (see Game.Animate).
-        public enum Motion { Walk, Turret, Rotors, Wheels, Heli, Tandem }
+        public enum Motion { Walk, Turret, Rotors, Wheels, Heli, Tandem, Fan, None }
 
         // A unit model split into a body and up to four moving parts with their joint positions.
         public sealed class UnitRig
@@ -427,6 +427,156 @@ namespace Corehold
                 Joints = new[] { TankTurretPivot + new Vector3(0f, 0.02f, 0f) },
             };
             BuildBossRigs();
+            BuildLateRigs(wheel);
+        }
+
+        // Enemies that join later in the campaign.
+        static void BuildLateRigs(Mesh wheel)
+        {
+            var bikeWheel = Make("BikeWheel", b => b.Barrel(new Vector3(0f, 0f, 0.025f), 0.05f, 0.13f, 8, Art.Hex("24262A"), 90f));
+            rigs["biker"] = new UnitRig
+            {
+                Body = Make("Biker", b =>
+                {
+                    b.Box(new Vector3(0f, 0.24f, 0f), new Vector3(0.5f, 0.1f, 0.1f), Art.Hex("B5473A"));
+                    b.Box(new Vector3(0.18f, 0.32f, 0f), new Vector3(0.06f, 0.16f, 0.24f), Gun);                       // handlebar
+                    b.Box(new Vector3(-0.04f, 0.42f, 0f), new Vector3(0.14f, 0.26f, 0.18f), SandDark);               // rider
+                    b.Sphere(new Vector3(0.0f, 0.62f, 0f), Vector3.one * 0.09f, Art.Hex("2A2F35"), 3, 6);           // helmet
+                }),
+                Motion = Motion.Wheels,
+                Parts = new[] { bikeWheel, bikeWheel },
+                Joints = new[] { new Vector3(0.24f, 0.13f, 0f), new Vector3(-0.24f, 0.13f, 0f) },
+            };
+            rigs["medic"] = new UnitRig
+            {
+                Body = Make("Medic", b =>
+                {
+                    b.Box(new Vector3(-0.08f, 0.4f, 0f), new Vector3(0.66f, 0.38f, 0.5f), Art.Hex("E8ECEF"), 0f, false, Art.Hex("F6F8FA"));
+                    b.Box(new Vector3(0.36f, 0.32f, 0f), new Vector3(0.26f, 0.24f, 0.48f), Art.Hex("D0D6DC"));
+                    b.Box(new Vector3(0.42f, 0.4f, 0f), new Vector3(0.02f, 0.1f, 0.4f), Glow(Art.Hex("9CC9E0"), 0.25f));
+                    foreach (var z in new[] { 0.255f, -0.255f })
+                    {
+                        b.Box(new Vector3(-0.08f, 0.42f, z), new Vector3(0.24f, 0.07f, 0.01f), Red);
+                        b.Box(new Vector3(-0.08f, 0.42f, z), new Vector3(0.07f, 0.24f, 0.01f), Red);
+                    }
+                    b.Box(new Vector3(-0.08f, 0.61f, 0f), new Vector3(0.12f, 0.05f, 0.12f), Glow(Red, 0.8f));       // beacon
+                }),
+                Motion = Motion.Wheels,
+                Parts = new[] { wheel, wheel, wheel, wheel },
+                Joints = new[] { new Vector3(0.28f, 0.14f, 0.27f), new Vector3(0.28f, 0.14f, -0.27f), new Vector3(-0.28f, 0.14f, 0.27f), new Vector3(-0.28f, 0.14f, -0.27f) },
+            };
+            var heavyCamo = new Camo("4A5A3A", "5E7048", "33402A", "1E241A");
+            rigs["heavy"] = new UnitRig
+            {
+                Body = Make("Heavy", b =>
+                {
+                    BuildTankHull(b, heavyCamo);
+                    for (int side = -1; side <= 1; side += 2)
+                        b.Box(new Vector3(0f, 0.3f, 0.47f * side), new Vector3(0.96f, 0.16f, 0.05f), heavyCamo.Dark);
+                    b.Box(new Vector3(0.48f, 0.38f, 0f), new Vector3(0.08f, 0.18f, 0.6f), heavyCamo.Dark);
+                }),
+                Motion = Motion.Turret,
+                Parts = new[] { Make("HeavyTurret", b => BuildTankTurret(b, heavyCamo)) },
+                Joints = new[] { TankTurretPivot },
+            };
+            rigs["hover"] = new UnitRig
+            {
+                Body = Make("Hover", b =>
+                {
+                    b.Cylinder(new Vector3(0f, 0.04f, 0f), 0.42f, 0.16f, 10, Art.Hex("2A2F35"), Art.Hex("3A4048"));     // skirt
+                    b.Box(new Vector3(0.02f, 0.26f, 0f), new Vector3(0.66f, 0.18f, 0.44f), Sand, 0f, false, SandLight);
+                    b.Box(new Vector3(0.12f, 0.38f, 0f), new Vector3(0.26f, 0.1f, 0.3f), Glow(Art.Hex("9CC9E0"), 0.25f));
+                    b.Box(new Vector3(-0.36f, 0.42f, 0f), new Vector3(0.06f, 0.4f, 0.42f), SandDark);                   // fan duct
+                }),
+                Motion = Motion.Fan,
+                Parts = new[] { Make("HoverFan", b =>
+                {
+                    b.Box(Vector3.zero, new Vector3(0.02f, 0.34f, 0.05f), Gun);
+                    b.Box(Vector3.zero, new Vector3(0.02f, 0.05f, 0.34f), Gun);
+                }) },
+                Joints = new[] { new Vector3(-0.4f, 0.42f, 0f) },
+            };
+            rigs["jet"] = new UnitRig
+            {
+                Body = Make("Jet", b =>
+                {
+                    var grey = Art.Hex("7A8590");
+                    b.Barrel(new Vector3(-0.5f, 0f, 0f), 1.0f, 0.09f, 6, grey);
+                    b.Barrel(new Vector3(0.5f, 0f, 0f), 0.16f, 0.05f, 6, Art.Hex("5E6870"));
+                    b.Box(new Vector3(-0.02f, 0f, 0f), new Vector3(0.34f, 0.03f, 1.1f), grey, 0f, false, Art.Hex("8E99A4"));   // wings
+                    b.Box(new Vector3(-0.42f, 0.02f, 0f), new Vector3(0.16f, 0.02f, 0.46f), grey);
+                    b.Box(new Vector3(-0.42f, 0.12f, 0f), new Vector3(0.18f, 0.2f, 0.02f), Art.Hex("5E6870"));
+                    b.Sphere(new Vector3(0.24f, 0.07f, 0f), new Vector3(0.14f, 0.06f, 0.06f), Glow(Art.Hex("9CC9E0"), 0.3f), 3, 6);
+                    b.Barrel(new Vector3(-0.56f, 0f, 0f), 0.06f, 0.07f, 6, Glow(Art.Palette.Explosion), 180f);          // afterburner
+                }),
+                Motion = Motion.None,
+                Parts = new Mesh[0],
+                Joints = new Vector3[0],
+            };
+            var mechLeg = Make("MechLeg", b =>
+            {
+                b.Box(new Vector3(0f, -0.2f, 0f), new Vector3(0.14f, 0.4f, 0.14f), Art.Hex("5A6068"));
+                b.Box(new Vector3(0.05f, -0.42f, 0f), new Vector3(0.26f, 0.06f, 0.18f), Art.Hex("3A4048"));
+            });
+            rigs["mech"] = new UnitRig
+            {
+                Body = Make("Mech", b => MechBody(b, 1f, Art.Hex("6E7680"))),
+                Motion = Motion.Walk,
+                Parts = new[] { mechLeg, mechLeg },
+                Joints = new[] { new Vector3(0f, 0.45f, 0.16f), new Vector3(0f, 0.45f, -0.16f) },
+            };
+            var colossusLeg = Make("ColossusLeg", b =>
+            {
+                b.Box(new Vector3(0f, -0.25f, 0f), new Vector3(0.2f, 0.5f, 0.2f), Art.Hex("4A4048"));
+                b.Box(new Vector3(0.06f, -0.52f, 0f), new Vector3(0.34f, 0.08f, 0.26f), Art.Hex("2E282E"));
+            });
+            rigs["colossus"] = new UnitRig
+            {
+                Body = Make("Colossus", b =>
+                {
+                    MechBody(b, 1.3f, Art.Hex("5E4E5A"));
+                    b.Box(new Vector3(0f, 1.18f, 0f), new Vector3(0.2f, 0.06f, 0.4f), Glow(Art.Hex("FF4A3A"), 0.8f));
+                    for (int side = -1; side <= 1; side += 2)
+                        b.Barrel(new Vector3(0.1f, 0.85f, 0.38f * side), 0.6f, 0.06f, 6, Art.Hex("2A2428"));
+                }),
+                Motion = Motion.Walk,
+                Parts = new[] { colossusLeg, colossusLeg },
+                Joints = new[] { new Vector3(0f, 0.56f, 0.22f), new Vector3(0f, 0.56f, -0.22f) },
+            };
+            var bigRotor = Make("CarrierRotor", b =>
+            {
+                b.Box(Vector3.zero, new Vector3(0.7f, 0.015f, 0.07f), Gun);
+                b.Box(Vector3.zero, new Vector3(0.07f, 0.015f, 0.7f), Gun);
+            });
+            float r = 0.55f;
+            rigs["carrier"] = new UnitRig
+            {
+                Body = Make("Carrier", b =>
+                {
+                    var hull = Art.Hex("5A6470");
+                    b.Box(new Vector3(0f, 0.1f, 0f), new Vector3(1.1f, 0.22f, 0.7f), hull, 0f, true, Art.Hex("6E7884"));
+                    b.Box(new Vector3(0f, 0.22f, 0f), new Vector3(0.9f, 0.02f, 0.5f), Art.Hex("3A4048"));                  // deck
+                    b.Box(new Vector3(-0.3f, 0.34f, 0.22f), new Vector3(0.24f, 0.24f, 0.14f), hull);                     // bridge
+                    b.Box(new Vector3(0.1f, 0.24f, 0f), new Vector3(0.5f, 0.01f, 0.04f), Glow(Art.Palette.Gold, 0.6f));
+                    for (int sx = -1; sx <= 1; sx += 2)
+                        for (int sz = -1; sz <= 1; sz += 2)
+                            b.Cylinder(new Vector3(r * sx, 0.1f, r * sz), 0.08f, 0.12f, 6, Gun);
+                }),
+                Motion = Motion.Rotors,
+                Parts = new[] { bigRotor, bigRotor, bigRotor, bigRotor },
+                Joints = new[] { new Vector3(r, 0.24f, r), new Vector3(r, 0.24f, -r), new Vector3(-r, 0.24f, r), new Vector3(-r, 0.24f, -r) },
+            };
+        }
+
+        static void MechBody(MeshBuilder b, float s, Color armor)
+        {
+            b.Box(new Vector3(0f, 0.62f, 0f) * s, new Vector3(0.44f, 0.32f, 0.5f) * s, armor, 0f, true, MeshBuilder.Shade(armor, 1.15f));
+            b.Box(new Vector3(0.2f, 0.66f, 0f) * s, new Vector3(0.06f, 0.1f, 0.3f) * s, Glow(Art.Hex("FF4A3A"), 0.6f));
+            for (int side = -1; side <= 1; side += 2)
+            {
+                b.Box(new Vector3(0f, 0.7f, 0.31f * side) * s, new Vector3(0.18f, 0.14f, 0.12f) * s, MeshBuilder.Shade(armor, 0.8f));
+                b.Barrel(new Vector3(0.05f, 0.7f, 0.31f * side) * s, 0.36f * s, 0.035f * s, 5, Gun);
+            }
         }
 
         // Bosses: a tandem-rotor gunship and a three-turret super tank.
@@ -615,12 +765,17 @@ namespace Corehold
             b.Box(at + new Vector3(0.99f, 1.15f, -0.56f), new Vector3(0.12f, 0.08f, 0.02f), Art.Palette.Gold);
         }
 
-        public static void Tree(MeshBuilder b, Vector3 at, float size, int seed)
+        public static void Tree(MeshBuilder b, Vector3 at, float size, int seed) => Tree(b, at, size, seed, Leaf, LeafLight, true);
+
+        public static void Tree(MeshBuilder b, Vector3 at, float size, int seed, Color leaf, Color leafLight) => Tree(b, at, size, seed, leaf, leafLight, false);
+
+        // pines: whether some trees may be pines (autumn woods are all broadleaf).
+        static void Tree(MeshBuilder b, Vector3 at, float size, int seed, Color leafColor, Color leafLightColor, bool pines)
         {
             var random = new System.Random(seed);
             var tint = 0.9f + 0.2f * (float)random.NextDouble();
             b.Cylinder(at, 0.07f * size, 0.34f * size, 5, Bark);
-            if (random.Next(2) == 0)
+            if (pines && random.Next(2) == 0)
             {
                 var pine = MeshBuilder.Shade(Pine, tint);
                 b.Cylinder(at + new Vector3(0f, 0.2f * size, 0f), 0.46f * size, 0.55f * size, 7, pine, null, 0f);
@@ -629,22 +784,51 @@ namespace Corehold
             }
             else
             {
-                var leaf = MeshBuilder.Shade(Leaf, tint);
+                var leaf = MeshBuilder.Shade(leafColor, tint);
                 b.Sphere(at + new Vector3(0f, 0.62f * size, 0f), new Vector3(0.44f, 0.4f, 0.44f) * size, leaf, 4, 7, 0.12f, seed);
-                b.Sphere(at + new Vector3(-0.16f * size, 0.86f * size, -0.1f * size), new Vector3(0.28f, 0.26f, 0.28f) * size, MeshBuilder.Shade(LeafLight, tint), 3, 6, 0.1f, seed + 1);
-                b.Sphere(at + new Vector3(0.2f * size, 0.78f * size, 0.08f * size), new Vector3(0.24f, 0.22f, 0.24f) * size, MeshBuilder.Shade(LeafLight, tint * 1.08f), 3, 6, 0.1f, seed + 2);
+                b.Sphere(at + new Vector3(-0.16f * size, 0.86f * size, -0.1f * size), new Vector3(0.28f, 0.26f, 0.28f) * size, MeshBuilder.Shade(leafLightColor, tint), 3, 6, 0.1f, seed + 1);
+                b.Sphere(at + new Vector3(0.2f * size, 0.78f * size, 0.08f * size), new Vector3(0.24f, 0.22f, 0.24f) * size, MeshBuilder.Shade(leafLightColor, tint * 1.08f), 3, 6, 0.1f, seed + 2);
             }
         }
 
-        public static void Bush(MeshBuilder b, Vector3 at, float size, int seed)
+        public static void Bush(MeshBuilder b, Vector3 at, float size, int seed) => Bush(b, at, size, seed, Leaf, LeafLight);
+
+        public static void Bush(MeshBuilder b, Vector3 at, float size, int seed, Color leaf, Color leafLight)
         {
-            b.Sphere(at + new Vector3(0f, 0.14f * size, 0f), new Vector3(0.34f, 0.24f, 0.3f) * size, Leaf, 3, 7, 0.15f, seed);
-            b.Sphere(at + new Vector3(0.15f * size, 0.2f * size, 0.1f * size), new Vector3(0.2f, 0.18f, 0.2f) * size, LeafLight, 3, 6, 0.1f, seed + 1);
+            b.Sphere(at + new Vector3(0f, 0.14f * size, 0f), new Vector3(0.34f, 0.24f, 0.3f) * size, leaf, 3, 7, 0.15f, seed);
+            b.Sphere(at + new Vector3(0.15f * size, 0.2f * size, 0.1f * size), new Vector3(0.2f, 0.18f, 0.2f) * size, leafLight, 3, 6, 0.1f, seed + 1);
         }
 
-        public static void Rock(MeshBuilder b, Vector3 at, float size, int seed)
+        public static void Rock(MeshBuilder b, Vector3 at, float size, int seed, bool snow = false)
         {
             b.Sphere(at + new Vector3(0f, 0.06f * size, 0f), new Vector3(0.32f, 0.2f, 0.26f) * size, Stone, 3, 6, 0.25f, seed);
+            if (snow) b.Sphere(at + new Vector3(0f, 0.15f * size, 0f), new Vector3(0.24f, 0.08f, 0.2f) * size, Art.Hex("F4F7F9"), 2, 6, 0.2f, seed + 1);
+        }
+
+        public static void Cactus(MeshBuilder b, Vector3 at, float size, int seed)
+        {
+            var random = new System.Random(seed);
+            var green = Art.Hex("5E8C3A");
+            b.Cylinder(at, 0.08f * size, 0.7f * size, 6, green, Art.Hex("78A84C"));
+            for (int side = -1; side <= 1; side += 2)
+            {
+                if (random.Next(2) == 0) continue;
+                float h = (0.25f + 0.15f * (float)random.NextDouble()) * size;
+                b.Box(at + new Vector3(0.08f * side, h, 0f) * 1f, new Vector3(0.14f, 0.05f, 0.05f) * size, green);
+                b.Cylinder(at + new Vector3(0.14f * side * size, h, 0f), 0.05f * size, 0.22f * size, 6, green, Art.Hex("78A84C"));
+            }
+        }
+
+        public static void DryBush(MeshBuilder b, Vector3 at, float size, int seed) =>
+            b.Sphere(at + new Vector3(0f, 0.1f * size, 0f), new Vector3(0.22f, 0.14f, 0.2f) * size, Art.Hex("9C8A54"), 2, 6, 0.3f, seed);
+
+        public static void SnowPine(MeshBuilder b, Vector3 at, float size)
+        {
+            var pine = Art.Hex("2E5A44");
+            b.Cylinder(at, 0.07f * size, 0.3f * size, 5, Bark);
+            b.Cylinder(at + new Vector3(0f, 0.2f * size, 0f), 0.45f * size, 0.55f * size, 7, pine, null, 0f);
+            b.Cylinder(at + new Vector3(0f, 0.5f * size, 0f), 0.34f * size, 0.5f * size, 7, MeshBuilder.Shade(pine, 1.1f), null, 0f);
+            b.Cylinder(at + new Vector3(0f, 0.78f * size, 0f), 0.2f * size, 0.38f * size, 7, Art.Hex("F2F6F8"), null, 0f);
         }
 
         // A few thin blades of grass.

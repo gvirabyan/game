@@ -32,6 +32,7 @@ namespace Corehold
             instance.music = host.AddComponent<AudioSource>();
             instance.music.loop = true;
             instance.music.playOnAwake = false;
+            SetMuted(Progress.Muted);
         }
 
         public static void Play(AudioClip clip, float volume = 1f, float minInterval = 0f, float pitchJitter = 0.06f)
@@ -66,6 +67,7 @@ namespace Corehold
         {
             Muted = muted;
             AudioListener.volume = muted ? 0f : 1f;
+            if (Progress.Muted != muted) Progress.Muted = muted;
         }
 
         void Update()

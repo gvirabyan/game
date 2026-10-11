@@ -5,7 +5,8 @@ namespace Corehold.Tests
 {
     public class FormulaTests
     {
-        static readonly string[] EnemyIds = { "soldier", "jeep", "drone", "tank", "apc", "heli", "boss" };
+        static readonly string[] EnemyIds = { "soldier", "jeep", "drone", "tank", "apc", "heli", "boss", "gunship", "titan",
+                                              "biker", "medic", "heavy", "hover", "jet", "mech", "colossus", "carrier" };
         static readonly string[] TowerIds = { "mg", "cannon", "aa", "flame", "tesla", "mortar", "sniper", "cryo" };
 
         [Test]
@@ -63,6 +64,42 @@ namespace Corehold.Tests
                 }
                 for (int i = 1; i < level.path.Length; i++)
                     Assert.LessOrEqual(Mathf.Abs(level.path[i].x) + roadHalf, Bootstrap.WorldHalfWidth, $"{level.name} path point {i} off screen");
+            }
+        }
+
+        [Test]
+        public void Campaign_HasHundredMissions_NewEnemyEveryFive_BossEveryTen()
+        {
+            var b = Balance.Load();
+            Assert.AreEqual(100, b.levels.Length);
+            for (int i = 0; i < b.levels.Length; i++)
+            {
+                var level = b.levels[i];
+                int n = i + 1;
+                Assert.AreEqual(n, level.number);
+                Assert.GreaterOrEqual(level.spots.Length, 8, $"mission {n} has too few pads");
+                // A new enemy every 5 missions up to the last new boss (mission 50); after that every 10 (55, 65, ... 95).
+                if ((n % 5 == 0 && n <= 50) || n % 10 == 5) Assert.NotNull(level.newEnemy, $"mission {n} should introduce an enemy");
+                if (n % 10 == 0) Assert.NotNull(level.boss, $"mission {n} should have a boss");
+                Assert.AreEqual(Campaign.BiomeOf(b.campaign, n), level.biome);
+                // A newly introduced enemy actually shows up in its mission.
+                if (level.newEnemy != null)
+                    Assert.IsTrue(System.Array.Exists(level.waves, w => System.Array.Exists(w.groups, g => g.enemy == level.newEnemy)),
+                        $"mission {n} introduces {level.newEnemy} but never sends it");
+            }
+            Assert.AreEqual(Biome.Grass, b.levels[0].biome);
+            Assert.AreEqual(Biome.Autumn, b.levels[99].biome);
+        }
+
+        [Test]
+        public void Campaign_IsDeterministic()
+        {
+            var a = Balance.Load();
+            var c = Balance.Load();
+            for (int i = 0; i < a.levels.Length; i += 7)
+            {
+                Assert.AreEqual(a.levels[i].path, c.levels[i].path);
+                Assert.AreEqual(a.levels[i].spots, c.levels[i].spots);
             }
         }
 

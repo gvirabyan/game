@@ -1,6 +1,6 @@
 {
   "_readme": "All balance numbers and level layouts. Formulas are in Assets/Scripts/Balance.cs (class Formulas). waveIndex and tower level start at 0.",
-  "_formulas": "enemyHealth = enemy.health * level.healthMultiplier * waves.healthGrowth^waveIndex | towerDamage = damage + damagePerLevel*level | towerFireRate = fireRate + fireRatePerLevel*level | towerRange = range + rangePerLevel*level | upgradeCost = round(upgradeCost * upgradeCostGrowth^level) | sellValue = floor(totalSpent * economy.sellRefund) | chainTargets = chain + level | slow = slow + slowPerLevel*level | endlessBudget = endless.budget * endless.budgetGrowth^waveIndex | endlessHealth = enemy.health * endless.healthGrowth^waveIndex",
+  "_formulas": "enemyHealth = enemy.health * level.healthMultiplier * waves.healthGrowth^waveIndex | towerDamage = damage + damagePerLevel*level | towerFireRate = fireRate + fireRatePerLevel*level | towerRange = range + rangePerLevel*level | upgradeCost = round(upgradeCost * upgradeCostGrowth^level) | sellValue = floor(totalSpent * economy.sellRefund) | chainTargets = chain + level | slow = slow + slowPerLevel*level | endlessBudget = endless.budget * endless.budgetGrowth^waveIndex | endlessHealth = enemy.health * endless.healthGrowth^waveIndex | campaign: healthMultiplier = 1 + healthPerLevel*(level-1) | waves = min(maxWaves, waves + (level-1)/levelsPerExtraWave) | waveBudget = (budget + budgetPerLevel*(level-1)) * budgetGrowthPerWave^waveIndex | armor: damage taken = max(damage*0.25, damage - armor)",
   "economy": {
     "sellRefund": 0.6,
     "timeBetweenWaves": 8.0,
@@ -20,7 +20,8 @@
       "leakDamage": 1,
       "air": false,
       "size": 0.45,
-      "threat": 1
+      "threat": 1,
+      "info": "Basic infantry. Cheap and many."
     },
     {
       "id": "jeep",
@@ -31,7 +32,8 @@
       "leakDamage": 1,
       "air": false,
       "size": 0.6,
-      "threat": 2
+      "threat": 2,
+      "info": "Fast scout car. Hard to catch."
     },
     {
       "id": "drone",
@@ -42,7 +44,8 @@
       "leakDamage": 1,
       "air": true,
       "size": 0.6,
-      "threat": 2
+      "threat": 2,
+      "info": "Flies over everything. Needs anti-air."
     },
     {
       "id": "tank",
@@ -53,7 +56,8 @@
       "leakDamage": 3,
       "air": false,
       "size": 0.9,
-      "threat": 6
+      "threat": 6,
+      "info": "Slow and tough."
     },
     {
       "id": "apc",
@@ -66,7 +70,8 @@
       "size": 0.85,
       "threat": 9,
       "spawnOnDeath": "soldier",
-      "spawnCount": 3
+      "spawnCount": 3,
+      "info": "Drops three soldiers when destroyed."
     },
     {
       "id": "heli",
@@ -77,7 +82,8 @@
       "leakDamage": 3,
       "air": true,
       "size": 1.0,
-      "threat": 10
+      "threat": 10,
+      "info": "Armoured helicopter. Use missiles."
     },
     {
       "id": "boss",
@@ -89,7 +95,8 @@
       "air": false,
       "size": 1.5,
       "threat": 60,
-      "boss": true
+      "boss": true,
+      "info": "Juggernaut. A massive tank."
     },
     {
       "id": "gunship",
@@ -103,7 +110,8 @@
       "threat": 70,
       "boss": true,
       "spawnOnDeath": "drone",
-      "spawnCount": 4
+      "spawnCount": 4,
+      "info": "Sky Fortress. Drops drones when shot down."
     },
     {
       "id": "titan",
@@ -117,7 +125,115 @@
       "threat": 110,
       "boss": true,
       "spawnOnDeath": "tank",
-      "spawnCount": 2
+      "spawnCount": 2,
+      "info": "Titan. Three turrets, drops tanks when destroyed."
+    },
+    {
+      "id": "biker",
+      "label": "Biker",
+      "health": 22,
+      "speed": 2.8,
+      "reward": 3,
+      "leakDamage": 1,
+      "air": false,
+      "size": 0.5,
+      "threat": 1,
+      "info": "Very fast and very fragile. Comes in swarms."
+    },
+    {
+      "id": "medic",
+      "label": "Medic truck",
+      "health": 120,
+      "speed": 0.9,
+      "reward": 14,
+      "leakDamage": 2,
+      "air": false,
+      "size": 0.75,
+      "threat": 7,
+      "healRadius": 1.6,
+      "healRate": 0.08,
+      "info": "Heals every enemy around it. Kill it first!"
+    },
+    {
+      "id": "heavy",
+      "label": "Heavy tank",
+      "health": 260,
+      "speed": 0.55,
+      "reward": 22,
+      "leakDamage": 4,
+      "air": false,
+      "size": 1.0,
+      "threat": 12,
+      "armor": 12,
+      "info": "Thick armour: weak shots barely scratch it."
+    },
+    {
+      "id": "hover",
+      "label": "Hovercraft",
+      "health": 110,
+      "speed": 1.6,
+      "reward": 12,
+      "leakDamage": 2,
+      "air": false,
+      "size": 0.8,
+      "threat": 6,
+      "info": "Hovercraft. Fast and sturdy."
+    },
+    {
+      "id": "jet",
+      "label": "Strike jet",
+      "health": 70,
+      "speed": 3.2,
+      "reward": 10,
+      "leakDamage": 2,
+      "air": true,
+      "size": 0.8,
+      "threat": 6,
+      "info": "Strike jet. Blazing fast air target."
+    },
+    {
+      "id": "mech",
+      "label": "Mech",
+      "health": 300,
+      "speed": 0.7,
+      "reward": 24,
+      "leakDamage": 4,
+      "air": false,
+      "size": 0.9,
+      "threat": 13,
+      "armor": 6,
+      "info": "Armoured walker."
+    },
+    {
+      "id": "colossus",
+      "label": "Colossus",
+      "health": 4200,
+      "speed": 0.3,
+      "reward": 300,
+      "leakDamage": 20,
+      "air": false,
+      "size": 1.9,
+      "threat": 130,
+      "boss": true,
+      "armor": 10,
+      "spawnOnDeath": "mech",
+      "spawnCount": 2,
+      "info": "Colossus. A giant armoured walker that drops mechs."
+    },
+    {
+      "id": "carrier",
+      "label": "Carrier",
+      "health": 2600,
+      "speed": 0.38,
+      "reward": 280,
+      "leakDamage": 20,
+      "air": true,
+      "size": 1.8,
+      "threat": 120,
+      "boss": true,
+      "launch": "drone",
+      "launchEvery": 3.5,
+      "info": "Carrier. Launches drones while it flies."
     }
   ],
   "towers": [
@@ -300,2601 +416,7 @@
       "slowTime": 1.2
     }
   ],
-  "_levels": "Coordinates are world units: landscape, x from -8.5 to 8.5, the centre of the screen is (0,0); keep pads inside y -4.7..3.6 (HUD on top). The first path point is extended off-screen automatically.",
-  "levels": [
-    {
-      "name": "Outpost",
-      "lives": 10,
-      "startCoins": 150,
-      "healthMultiplier": 1.0,
-      "path": [
-        {
-          "x": -12,
-          "y": 2.2
-        },
-        {
-          "x": -4.5,
-          "y": 2.2
-        },
-        {
-          "x": -4.5,
-          "y": -2.8
-        },
-        {
-          "x": 1,
-          "y": -2.8
-        },
-        {
-          "x": 1,
-          "y": 2.2
-        },
-        {
-          "x": 6,
-          "y": 2.2
-        },
-        {
-          "x": 6,
-          "y": -3.2
-        }
-      ],
-      "spots": [
-        {
-          "x": -6.5,
-          "y": 0.6
-        },
-        {
-          "x": -6.5,
-          "y": -1.8
-        },
-        {
-          "x": -3.0,
-          "y": 0.8
-        },
-        {
-          "x": -0.6,
-          "y": 0.8
-        },
-        {
-          "x": -1.8,
-          "y": -1.3
-        },
-        {
-          "x": -1.8,
-          "y": -4.15
-        },
-        {
-          "x": 2.6,
-          "y": 0.6
-        },
-        {
-          "x": 4.4,
-          "y": 0.6
-        },
-        {
-          "x": 3.5,
-          "y": -1.6
-        },
-        {
-          "x": 7.6,
-          "y": -1.0
-        }
-      ],
-      "waves": [
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 8,
-              "interval": 1.2,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 12,
-              "interval": 1.0,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 10,
-              "interval": 0.9,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 2,
-              "interval": 5,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 16,
-              "interval": 0.7,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 4,
-              "interval": 3,
-              "delay": 0
-            },
-            {
-              "enemy": "soldier",
-              "count": 10,
-              "interval": 0.8,
-              "delay": 2
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 20,
-              "interval": 0.55,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 5,
-              "interval": 2.5,
-              "delay": 4
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Crossroads",
-      "lives": 10,
-      "startCoins": 180,
-      "healthMultiplier": 1.1,
-      "path": [
-        {
-          "x": -12,
-          "y": -3
-        },
-        {
-          "x": -5.5,
-          "y": -3
-        },
-        {
-          "x": -5.5,
-          "y": 2.4
-        },
-        {
-          "x": -1,
-          "y": 2.4
-        },
-        {
-          "x": -1,
-          "y": -1.6
-        },
-        {
-          "x": 3.2,
-          "y": -1.6
-        },
-        {
-          "x": 3.2,
-          "y": 2.4
-        },
-        {
-          "x": 7.2,
-          "y": 2.4
-        },
-        {
-          "x": 7.2,
-          "y": -3.4
-        }
-      ],
-      "spots": [
-        {
-          "x": -7.2,
-          "y": -0.6
-        },
-        {
-          "x": -7.2,
-          "y": 1.6
-        },
-        {
-          "x": -3.3,
-          "y": 0.6
-        },
-        {
-          "x": -3.3,
-          "y": -1.7
-        },
-        {
-          "x": 1.1,
-          "y": 0.6
-        },
-        {
-          "x": 1.1,
-          "y": 3.1
-        },
-        {
-          "x": 1.1,
-          "y": -3.3
-        },
-        {
-          "x": 5.2,
-          "y": 0.4
-        },
-        {
-          "x": 5.2,
-          "y": -2.6
-        },
-        {
-          "x": -3.0,
-          "y": -3.9
-        }
-      ],
-      "waves": [
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 10,
-              "interval": 1.0,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "drone",
-              "count": 6,
-              "interval": 1.5,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 12,
-              "interval": 0.8,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 4,
-              "interval": 2,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 4,
-              "interval": 3,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 15,
-              "interval": 0.7,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 8,
-              "interval": 1.2,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 6,
-              "interval": 2.5,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 6,
-              "interval": 1.5,
-              "delay": 5
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 20,
-              "interval": 0.5,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 6,
-              "interval": 2.5,
-              "delay": 3
-            },
-            {
-              "enemy": "drone",
-              "count": 10,
-              "interval": 1.0,
-              "delay": 6
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Long road",
-      "lives": 8,
-      "startCoins": 220,
-      "healthMultiplier": 1.25,
-      "path": [
-        {
-          "x": -12,
-          "y": 2.6
-        },
-        {
-          "x": -6.2,
-          "y": 2.6
-        },
-        {
-          "x": -6.2,
-          "y": -3.4
-        },
-        {
-          "x": -2.4,
-          "y": -3.4
-        },
-        {
-          "x": -2.4,
-          "y": 1.0
-        },
-        {
-          "x": 1.6,
-          "y": 1.0
-        },
-        {
-          "x": 1.6,
-          "y": -3.4
-        },
-        {
-          "x": 5.2,
-          "y": -3.4
-        },
-        {
-          "x": 5.2,
-          "y": 1.4
-        },
-        {
-          "x": 7.6,
-          "y": 1.4
-        }
-      ],
-      "spots": [
-        {
-          "x": -7.8,
-          "y": 0.6
-        },
-        {
-          "x": -8.0,
-          "y": -2.0
-        },
-        {
-          "x": -4.3,
-          "y": 0.6
-        },
-        {
-          "x": -4.3,
-          "y": -1.6
-        },
-        {
-          "x": -4.3,
-          "y": 2.9
-        },
-        {
-          "x": -0.4,
-          "y": -1.2
-        },
-        {
-          "x": -0.4,
-          "y": 2.8
-        },
-        {
-          "x": 3.4,
-          "y": -1.2
-        },
-        {
-          "x": 3.4,
-          "y": 2.6
-        },
-        {
-          "x": 7.0,
-          "y": -1.2
-        }
-      ],
-      "waves": [
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 12,
-              "interval": 0.9,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "drone",
-              "count": 8,
-              "interval": 1.2,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 5,
-              "interval": 2.5,
-              "delay": 0
-            },
-            {
-              "enemy": "soldier",
-              "count": 10,
-              "interval": 0.8,
-              "delay": 2
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "drone",
-              "count": 12,
-              "interval": 0.9,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 20,
-              "interval": 0.5,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 4,
-              "interval": 3,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 8,
-              "interval": 2,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 8,
-              "interval": 1.2,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 25,
-              "interval": 0.4,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 12,
-              "interval": 0.8,
-              "delay": 5
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 10,
-              "interval": 1.6,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 14,
-              "interval": 0.8,
-              "delay": 2
-            },
-            {
-              "enemy": "soldier",
-              "count": 20,
-              "interval": 0.5,
-              "delay": 6
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Desert pass",
-      "lives": 10,
-      "startCoins": 240,
-      "healthMultiplier": 1.3,
-      "path": [
-        {
-          "x": -12,
-          "y": -2.6
-        },
-        {
-          "x": -3.4,
-          "y": -2.6
-        },
-        {
-          "x": -3.4,
-          "y": 2.8
-        },
-        {
-          "x": 3.6,
-          "y": 2.8
-        },
-        {
-          "x": 3.6,
-          "y": -3.2
-        },
-        {
-          "x": 7.4,
-          "y": -3.2
-        },
-        {
-          "x": 7.4,
-          "y": 0.6
-        }
-      ],
-      "spots": [
-        {
-          "x": -7.0,
-          "y": -1.0
-        },
-        {
-          "x": -5.2,
-          "y": 0.4
-        },
-        {
-          "x": -7.0,
-          "y": -4.2
-        },
-        {
-          "x": -1.6,
-          "y": 1.0
-        },
-        {
-          "x": -1.6,
-          "y": -1.2
-        },
-        {
-          "x": 0.4,
-          "y": 0.6
-        },
-        {
-          "x": 1.9,
-          "y": -1.0
-        },
-        {
-          "x": 5.5,
-          "y": -1.2
-        },
-        {
-          "x": 5.6,
-          "y": 1.6
-        },
-        {
-          "x": 0.2,
-          "y": -3.6
-        },
-        {
-          "x": -5.3,
-          "y": 3.0
-        }
-      ],
-      "waves": [
-        {
-          "groups": [
-            {
-              "enemy": "jeep",
-              "count": 8,
-              "interval": 1.0,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 14,
-              "interval": 0.6,
-              "delay": 0
-            },
-            {
-              "enemy": "jeep",
-              "count": 6,
-              "interval": 1.0,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "apc",
-              "count": 3,
-              "interval": 4,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "jeep",
-              "count": 12,
-              "interval": 0.6,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 6,
-              "interval": 1.2,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 5,
-              "interval": 2.5,
-              "delay": 0
-            },
-            {
-              "enemy": "apc",
-              "count": 3,
-              "interval": 4,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "jeep",
-              "count": 16,
-              "interval": 0.4,
-              "delay": 0
-            },
-            {
-              "enemy": "soldier",
-              "count": 20,
-              "interval": 0.4,
-              "delay": 2
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "apc",
-              "count": 6,
-              "interval": 2.5,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 6,
-              "interval": 2,
-              "delay": 4
-            },
-            {
-              "enemy": "drone",
-              "count": 10,
-              "interval": 0.9,
-              "delay": 6
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Air raid",
-      "lives": 10,
-      "startCoins": 260,
-      "healthMultiplier": 1.35,
-      "path": [
-        {
-          "x": -12,
-          "y": 2.8
-        },
-        {
-          "x": -5.6,
-          "y": 2.8
-        },
-        {
-          "x": -5.6,
-          "y": -3.0
-        },
-        {
-          "x": 0.2,
-          "y": -3.0
-        },
-        {
-          "x": 0.2,
-          "y": 1.2
-        },
-        {
-          "x": 6.0,
-          "y": 1.2
-        },
-        {
-          "x": 6.0,
-          "y": -3.4
-        }
-      ],
-      "spots": [
-        {
-          "x": -7.4,
-          "y": 1.0
-        },
-        {
-          "x": -7.4,
-          "y": -1.4
-        },
-        {
-          "x": -3.8,
-          "y": 1.2
-        },
-        {
-          "x": -3.8,
-          "y": -1.2
-        },
-        {
-          "x": -1.6,
-          "y": 0.0
-        },
-        {
-          "x": -2.6,
-          "y": 3.0
-        },
-        {
-          "x": 2.0,
-          "y": -1.0
-        },
-        {
-          "x": 2.6,
-          "y": 3.0
-        },
-        {
-          "x": 4.2,
-          "y": -1.0
-        },
-        {
-          "x": 7.8,
-          "y": -0.8
-        },
-        {
-          "x": 2.6,
-          "y": -3.6
-        }
-      ],
-      "waves": [
-        {
-          "groups": [
-            {
-              "enemy": "drone",
-              "count": 10,
-              "interval": 0.9,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 2,
-              "interval": 4,
-              "delay": 0
-            },
-            {
-              "enemy": "soldier",
-              "count": 12,
-              "interval": 0.6,
-              "delay": 2
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "drone",
-              "count": 16,
-              "interval": 0.5,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 4,
-              "interval": 3,
-              "delay": 0
-            },
-            {
-              "enemy": "jeep",
-              "count": 10,
-              "interval": 0.7,
-              "delay": 2
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 6,
-              "interval": 2,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 14,
-              "interval": 0.6,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 6,
-              "interval": 2.2,
-              "delay": 0
-            },
-            {
-              "enemy": "apc",
-              "count": 3,
-              "interval": 4,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "drone",
-              "count": 24,
-              "interval": 0.35,
-              "delay": 0
-            },
-            {
-              "enemy": "heli",
-              "count": 6,
-              "interval": 2,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 10,
-              "interval": 1.5,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 8,
-              "interval": 1.8,
-              "delay": 2
-            },
-            {
-              "enemy": "drone",
-              "count": 16,
-              "interval": 0.5,
-              "delay": 6
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Juggernaut",
-      "lives": 12,
-      "startCoins": 300,
-      "healthMultiplier": 1.4,
-      "path": [
-        {
-          "x": -12,
-          "y": 0.0
-        },
-        {
-          "x": -6.4,
-          "y": 0.0
-        },
-        {
-          "x": -6.4,
-          "y": 3.0
-        },
-        {
-          "x": -1.0,
-          "y": 3.0
-        },
-        {
-          "x": -1.0,
-          "y": -3.4
-        },
-        {
-          "x": 4.2,
-          "y": -3.4
-        },
-        {
-          "x": 4.2,
-          "y": 2.4
-        },
-        {
-          "x": 7.4,
-          "y": 2.4
-        },
-        {
-          "x": 7.4,
-          "y": -1.2
-        }
-      ],
-      "spots": [
-        {
-          "x": -8.0,
-          "y": 1.6
-        },
-        {
-          "x": -8.0,
-          "y": -1.6
-        },
-        {
-          "x": -4.6,
-          "y": 1.4
-        },
-        {
-          "x": -4.4,
-          "y": -1.2
-        },
-        {
-          "x": -2.8,
-          "y": -3.4
-        },
-        {
-          "x": 0.8,
-          "y": 1.4
-        },
-        {
-          "x": 0.8,
-          "y": -1.0
-        },
-        {
-          "x": 2.4,
-          "y": 0.8
-        },
-        {
-          "x": 2.6,
-          "y": -1.6
-        },
-        {
-          "x": 5.8,
-          "y": 0.6
-        },
-        {
-          "x": 5.9,
-          "y": -1.8
-        },
-        {
-          "x": 2.4,
-          "y": 3.1
-        },
-        {
-          "x": -6.0,
-          "y": -3.4
-        }
-      ],
-      "waves": [
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 16,
-              "interval": 0.6,
-              "delay": 0
-            },
-            {
-              "enemy": "jeep",
-              "count": 6,
-              "interval": 1,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 6,
-              "interval": 2,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 8,
-              "interval": 1,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "apc",
-              "count": 5,
-              "interval": 3,
-              "delay": 0
-            },
-            {
-              "enemy": "heli",
-              "count": 3,
-              "interval": 3,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "jeep",
-              "count": 20,
-              "interval": 0.4,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 6,
-              "interval": 2,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 6,
-              "interval": 2,
-              "delay": 0
-            },
-            {
-              "enemy": "apc",
-              "count": 5,
-              "interval": 2.5,
-              "delay": 3
-            },
-            {
-              "enemy": "drone",
-              "count": 14,
-              "interval": 0.6,
-              "delay": 5
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 10,
-              "interval": 1.4,
-              "delay": 0
-            },
-            {
-              "enemy": "soldier",
-              "count": 30,
-              "interval": 0.3,
-              "delay": 2
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 8,
-              "interval": 1.6,
-              "delay": 0
-            },
-            {
-              "enemy": "apc",
-              "count": 8,
-              "interval": 2,
-              "delay": 3
-            },
-            {
-              "enemy": "jeep",
-              "count": 16,
-              "interval": 0.4,
-              "delay": 6
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "boss",
-              "count": 1,
-              "interval": 1,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 8,
-              "interval": 2,
-              "delay": 3
-            },
-            {
-              "enemy": "drone",
-              "count": 16,
-              "interval": 0.6,
-              "delay": 5
-            },
-            {
-              "enemy": "heli",
-              "count": 6,
-              "interval": 2,
-              "delay": 8
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Mountain road",
-      "lives": 10,
-      "startCoins": 320,
-      "healthMultiplier": 1.45,
-      "path": [
-        {
-          "x": -6,
-          "y": 8
-        },
-        {
-          "x": -6,
-          "y": -2.6
-        },
-        {
-          "x": -2,
-          "y": -2.6
-        },
-        {
-          "x": -2,
-          "y": 2.6
-        },
-        {
-          "x": 2,
-          "y": 2.6
-        },
-        {
-          "x": 2,
-          "y": -2.6
-        },
-        {
-          "x": 6,
-          "y": -2.6
-        },
-        {
-          "x": 6,
-          "y": 2.0
-        }
-      ],
-      "spots": [
-        {
-          "x": -7.9,
-          "y": 0.5
-        },
-        {
-          "x": -4.2,
-          "y": 0.0
-        },
-        {
-          "x": -4.2,
-          "y": -4.1
-        },
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 0,
-          "y": -4.1
-        },
-        {
-          "x": 4.2,
-          "y": 0.4
-        },
-        {
-          "x": 4.2,
-          "y": -4.1
-        },
-        {
-          "x": 7.9,
-          "y": -0.6
-        },
-        {
-          "x": -4.2,
-          "y": 3.0
-        },
-        {
-          "x": 4.0,
-          "y": 3.0
-        }
-      ],
-      "waves": [
-        {
-          "groups": [
-            {
-              "enemy": "jeep",
-              "count": 12,
-              "interval": 0.6,
-              "delay": 0
-            },
-            {
-              "enemy": "soldier",
-              "count": 12,
-              "interval": 0.5,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 6,
-              "interval": 2,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 10,
-              "interval": 0.8,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "apc",
-              "count": 6,
-              "interval": 2.2,
-              "delay": 0
-            },
-            {
-              "enemy": "jeep",
-              "count": 12,
-              "interval": 0.5,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 5,
-              "interval": 2.2,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 6,
-              "interval": 2,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 30,
-              "interval": 0.3,
-              "delay": 0
-            },
-            {
-              "enemy": "apc",
-              "count": 6,
-              "interval": 2,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 10,
-              "interval": 1.4,
-              "delay": 0
-            },
-            {
-              "enemy": "heli",
-              "count": 6,
-              "interval": 1.8,
-              "delay": 4
-            },
-            {
-              "enemy": "drone",
-              "count": 14,
-              "interval": 0.5,
-              "delay": 6
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "boss",
-              "count": 1,
-              "interval": 1,
-              "delay": 0
-            },
-            {
-              "enemy": "jeep",
-              "count": 20,
-              "interval": 0.4,
-              "delay": 2
-            },
-            {
-              "enemy": "apc",
-              "count": 6,
-              "interval": 2,
-              "delay": 6
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 10,
-              "interval": 1.2,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 12,
-              "interval": 1.2,
-              "delay": 2
-            },
-            {
-              "enemy": "apc",
-              "count": 8,
-              "interval": 1.6,
-              "delay": 6
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Canyon",
-      "lives": 10,
-      "startCoins": 340,
-      "healthMultiplier": 1.5,
-      "path": [
-        {
-          "x": -12,
-          "y": -3.4
-        },
-        {
-          "x": 5.6,
-          "y": -3.4
-        },
-        {
-          "x": 5.6,
-          "y": -0.6
-        },
-        {
-          "x": -4.8,
-          "y": -0.6
-        },
-        {
-          "x": -4.8,
-          "y": 2.4
-        },
-        {
-          "x": 7.2,
-          "y": 2.4
-        }
-      ],
-      "spots": [
-        {
-          "x": -6.5,
-          "y": -2
-        },
-        {
-          "x": -3.4,
-          "y": -2
-        },
-        {
-          "x": -0.6,
-          "y": -2
-        },
-        {
-          "x": 2.2,
-          "y": -2
-        },
-        {
-          "x": 4.0,
-          "y": -2
-        },
-        {
-          "x": -3.2,
-          "y": 1
-        },
-        {
-          "x": -0.4,
-          "y": 1
-        },
-        {
-          "x": 2.4,
-          "y": 1
-        },
-        {
-          "x": 5.2,
-          "y": 1
-        },
-        {
-          "x": 7.4,
-          "y": 1
-        },
-        {
-          "x": -7.5,
-          "y": 1
-        }
-      ],
-      "waves": [
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 24,
-              "interval": 0.4,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "jeep",
-              "count": 16,
-              "interval": 0.5,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 10,
-              "interval": 0.8,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 8,
-              "interval": 1.6,
-              "delay": 0
-            },
-            {
-              "enemy": "apc",
-              "count": 4,
-              "interval": 2.5,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 6,
-              "interval": 2,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 16,
-              "interval": 0.5,
-              "delay": 2
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "apc",
-              "count": 10,
-              "interval": 1.6,
-              "delay": 0
-            },
-            {
-              "enemy": "jeep",
-              "count": 16,
-              "interval": 0.4,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 12,
-              "interval": 1.2,
-              "delay": 0
-            },
-            {
-              "enemy": "heli",
-              "count": 8,
-              "interval": 1.6,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 40,
-              "interval": 0.25,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 10,
-              "interval": 1.2,
-              "delay": 4
-            },
-            {
-              "enemy": "drone",
-              "count": 20,
-              "interval": 0.4,
-              "delay": 8
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 12,
-              "interval": 1.1,
-              "delay": 0
-            },
-            {
-              "enemy": "apc",
-              "count": 10,
-              "interval": 1.4,
-              "delay": 3
-            },
-            {
-              "enemy": "tank",
-              "count": 10,
-              "interval": 1.3,
-              "delay": 7
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Sky Fortress",
-      "lives": 12,
-      "startCoins": 380,
-      "healthMultiplier": 1.5,
-      "path": [
-        {
-          "x": -12,
-          "y": 1.0
-        },
-        {
-          "x": -3,
-          "y": 1.0
-        },
-        {
-          "x": -3,
-          "y": -3.4
-        },
-        {
-          "x": 3,
-          "y": -3.4
-        },
-        {
-          "x": 3,
-          "y": 2.6
-        },
-        {
-          "x": 7,
-          "y": 2.6
-        },
-        {
-          "x": 7,
-          "y": -1.6
-        }
-      ],
-      "spots": [
-        {
-          "x": -6,
-          "y": -0.6
-        },
-        {
-          "x": -6,
-          "y": 2.8
-        },
-        {
-          "x": -1,
-          "y": -1.2
-        },
-        {
-          "x": 1,
-          "y": -1.2
-        },
-        {
-          "x": -1,
-          "y": 1.4
-        },
-        {
-          "x": 1,
-          "y": 1.4
-        },
-        {
-          "x": 0,
-          "y": 3.1
-        },
-        {
-          "x": 5,
-          "y": 0.8
-        },
-        {
-          "x": 5,
-          "y": -2.8
-        },
-        {
-          "x": -6.6,
-          "y": -3.2
-        },
-        {
-          "x": -8.0,
-          "y": -1.2
-        }
-      ],
-      "waves": [
-        {
-          "groups": [
-            {
-              "enemy": "drone",
-              "count": 18,
-              "interval": 0.5,
-              "delay": 0
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 6,
-              "interval": 2,
-              "delay": 0
-            },
-            {
-              "enemy": "jeep",
-              "count": 14,
-              "interval": 0.5,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "drone",
-              "count": 24,
-              "interval": 0.35,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 6,
-              "interval": 2,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 10,
-              "interval": 1.4,
-              "delay": 0
-            },
-            {
-              "enemy": "apc",
-              "count": 6,
-              "interval": 2,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "drone",
-              "count": 30,
-              "interval": 0.3,
-              "delay": 0
-            },
-            {
-              "enemy": "heli",
-              "count": 8,
-              "interval": 1.5,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 10,
-              "interval": 1.4,
-              "delay": 0
-            },
-            {
-              "enemy": "heli",
-              "count": 10,
-              "interval": 1.3,
-              "delay": 3
-            },
-            {
-              "enemy": "jeep",
-              "count": 16,
-              "interval": 0.4,
-              "delay": 6
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "gunship",
-              "count": 1,
-              "interval": 1,
-              "delay": 0
-            },
-            {
-              "enemy": "heli",
-              "count": 8,
-              "interval": 1.6,
-              "delay": 4
-            },
-            {
-              "enemy": "drone",
-              "count": 20,
-              "interval": 0.4,
-              "delay": 8
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "gunship",
-              "count": 2,
-              "interval": 10,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 10,
-              "interval": 1.4,
-              "delay": 2
-            },
-            {
-              "enemy": "heli",
-              "count": 10,
-              "interval": 1.2,
-              "delay": 6
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Frozen pass",
-      "lives": 12,
-      "startCoins": 400,
-      "healthMultiplier": 1.6,
-      "path": [
-        {
-          "x": 6.4,
-          "y": 8
-        },
-        {
-          "x": 6.4,
-          "y": -3.2
-        },
-        {
-          "x": 1.6,
-          "y": -3.2
-        },
-        {
-          "x": 1.6,
-          "y": 1.4
-        },
-        {
-          "x": -3.2,
-          "y": 1.4
-        },
-        {
-          "x": -3.2,
-          "y": -3.2
-        },
-        {
-          "x": -7.4,
-          "y": -3.2
-        },
-        {
-          "x": -7.4,
-          "y": 1.6
-        }
-      ],
-      "spots": [
-        {
-          "x": 8.0,
-          "y": -0.6
-        },
-        {
-          "x": 4.2,
-          "y": 0
-        },
-        {
-          "x": 4.0,
-          "y": -1.9
-        },
-        {
-          "x": 0,
-          "y": -1
-        },
-        {
-          "x": -1,
-          "y": -3
-        },
-        {
-          "x": 0,
-          "y": 3.1
-        },
-        {
-          "x": -5.3,
-          "y": -1
-        },
-        {
-          "x": -5.3,
-          "y": 3.0
-        },
-        {
-          "x": 4.2,
-          "y": 2.6
-        },
-        {
-          "x": -1.6,
-          "y": 3.0
-        }
-      ],
-      "waves": [
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 8,
-              "interval": 1.6,
-              "delay": 0
-            },
-            {
-              "enemy": "soldier",
-              "count": 20,
-              "interval": 0.4,
-              "delay": 2
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "apc",
-              "count": 8,
-              "interval": 1.8,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 14,
-              "interval": 0.6,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "jeep",
-              "count": 24,
-              "interval": 0.35,
-              "delay": 0
-            },
-            {
-              "enemy": "heli",
-              "count": 6,
-              "interval": 1.8,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 14,
-              "interval": 1.1,
-              "delay": 0
-            },
-            {
-              "enemy": "apc",
-              "count": 6,
-              "interval": 2,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 12,
-              "interval": 1.1,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 24,
-              "interval": 0.35,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "boss",
-              "count": 1,
-              "interval": 1,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 10,
-              "interval": 1.3,
-              "delay": 3
-            },
-            {
-              "enemy": "jeep",
-              "count": 20,
-              "interval": 0.4,
-              "delay": 7
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "apc",
-              "count": 14,
-              "interval": 1.1,
-              "delay": 0
-            },
-            {
-              "enemy": "heli",
-              "count": 12,
-              "interval": 1.1,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "gunship",
-              "count": 1,
-              "interval": 1,
-              "delay": 0
-            },
-            {
-              "enemy": "boss",
-              "count": 1,
-              "interval": 1,
-              "delay": 8
-            },
-            {
-              "enemy": "tank",
-              "count": 12,
-              "interval": 1.2,
-              "delay": 3
-            },
-            {
-              "enemy": "drone",
-              "count": 24,
-              "interval": 0.35,
-              "delay": 6
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Iron front",
-      "lives": 12,
-      "startCoins": 420,
-      "healthMultiplier": 1.65,
-      "path": [
-        {
-          "x": -12,
-          "y": -1.0
-        },
-        {
-          "x": -6,
-          "y": -1.0
-        },
-        {
-          "x": -6,
-          "y": 2.8
-        },
-        {
-          "x": -2,
-          "y": 2.8
-        },
-        {
-          "x": -2,
-          "y": -3.4
-        },
-        {
-          "x": 2,
-          "y": -3.4
-        },
-        {
-          "x": 2,
-          "y": 2.8
-        },
-        {
-          "x": 6,
-          "y": 2.8
-        },
-        {
-          "x": 6,
-          "y": -2.0
-        }
-      ],
-      "spots": [
-        {
-          "x": -7.6,
-          "y": 1.0
-        },
-        {
-          "x": -4,
-          "y": 0.6
-        },
-        {
-          "x": -4,
-          "y": -2.2
-        },
-        {
-          "x": 0,
-          "y": 0.6
-        },
-        {
-          "x": 0,
-          "y": -1.6
-        },
-        {
-          "x": 0,
-          "y": 3.1
-        },
-        {
-          "x": 4,
-          "y": 0.4
-        },
-        {
-          "x": 4,
-          "y": -2.4
-        },
-        {
-          "x": 7.8,
-          "y": 0.6
-        },
-        {
-          "x": -7.8,
-          "y": -3.0
-        }
-      ],
-      "waves": [
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 10,
-              "interval": 1.3,
-              "delay": 0
-            },
-            {
-              "enemy": "jeep",
-              "count": 16,
-              "interval": 0.4,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "apc",
-              "count": 10,
-              "interval": 1.4,
-              "delay": 0
-            },
-            {
-              "enemy": "heli",
-              "count": 6,
-              "interval": 1.8,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "soldier",
-              "count": 50,
-              "interval": 0.2,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 20,
-              "interval": 0.4,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 16,
-              "interval": 0.9,
-              "delay": 0
-            },
-            {
-              "enemy": "apc",
-              "count": 8,
-              "interval": 1.6,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 14,
-              "interval": 0.9,
-              "delay": 0
-            },
-            {
-              "enemy": "gunship",
-              "count": 1,
-              "interval": 1,
-              "delay": 6
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "boss",
-              "count": 2,
-              "interval": 8,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 12,
-              "interval": 1.2,
-              "delay": 2
-            },
-            {
-              "enemy": "apc",
-              "count": 10,
-              "interval": 1.4,
-              "delay": 6
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "jeep",
-              "count": 30,
-              "interval": 0.3,
-              "delay": 0
-            },
-            {
-              "enemy": "heli",
-              "count": 14,
-              "interval": 0.9,
-              "delay": 3
-            },
-            {
-              "enemy": "drone",
-              "count": 30,
-              "interval": 0.3,
-              "delay": 6
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "boss",
-              "count": 2,
-              "interval": 8,
-              "delay": 0
-            },
-            {
-              "enemy": "gunship",
-              "count": 2,
-              "interval": 8,
-              "delay": 4
-            },
-            {
-              "enemy": "tank",
-              "count": 14,
-              "interval": 1,
-              "delay": 2
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Titan",
-      "lives": 15,
-      "startCoins": 450,
-      "healthMultiplier": 1.7,
-      "path": [
-        {
-          "x": -12,
-          "y": 2.8
-        },
-        {
-          "x": -5,
-          "y": 2.8
-        },
-        {
-          "x": -5,
-          "y": -0.4
-        },
-        {
-          "x": -7.6,
-          "y": -0.4
-        },
-        {
-          "x": -7.6,
-          "y": -3.4
-        },
-        {
-          "x": 0.4,
-          "y": -3.4
-        },
-        {
-          "x": 0.4,
-          "y": 0.6
-        },
-        {
-          "x": 4.2,
-          "y": 0.6
-        },
-        {
-          "x": 4.2,
-          "y": -3.4
-        },
-        {
-          "x": 7.4,
-          "y": -3.4
-        },
-        {
-          "x": 7.4,
-          "y": 2.6
-        },
-        {
-          "x": 2.4,
-          "y": 2.6
-        }
-      ],
-      "spots": [
-        {
-          "x": -2.8,
-          "y": 1
-        },
-        {
-          "x": -2.6,
-          "y": -1.6
-        },
-        {
-          "x": -6.3,
-          "y": 1.2
-        },
-        {
-          "x": -5.8,
-          "y": -2
-        },
-        {
-          "x": 2.3,
-          "y": -1.4
-        },
-        {
-          "x": 2.3,
-          "y": -4.2
-        },
-        {
-          "x": 5.8,
-          "y": -1.2
-        },
-        {
-          "x": 5.8,
-          "y": 1.4
-        },
-        {
-          "x": 0.4,
-          "y": 2.4
-        },
-        {
-          "x": -1.4,
-          "y": 3.1
-        }
-      ],
-      "waves": [
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 12,
-              "interval": 1.1,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 16,
-              "interval": 0.5,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "apc",
-              "count": 12,
-              "interval": 1.2,
-              "delay": 0
-            },
-            {
-              "enemy": "jeep",
-              "count": 20,
-              "interval": 0.35,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 14,
-              "interval": 0.9,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 10,
-              "interval": 1.2,
-              "delay": 3
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "boss",
-              "count": 1,
-              "interval": 1,
-              "delay": 0
-            },
-            {
-              "enemy": "gunship",
-              "count": 1,
-              "interval": 1,
-              "delay": 6
-            },
-            {
-              "enemy": "soldier",
-              "count": 40,
-              "interval": 0.25,
-              "delay": 2
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "tank",
-              "count": 20,
-              "interval": 0.8,
-              "delay": 0
-            },
-            {
-              "enemy": "apc",
-              "count": 12,
-              "interval": 1.1,
-              "delay": 4
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "heli",
-              "count": 16,
-              "interval": 0.8,
-              "delay": 0
-            },
-            {
-              "enemy": "drone",
-              "count": 30,
-              "interval": 0.3,
-              "delay": 2
-            },
-            {
-              "enemy": "gunship",
-              "count": 1,
-              "interval": 1,
-              "delay": 8
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "boss",
-              "count": 2,
-              "interval": 6,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 16,
-              "interval": 0.9,
-              "delay": 3
-            },
-            {
-              "enemy": "apc",
-              "count": 12,
-              "interval": 1.1,
-              "delay": 8
-            }
-          ]
-        },
-        {
-          "groups": [
-            {
-              "enemy": "titan",
-              "count": 1,
-              "interval": 1,
-              "delay": 0
-            },
-            {
-              "enemy": "tank",
-              "count": 14,
-              "interval": 1,
-              "delay": 4
-            },
-            {
-              "enemy": "heli",
-              "count": 12,
-              "interval": 1,
-              "delay": 6
-            },
-            {
-              "enemy": "drone",
-              "count": 24,
-              "interval": 0.4,
-              "delay": 10
-            }
-          ]
-        }
-      ]
-    }
-  ],
+  "_levels": "Missions are generated (see campaign). Map coordinates: landscape, x from -8.5 to 8.5, pads inside y -4.7..3.6.",
   "endless": {
     "_readme": "Endless mode: waves are generated from a threat budget; enemies unlock by wave; every bossEvery-th wave adds bosses, cycling through all boss types.",
     "name": "Endless",
@@ -3027,5 +549,142 @@
         "y": -0.9
       }
     ]
+  },
+  "campaign": {
+    "_readme": "Missions are generated from these rules (Assets/Scripts/Campaign.cs). Level numbers are 1-based. A new enemy joins every 5 levels, a boss fights every 10th; towers unlock as the campaign goes on.",
+    "levels": 100,
+    "biomes": [
+      {
+        "name": "grass",
+        "from": 1
+      },
+      {
+        "name": "desert",
+        "from": 26
+      },
+      {
+        "name": "snow",
+        "from": 51
+      },
+      {
+        "name": "autumn",
+        "from": 76
+      }
+    ],
+    "startEnemies": [
+      "soldier",
+      "jeep"
+    ],
+    "enemyIntro": [
+      {
+        "enemy": "drone",
+        "level": 5
+      },
+      {
+        "enemy": "tank",
+        "level": 15
+      },
+      {
+        "enemy": "apc",
+        "level": 25
+      },
+      {
+        "enemy": "heli",
+        "level": 35
+      },
+      {
+        "enemy": "biker",
+        "level": 45
+      },
+      {
+        "enemy": "medic",
+        "level": 55
+      },
+      {
+        "enemy": "heavy",
+        "level": 65
+      },
+      {
+        "enemy": "hover",
+        "level": 75
+      },
+      {
+        "enemy": "jet",
+        "level": 85
+      },
+      {
+        "enemy": "mech",
+        "level": 95
+      }
+    ],
+    "bossIntro": [
+      {
+        "enemy": "boss",
+        "level": 10
+      },
+      {
+        "enemy": "gunship",
+        "level": 20
+      },
+      {
+        "enemy": "titan",
+        "level": 30
+      },
+      {
+        "enemy": "colossus",
+        "level": 40
+      },
+      {
+        "enemy": "carrier",
+        "level": 50
+      }
+    ],
+    "towerUnlock": [
+      {
+        "tower": "mg",
+        "level": 1
+      },
+      {
+        "tower": "cannon",
+        "level": 1
+      },
+      {
+        "tower": "aa",
+        "level": 4
+      },
+      {
+        "tower": "flame",
+        "level": 8
+      },
+      {
+        "tower": "tesla",
+        "level": 12
+      },
+      {
+        "tower": "mortar",
+        "level": 18
+      },
+      {
+        "tower": "sniper",
+        "level": 24
+      },
+      {
+        "tower": "cryo",
+        "level": 32
+      }
+    ],
+    "lives": 10,
+    "bossLives": 15,
+    "startCoins": 170,
+    "startCoinsPerLevel": 3,
+    "healthPerLevel": 0.016,
+    "waves": 5,
+    "levelsPerExtraWave": 20,
+    "maxWaves": 10,
+    "budget": 10,
+    "budgetPerLevel": 0.3,
+    "budgetGrowthPerWave": 1.22,
+    "spawnInterval": 0.75,
+    "pads": 11
   }
 }

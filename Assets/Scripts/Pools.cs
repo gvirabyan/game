@@ -25,6 +25,7 @@ namespace Corehold
         public float health, maxHealth, angle, height;
         public float slow, slowTime;        // speed reduction share and how long it lasts
         public float burnDps, burnTime, burnFx;
+        public float abilityTimer;          // medic heal pulses, carrier launches
         public int generation;              // bumps on every release so stale references can be detected
         public int activeIndex;
     }

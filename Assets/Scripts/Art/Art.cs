@@ -11,7 +11,7 @@ namespace Corehold
         // UI icons (the world itself is 3D, see Models).
         public static Sprite TowerBase, MgTurret, CannonTurret, AaTurret, Headquarters;
         public static Sprite Coin, Heart, Flag, Pause, Play, FastForward, Close;
-        public static Sprite Panel, PanelShadow, ButtonFace, Vignette, Star, Pill, Header, Fade, RangeDecal, PadMarker, SoundOn, SoundOff;
+        public static Sprite Panel, PanelShadow, ButtonFace, Vignette, Star, Pill, Header, Fade, RangeDecal, PadMarker, SoundOn, SoundOff, Lock;
         // World helpers: billboards, range indicator, health bars.
         public static Sprite Glow, Disc, Ring, Pixel;
 
@@ -45,6 +45,12 @@ namespace Corehold
             Ring = Draw(256, 1f, p => p.Ring(0f, 0f, 0.96f, 0.04f, White), "Ring");
             RangeDecal = Draw(256, 1f, DrawRangeDecal, "RangeDecal");
             SoundOn = Draw(64, 1f, p => DrawSpeaker(p, true), "SoundOn");
+            Lock = Draw(64, 1f, p =>
+            {
+                p.Ring(0f, 0.18f, 0.32f, 0.12f, White);
+                p.Box(0f, -0.28f, 0.48f, 0.38f, 0.08f, White);
+                p.Box(0f, -0.26f, 0.06f, 0.12f, 0.04f, new Color(0f, 0f, 0f, 0.6f));
+            }, "Lock");
             SoundOff = Draw(64, 1f, p => DrawSpeaker(p, false), "SoundOff");
             PadMarker = Draw(128, 1f, DrawPadMarker, "PadMarker");
             Pixel = Draw(16, 1f, p => p.Box(0f, 0f, 1f, 1f, 0f, White), "Pixel", inset: 4);

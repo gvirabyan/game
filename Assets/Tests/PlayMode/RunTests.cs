@@ -18,6 +18,7 @@ namespace Corehold.Tests
 
         IEnumerator LoadScene()
         {
+            Progress.ResetAll();
             SceneManager.LoadScene("Main");
             yield return null;
             yield return null;
@@ -94,30 +95,49 @@ namespace Corehold.Tests
         }
 
         [UnityTest]
-        public IEnumerator DefendedLevels_AreWonAndAdvance()
+        public IEnumerator Missions_UnlockInOrder_AndAreWonWithFullDefence()
         {
             yield return LoadScene();
             var game = Game.Instance;
-            OpenLevel(1);
+            Assert.IsFalse(game.IsLevelUnlocked(1), "mission 2 must start locked");
+            Click("Level_2");
+            Assert.IsNull(GameObject.Find("PlayButton"), "a locked mission opened its card");
 
-            for (int level = 0; level < game.Balance.levels.Length; level++)
+            // The first missions through the real UI, one after another.
+            OpenLevel(1);
+            for (int level = 0; level < 3; level++)
             {
                 Assert.AreEqual(level, game.LevelIndex);
-                FortifyAllSpots(game);
-                Click("WaveButton");
-                Time.timeScale = TimeScale;
-                yield return WaitUntil(() => game.State != GameState.Playing, $"level {level + 1} to finish");
-                Assert.AreEqual(GameState.Won, game.State, $"level {level + 1} lost on wave {game.WavesStarted}");
-                Debug.Log($"[RunTests] level {level + 1} won, kills {game.Kills}, lives {game.Lives}/{game.Level.lives}");
-                if (level < game.Balance.levels.Length - 1) Click("NextLevelButton");
+                yield return WinCurrentLevel(game);
+                Assert.IsTrue(game.IsLevelUnlocked(level + 1), $"mission {level + 2} did not unlock");
+                Click("NextLevelButton");
+                DismissIntro();
+            }
+
+            // Spot checks deeper in the campaign (one per zone and the finale).
+            foreach (int number in new[] { 10, 30, 50, 75, 100 })
+            {
+                game.LoadLevel(number - 1);
+                DismissIntro();
+                yield return WinCurrentLevel(game);
             }
         }
 
-        // Every tower type in turn on every pad, fully upgraded, so each attack kind gets exercised.
+        IEnumerator WinCurrentLevel(Game game)
+        {
+            FortifyAllSpots(game);
+            Click("WaveButton");
+            Time.timeScale = TimeScale;
+            yield return WaitUntil(() => game.State != GameState.Playing, $"mission {game.Level.number} to finish");
+            Assert.AreEqual(GameState.Won, game.State, $"mission {game.Level.number} lost on wave {game.WavesStarted}");
+            Debug.Log($"[RunTests] mission {game.Level.number} ({game.Level.biome}) won, kills {game.Kills}, lives {game.Lives}/{game.Level.lives}");
+        }
+
+        // Unlocked tower types in turn on every pad, fully upgraded, so each attack kind gets exercised.
         static void FortifyAllSpots(Game game)
         {
-            game.AddCoins(100000);
-            var towers = game.Balance.towers;
+            game.AddCoins(1000000);
+            var towers = System.Array.FindAll(game.Balance.towers, t => game.IsTowerUnlocked(t.id));
             for (int i = 0; i < game.Spots.Count; i++)
             {
                 game.Select(i);
@@ -131,6 +151,18 @@ namespace Corehold.Tests
         {
             Click("Level_" + number);
             Click("PlayButton");
+            DismissIntro();
+        }
+
+        // Missions that bring something new open with a card that pauses the game.
+        static void DismissIntro()
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                var ok = GameObject.Find("IntroOk");
+                if (ok == null) return;
+                ok.GetComponent<Button>().onClick.Invoke();
+            }
         }
 
         [UnityTest]

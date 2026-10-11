@@ -31,6 +31,15 @@ namespace Corehold
         readonly Image[] previewIcons = new Image[PreviewSlots];
         readonly Text[] previewCounts = new Text[PreviewSlots];
         readonly List<RectTransform> nodeButtons = new List<RectTransform>();
+        readonly List<Image> nodeFaces = new List<Image>();
+        readonly List<GameObject> nodeNumbers = new List<GameObject>(), nodeLocks = new List<GameObject>();
+        readonly List<GameObject> buildLocks = new List<GameObject>();
+        GameObject introPanel;
+        Text introKind, introName, introInfo, toastText;
+        Image introIcon, introHeader;
+        readonly Queue<(bool enemy, string id)> introQueue = new Queue<(bool, string)>();
+        float toastTime;
+        const float BarHeight = 236f, CardWidth = 250f;
         readonly List<Image[]> nodeStars = new List<Image[]>();
         RectTransform nodeLayer, currentRing, infoMap;
         Text infoTitle, infoText, infoBoss;
@@ -92,6 +101,7 @@ namespace Corehold
             BuildTowerPanel(safe);
             BuildPausePanel(canvas);
             BuildResultPanel(canvas);
+            BuildIntroPanel(canvas);
             BuildMenu(canvas);
 
             game.StateChanged += OnStateChanged;
@@ -126,7 +136,7 @@ namespace Corehold
         {
             var rt = UIFactory.Box(name, parent, new Vector2(1, 1), position, new Vector2(104, 104));
             UIFactory.Shadow(rt, 12f, 6f);
-            var b = UIFactory.IconButton(rt, UIFactory.CardColor, Art.SoundOn, 50);
+            var b = UIFactory.IconButton(rt, UIFactory.CardColor, Sfx.Muted ? Art.SoundOff : Art.SoundOn, 50);
             soundIcons.Add(rt.Find("Icon").GetComponent<Image>());
             b.onClick.AddListener(() =>
             {
@@ -210,23 +220,36 @@ namespace Corehold
 
         // ---------------- Build and tower panels ----------------
 
-        // Two columns of tower cards with a 3D icon, name, role and price.
+        // Bottom bar of tower cards; scrolls sideways when they do not all fit. Locked towers show when they open.
         void BuildBuildPanel(RectTransform root)
         {
-            var panel = SidePanel("BuildPanel", root, out var title, out _);
+            var panel = UIFactory.Rect("BuildPanel", root, Vector2.zero, new Vector2(1, 0), new Vector2(Margin, Margin), new Vector2(-Margin, Margin + BarHeight));
             buildPanel = panel.gameObject;
-            title.text = "Build";
+            PanelFace(panel);
+            var close = UIFactory.IconButton(UIFactory.Box("Close", panel, new Vector2(1, 0.5f), new Vector2(-16, 0), new Vector2(84, 84)), UIFactory.Bad, Art.Close, 32);
+            close.GetComponent<RectTransform>().pivot = new Vector2(1f, 0.5f);
+            close.onClick.AddListener(game.Deselect);
 
+            var viewport = UIFactory.Rect("Viewport", panel, Vector2.zero, Vector2.one, new Vector2(14, 12), new Vector2(-116, -12));
+            viewport.gameObject.AddComponent<RectMask2D>();
             var towers = game.Balance.towers;
-            int rows = (towers.Length + 1) / 2;
-            var area = UIFactory.Rect("Cards", panel, Vector2.zero, Vector2.one, new Vector2(14, 12), new Vector2(-14, -100));
+            var content = UIFactory.Rect("Content", viewport, Vector2.zero, new Vector2(0, 1), Vector2.zero, new Vector2(towers.Length * (CardWidth + 12f), 0));
+            content.pivot = new Vector2(0f, 0.5f);
+            content.offsetMin = Vector2.zero;
+            content.offsetMax = new Vector2(towers.Length * (CardWidth + 12f), 0f);
+            var scroll = panel.gameObject.AddComponent<ScrollRect>();
+            scroll.viewport = viewport;
+            scroll.content = content;
+            scroll.horizontal = true;
+            scroll.vertical = false;
+            scroll.movementType = ScrollRect.MovementType.Elastic;
+            scroll.scrollSensitivity = 30f;
+
             for (int i = 0; i < towers.Length; i++)
             {
                 var type = towers[i];
                 var id = type.id;
-                int col = i % 2, row = i / 2;
-                var card = UIFactory.Rect("Build_" + id, area, new Vector2(col * 0.5f, 1f - (row + 1f) / rows), new Vector2((col + 1) * 0.5f, 1f - row / (float)rows),
-                    new Vector2(8, 6), new Vector2(-8, -6));
+                var card = UIFactory.Rect("Build_" + id, content, Vector2.zero, new Vector2(0, 1), new Vector2(i * (CardWidth + 12f), 0), new Vector2(i * (CardWidth + 12f) + CardWidth, 0));
                 var button = UIFactory.Button(card, UIFactory.CardColor, out var label, "", 24);
                 label.text = "";
                 button.onClick.AddListener(() => game.TryBuild(id));
@@ -234,18 +257,28 @@ namespace Corehold
 
                 var strip = UIFactory.Rect("Accent", card, new Vector2(0, 1), Vector2.one, new Vector2(18, -12), new Vector2(-18, -6));
                 UIFactory.Image(strip, towerColors[id]).sprite = Art.Pill;
-                var icon = UIFactory.Box("Icon", card, new Vector2(0, 0.5f), new Vector2(4, 6), new Vector2(118, 118));
+                var icon = UIFactory.Box("Icon", card, new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(104, 104));
+                icon.pivot = new Vector2(0.5f, 1f);
                 UIFactory.Icon(icon, Icons.Tower(id, 0));
-                UIFactory.Text(UIFactory.Rect("Name", card, new Vector2(0, 0.5f), new Vector2(1, 1), new Vector2(122, 0), new Vector2(-8, -14)),
-                    type.label, 25, TextAnchor.LowerLeft, UIFactory.TextMain, true);
-                UIFactory.Text(UIFactory.Rect("Role", card, new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(122, -30), new Vector2(-8, 0)),
-                    type.role, 20, TextAnchor.UpperLeft, towerColors[id]);
+                UIFactory.Text(UIFactory.Rect("Name", card, new Vector2(0, 0), new Vector2(1, 0), new Vector2(12, 74), new Vector2(-12, 104)),
+                    type.label, 26, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
+                UIFactory.Text(UIFactory.Rect("Role", card, new Vector2(0, 0), new Vector2(1, 0), new Vector2(12, 52), new Vector2(-12, 76)),
+                    type.role, 19, TextAnchor.MiddleCenter, towerColors[id]);
 
-                var price = UIFactory.Box("Price", card, new Vector2(1, 0), new Vector2(-10, 14), new Vector2(116, 44));
+                var price = UIFactory.Box("Price", card, new Vector2(0.5f, 0), new Vector2(0, 10), new Vector2(130, 40));
+                price.pivot = new Vector2(0.5f, 0f);
                 UIFactory.Image(price, Shade).sprite = Art.Pill;
-                UIFactory.Icon(UIFactory.Box("CoinIcon", price, new Vector2(0, 0.5f), new Vector2(6, 0), new Vector2(34, 34)), Art.Coin);
-                buildCosts.Add(UIFactory.Text(UIFactory.Rect("Cost", price, Vector2.zero, Vector2.one, new Vector2(40, 0), new Vector2(-8, 0)),
+                UIFactory.Icon(UIFactory.Box("CoinIcon", price, new Vector2(0, 0.5f), new Vector2(8, 0), new Vector2(34, 34)), Art.Coin);
+                buildCosts.Add(UIFactory.Text(UIFactory.Rect("Cost", price, Vector2.zero, Vector2.one, new Vector2(42, 0), new Vector2(-8, 0)),
                     type.cost.ToString(), 30, TextAnchor.MiddleCenter, Art.Palette.Gold, true));
+
+                // Locked cover: dark veil, padlock and the mission that opens it.
+                var veil = UIFactory.Fill("Locked", card);
+                UIFactory.Image(veil, new Color(0.05f, 0.07f, 0.1f, 0.8f), false);
+                Centered(UIFactory.Icon(UIFactory.Box("Lock", veil, new Vector2(0.5f, 0.5f), new Vector2(0, 28), new Vector2(70, 70)), Art.Lock));
+                UIFactory.Text(UIFactory.Rect("Opens", veil, Vector2.zero, new Vector2(1, 0), new Vector2(0, 30), new Vector2(0, 80)),
+                    $"Mission {game.Balance.campaign.TowerLevel(id)}", 26, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
+                buildLocks.Add(veil.gameObject);
             }
         }
 
@@ -330,6 +363,71 @@ namespace Corehold
 
         // ---------------- Pause and result ----------------
 
+        // "New enemy" / "New tower" card shown when a mission starts with something new; the game waits behind it.
+        void BuildIntroPanel(Transform canvas)
+        {
+            var card = Overlay("IntroPanel", canvas, out introPanel, 640, out introHeader);
+            introKind = UIFactory.Text(UIFactory.Rect("Kind", card, new Vector2(0, 1), Vector2.one, new Vector2(0, -110), Vector2.zero),
+                "", 52, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
+            var bubble = UIFactory.Box("Bubble", card, new Vector2(0.5f, 1), new Vector2(0, -130), new Vector2(230, 230));
+            bubble.pivot = new Vector2(0.5f, 1f);
+            UIFactory.Icon(bubble, Art.Disc).color = Shade;
+            introIcon = Centered(UIFactory.Icon(UIFactory.Box("Icon", bubble, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(220, 220)), Art.Coin));
+            introName = UIFactory.Text(UIFactory.Box("Name", card, new Vector2(0.5f, 1), new Vector2(0, -372), new Vector2(760, 60)),
+                "", 48, TextAnchor.MiddleCenter, Art.Palette.Gold, true);
+            introName.rectTransform.pivot = new Vector2(0.5f, 1f);
+            introInfo = UIFactory.Text(UIFactory.Box("Info", card, new Vector2(0.5f, 1), new Vector2(0, -432), new Vector2(740, 60)),
+                "", 30, TextAnchor.MiddleCenter, UIFactory.TextMain);
+            introInfo.rectTransform.pivot = new Vector2(0.5f, 1f);
+            CardButton(card, "IntroOk", "GOT IT", UIFactory.Go, -510, NextIntro);
+            introPanel.SetActive(false);
+        }
+
+        void QueueIntros()
+        {
+            introQueue.Clear();
+            var level = game.Level;
+            if (game.Endless || level == null) return;
+            if (level.newEnemy != null) introQueue.Enqueue((true, level.newEnemy));
+            foreach (var t in game.Balance.towers)
+                if (level.number > 1 && game.Balance.campaign.TowerLevel(t.id) == level.number) introQueue.Enqueue((false, t.id));
+            NextIntro();
+        }
+
+        void NextIntro()
+        {
+            if (introQueue.Count == 0)
+            {
+                if (introPanel.activeSelf)
+                {
+                    introPanel.SetActive(false);
+                    Time.timeScale = paused ? 0f : speed;
+                }
+                return;
+            }
+            var (enemy, id) = introQueue.Dequeue();
+            introPanel.SetActive(true);
+            Time.timeScale = 0f;
+            if (enemy)
+            {
+                var e = game.Balance.Enemy(id);
+                introKind.text = e.boss ? "BOSS INCOMING!" : "NEW ENEMY!";
+                introHeader.color = UIFactory.Bad;
+                introIcon.sprite = Icons.Enemy(id);
+                introName.text = e.label;
+                introInfo.text = e.info;
+            }
+            else
+            {
+                var t = game.Balance.Tower(id);
+                introKind.text = "NEW TOWER!";
+                introHeader.color = UIFactory.Go;
+                introIcon.sprite = Icons.Tower(id, 0);
+                introName.text = t.label;
+                introInfo.text = t.role;
+            }
+        }
+
         void BuildPausePanel(Transform canvas)
         {
             var card = Overlay("PausePanel", canvas, out pausePanel, 600, out var header);
@@ -402,16 +500,23 @@ namespace Corehold
                 int index = i;
                 var node = UIFactory.Box("Level_" + (i + 1), nodeLayer, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(110, 110));
                 node.pivot = new Vector2(0.5f, 0.5f);
-                bool boss = BossOf(levels[i]) != null;
+                bool boss = levels[i].boss != null;
                 var face = UIFactory.Icon(node, Art.Disc);
-                face.color = boss ? UIFactory.Bad : UIFactory.Primary;
                 face.raycastTarget = true;
+                nodeFaces.Add(face);
                 var button = node.gameObject.AddComponent<Button>();
                 button.targetGraphic = face;
                 button.onClick.AddListener(() => Sfx.Play(Sounds.Click, 0.5f));
-                button.onClick.AddListener(() => { if (game.Map == null || !game.Map.Dragged) OpenLevelInfo(index); });
+                button.onClick.AddListener(() =>
+                {
+                    if (game.Map != null && game.Map.Dragged) return;
+                    if (game.IsLevelUnlocked(index)) OpenLevelInfo(index);
+                    else Toast($"Win mission {index} first");
+                });
                 UIFactory.Icon(UIFactory.Fill("Ring", node), Art.Ring).color = new Color(1f, 1f, 1f, 0.8f);
-                UIFactory.Text(UIFactory.Fill("Number", node), (i + 1).ToString(), 52, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
+                nodeNumbers.Add(UIFactory.Text(UIFactory.Fill("Number", node), (i + 1).ToString(), i >= 99 ? 40 : 52, TextAnchor.MiddleCenter, UIFactory.TextMain, true).gameObject);
+                var padlock = Centered(UIFactory.Icon(UIFactory.Box("Lock", node, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(56, 56)), Art.Lock));
+                nodeLocks.Add(padlock.gameObject);
 
                 var stars = new Image[3];
                 for (int k = 0; k < 3; k++)
@@ -458,17 +563,18 @@ namespace Corehold
             eb.onClick.AddListener(game.StartEndless);
             SoundButton(root, "MenuSoundButton", new Vector2(-Margin, -Margin));
 
+            toastText = UIFactory.Text(UIFactory.Box("Toast", root, new Vector2(0.5f, 0f), new Vector2(0, 90), new Vector2(900, 70)),
+                "", 36, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
+            toastText.rectTransform.pivot = new Vector2(0.5f, 0f);
+            toastText.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
+
             BuildLevelInfo(root);
         }
 
-        static string BossOf(LevelConfig level)
+        void Toast(string message)
         {
-            var balance = Game.Instance.Balance;
-            string boss = null;
-            foreach (var w in level.waves)
-                foreach (var g in w.groups)
-                    if (balance.Enemy(g.enemy).boss) boss = g.enemy;
-            return boss;
+            toastText.text = message;
+            toastTime = 2f;
         }
 
         // Mission card: mini map, stars, numbers, enemy line-up, boss and Play.
@@ -494,8 +600,8 @@ namespace Corehold
                 infoStars[k] = UIFactory.Icon(UIFactory.Box("Star" + k, card, new Vector2(0, 1), new Vector2(600 + k * 70, -130), new Vector2(64, 64)), Art.Star);
             infoText = UIFactory.Text(UIFactory.Rect("Info", card, new Vector2(0, 1), Vector2.one, new Vector2(600, -360), new Vector2(-30, -210)),
                 "", 30, TextAnchor.UpperLeft, UIFactory.TextMain);
-            infoBoss = UIFactory.Text(UIFactory.Rect("BossLine", card, new Vector2(0, 1), Vector2.one, new Vector2(600, -410), new Vector2(-30, -360)),
-                "", 30, TextAnchor.MiddleLeft, Art.Hex("FF8A8A"), true);
+            infoBoss = UIFactory.Text(UIFactory.Rect("BossLine", card, new Vector2(0, 1), Vector2.one, new Vector2(600, -440), new Vector2(-30, -350)),
+                "", 28, TextAnchor.UpperLeft, Art.Hex("FFB08A"), true);
 
             UIFactory.Text(UIFactory.Rect("EnemiesLabel", card, new Vector2(0, 0), new Vector2(0, 0), new Vector2(36, 150), new Vector2(300, 190)),
                 "Enemies", 26, TextAnchor.MiddleLeft, UIFactory.TextDim);
@@ -512,12 +618,17 @@ namespace Corehold
         {
             infoLevel = index;
             var level = game.Balance.levels[index];
-            string boss = BossOf(level);
+            string boss = level.boss;
             infoTitle.text = $"Mission {index + 1}  ·  {level.name}";
             infoHeader.color = boss != null ? MeshBuilder.Shade(UIFactory.Bad, 0.85f) : UIFactory.Primary;
             for (int k = 0; k < 3; k++) infoStars[k].color = k < game.LevelStars[index] ? Art.Palette.Gold : new Color(0f, 0f, 0f, 0.35f);
             infoText.text = $"{level.waves.Length} waves\n{level.lives} lives\n{level.startCoins} coins to start";
-            infoBoss.text = boss != null ? "BOSS: " + game.Balance.Enemy(boss).label : "";
+            var news = new List<string>();
+            if (level.newEnemy != null) news.Add("NEW ENEMY: " + game.Balance.Enemy(level.newEnemy).label);
+            foreach (var t in game.Balance.towers)
+                if (game.Balance.campaign.TowerLevel(t.id) == level.number && level.number > 1) news.Add("NEW TOWER: " + t.label);
+            if (boss != null && boss != level.newEnemy) news.Add("BOSS: " + game.Balance.Enemy(boss).label);
+            infoBoss.text = string.Join("\n", news);
 
             var types = new List<string>();
             foreach (var w in level.waves)
@@ -554,7 +665,7 @@ namespace Corehold
             for (int i = 0; i < nodeButtons.Count; i++)
             {
                 var screen = cam.WorldToScreenPoint(map.Nodes[i] + new Vector3(0f, 0.3f, 0f));
-                bool visible = screen.z > 0f;
+                bool visible = screen.z > 0f && screen.x > -200f && screen.x < Screen.width + 200f;
                 nodeButtons[i].gameObject.SetActive(visible);
                 if (!visible) continue;
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(nodeLayer, screen, null, out var local);
@@ -562,6 +673,11 @@ namespace Corehold
                 if (i == current) currentRing.anchoredPosition = local;
             }
             currentRing.gameObject.SetActive(current >= 0);
+            if (toastTime > 0f)
+            {
+                toastTime -= Time.unscaledDeltaTime;
+                toastText.color = new Color(1f, 1f, 1f, Mathf.Clamp01(toastTime * 2f));
+            }
             float pulse = 1f + 0.08f * Mathf.Sin(Time.unscaledTime * 4f);
             currentRing.localScale = new Vector3(pulse, pulse, 1f);
         }
@@ -612,9 +728,19 @@ namespace Corehold
             {
                 CloseLevelInfo();
                 endlessBestText.text = game.EndlessBest > 0 ? $"Best: wave {game.EndlessBest}" : "Survive as long as you can";
+                toastText.text = "";
                 for (int i = 0; i < nodeStars.Count; i++)
+                {
+                    bool open = game.IsLevelUnlocked(i);
+                    nodeFaces[i].color = !open ? UIFactory.DisabledColor : game.Balance.levels[i].boss != null ? UIFactory.Bad : UIFactory.Primary;
+                    nodeNumbers[i].SetActive(open);
+                    nodeLocks[i].SetActive(!open);
                     for (int k = 0; k < 3; k++)
+                    {
+                        nodeStars[i][k].gameObject.SetActive(open);
                         nodeStars[i][k].color = k < game.LevelStars[i] ? Art.Palette.Gold : new Color(0f, 0f, 0f, 0.45f);
+                    }
+                }
             }
             hud.SetActive(s != GameState.Menu);
             debugRoot.SetActive(s != GameState.Menu);
@@ -622,6 +748,8 @@ namespace Corehold
             pausePanel.SetActive(false);
             paused = false;
             if (s != GameState.Playing) speed = 1f;
+            if (s != GameState.Playing) { introQueue.Clear(); introPanel.SetActive(false); }
+            else if (game.WavesStarted == 0 && !introPanel.activeSelf) QueueIntros();
 
             if (s == GameState.Won || s == GameState.Lost)
             {
@@ -638,7 +766,7 @@ namespace Corehold
                 else
                 {
                     bool last = game.LevelIndex == game.Balance.levels.Length - 1;
-                    resultTitle.text = won ? (last ? "All missions cleared!" : "Victory!") : "Base destroyed";
+                    resultTitle.text = won ? (last ? "Campaign complete!" : "Victory!") : "Base destroyed";
                     resultHeader.color = won ? UIFactory.Go : UIFactory.Bad;
                     int stars = won ? game.StarsFor(game.Lives, game.Level.lives) : 0;
                     for (int i = 0; i < 3; i++)
@@ -684,7 +812,6 @@ namespace Corehold
             {
                 // Side panels cover about a third of the screen: open them on the half without the pad.
                 bool left = sel.position.x > 0f;
-                PlaceSidePanel((RectTransform)buildPanel.transform, left);
                 PlaceSidePanel((RectTransform)towerPanel.transform, left);
             }
             if (game.Level == null) return;
@@ -739,6 +866,7 @@ namespace Corehold
             var towers = game.Balance.towers;
             for (int i = 0; i < towers.Length; i++)
             {
+                buildLocks[i].SetActive(!game.IsTowerUnlocked(towers[i].id));
                 bool can = game.CanBuild(towers[i].id);
                 ((Image)buildButtons[i].targetGraphic).color = can ? UIFactory.CardColor : UIFactory.DisabledColor;
                 buildCosts[i].color = can ? Art.Palette.Gold : Art.Palette.Danger;
