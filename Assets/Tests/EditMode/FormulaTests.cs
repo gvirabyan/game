@@ -55,8 +55,8 @@ namespace Corehold.Tests
                     Assert.GreaterOrEqual(path.DistanceTo(s), roadHalf + spotHalf + 0.05f, where + " overlaps the road");
                     Assert.GreaterOrEqual((s - hq).magnitude, 0.8f + spotHalf, where + " overlaps the base");
                     Assert.LessOrEqual(Mathf.Abs(s.x) + spotHalf, Bootstrap.WorldHalfWidth, where + " is off screen");
-                    Assert.LessOrEqual(s.y + spotHalf, 7.4f, where + " is under the HUD");
-                    Assert.GreaterOrEqual(s.y - spotHalf, -7.0f, where + " is under the bottom bar");
+                    Assert.LessOrEqual(s.y + spotHalf, 3.6f, where + " is under the HUD");
+                    Assert.GreaterOrEqual(s.y - spotHalf, -4.7f, where + " is off the bottom edge");
                     for (int j = i + 1; j < level.spots.Length; j++)
                         Assert.GreaterOrEqual((s - level.spots[j]).magnitude, spotHalf * 2f, $"{where} overlaps spot {j}");
                 }

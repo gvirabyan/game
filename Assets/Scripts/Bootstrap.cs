@@ -7,8 +7,8 @@ namespace Corehold
     public sealed class Bootstrap : MonoBehaviour
     {
         // Level layouts in balance.json are authored for this visible area (map units).
-        public const float WorldHalfWidth = 5f;
-        public const float MinHalfHeight = 8.9f;
+        public const float WorldHalfWidth = 8.5f;
+        public const float MinHalfHeight = 5f;
 
         static readonly Color Sky = Art.Hex("6F9A55");
 
@@ -33,7 +33,7 @@ namespace Corehold
             cam.backgroundColor = Sky;
             cam.nearClipPlane = 1f;
             cam.farClipPlane = 120f;
-            // Fixed map width on phones; wide screens (tablets) keep the full level height instead.
+            // Landscape: fixed map height on phones; narrower screens (tablets) keep the full level width instead.
             cam.orthographicSize = Mathf.Max(WorldHalfWidth / cam.aspect, MinHalfHeight);
             cam.transform.rotation = Quaternion.Euler(View.Pitch, 0f, 0f);
             cam.transform.position = -(cam.transform.rotation * Vector3.forward) * 50f;

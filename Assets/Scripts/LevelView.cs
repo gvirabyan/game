@@ -9,7 +9,7 @@ namespace Corehold
     // while models keep their real proportions and show their sides.
     public static class View
     {
-        public const float Pitch = 30f;
+        public const float Pitch = 20f;
         public static readonly float ZStretch = 1f / Mathf.Sin(Pitch * Mathf.Deg2Rad);
 
         // Map -> world stretch for flat geometry built in map coordinates (ground, road).

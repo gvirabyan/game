@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 namespace Corehold
 {
-    // Small helpers for building uGUI from code. Sizes are in reference pixels of a 1080x1920 canvas.
+    // Small helpers for building uGUI from code. Sizes are in reference pixels of a 1920x1080 (landscape) canvas.
     public static class UIFactory
     {
         static Font font;
@@ -26,8 +26,8 @@ namespace Corehold
             canvas.sortingOrder = sortingOrder;
             var scaler = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            scaler.matchWidthOrHeight = 0f;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.matchWidthOrHeight = 1f;     // landscape: scale by height
             go.AddComponent<GraphicRaycaster>();
             return canvas;
         }

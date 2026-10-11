@@ -9,11 +9,13 @@ namespace Corehold
     {
         const float RefreshInterval = 0.1f;
         const float Margin = 24f;
+        const float HudHeight = 104f;
+        const float SideWidth = 620f;
         static readonly string[] TowerIds = { "mg", "cannon", "aa" };
         static readonly string[] TowerRoles = { "Ground + air", "Ground, splash", "Air only" };
 
         Game game;
-        GameObject menu, hud, bottomBar, buildPanel, towerPanel, resultPanel, pausePanel, debugRoot;
+        GameObject menu, hud, waveBar, buildPanel, towerPanel, resultPanel, pausePanel, debugRoot;
         Text coinsText, livesText, waveText, hintText, waveButtonLabel, speedLabel, debugText, stressLabel;
         Text towerTitle, towerStats, upgradeLabel, sellLabel, resultTitle, resultStats;
         Image waveButtonImage, upgradeImage, towerIconTurret;
@@ -43,7 +45,7 @@ namespace Corehold
 
             BuildHud(safe);
             BuildDebug(safe);
-            BuildBottomBar(safe);
+            BuildWaveBar(safe);
             BuildBuildPanel(safe);
             BuildTowerPanel(safe);
             BuildPausePanel(canvas);
@@ -59,7 +61,7 @@ namespace Corehold
 
         void BuildHud(RectTransform root)
         {
-            var bar = UIFactory.Rect("Hud", root, new Vector2(0, 1), Vector2.one, new Vector2(0, -Margin - 110), new Vector2(0, -Margin));
+            var bar = UIFactory.Rect("Hud", root, new Vector2(0, 1), Vector2.one, new Vector2(0, -Margin - HudHeight), new Vector2(0, -Margin));
             hud = bar.gameObject;
 
             coinsText = Chip(bar, "CoinChip", Margin, 250, Art.Coin, Art.Palette.Gold);
@@ -105,71 +107,78 @@ namespace Corehold
             stress.onClick.AddListener(() => { game.StressMode = !game.StressMode; Refresh(); });
         }
 
-        void BuildBottomBar(RectTransform root)
+        // Wave button and hint in the top row, right of the resource chips.
+        void BuildWaveBar(RectTransform root)
         {
-            var bar = UIFactory.Rect("BottomBar", root, Vector2.zero, new Vector2(1, 0), new Vector2(Margin, Margin), new Vector2(-Margin, Margin + 150));
-            PanelFace(bar);
-            bottomBar = bar.gameObject;
+            var bar = UIFactory.Rect("WaveBar", root, new Vector2(0, 1), Vector2.one,
+                new Vector2(Margin + 730, -Margin - HudHeight), new Vector2(-Margin - 250, -Margin));
+            waveBar = bar.gameObject;
 
-            hintText = UIFactory.Text(UIFactory.Rect("Hint", bar, Vector2.zero, new Vector2(0.55f, 1), new Vector2(36, 0), Vector2.zero),
-                "", 34, TextAnchor.MiddleLeft, UIFactory.TextDim);
-            var rt = UIFactory.Rect("WaveButton", bar, new Vector2(0.55f, 0), Vector2.one, new Vector2(0, 18), new Vector2(-18, -18));
-            waveButton = UIFactory.Button(rt, Art.Palette.Accent, out waveButtonLabel, "", 44);
+            var rt = UIFactory.Box("WaveButton", bar, new Vector2(0, 1), Vector2.zero, new Vector2(400, HudHeight));
+            UIFactory.Shadow(rt, 12f, 6f);
+            waveButton = UIFactory.Button(rt, Art.Palette.Accent, out waveButtonLabel, "", 40);
             waveButtonImage = (Image)waveButton.targetGraphic;
             waveButton.onClick.AddListener(game.StartNextWave);
+            hintText = UIFactory.Text(UIFactory.Rect("Hint", bar, Vector2.zero, Vector2.one, new Vector2(428, 0), Vector2.zero),
+                "", 28, TextAnchor.MiddleLeft, Color.white);
+            hintText.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.6f);
         }
 
         void BuildBuildPanel(RectTransform root)
         {
-            var panel = BottomPanel("BuildPanel", root, out var title);
+            var panel = SidePanel("BuildPanel", root, out var title);
             buildPanel = panel.gameObject;
             title.text = "Build a tower";
 
+            var area = UIFactory.Rect("Cards", panel, Vector2.zero, Vector2.one, new Vector2(0, 12), new Vector2(0, -96));
             for (int i = 0; i < 3; i++)
             {
                 var id = TowerIds[i];
                 var type = game.Balance.Tower(id);
-                float x0 = i / 3f, x1 = (i + 1) / 3f;
-                var card = UIFactory.Rect("Build_" + id, panel, new Vector2(x0, 0), new Vector2(x1, 1),
-                    new Vector2(i == 0 ? 24 : 12, 24), new Vector2(i == 2 ? -24 : -12, -96));
+                float y0 = 1f - (i + 1) / 3f, y1 = 1f - i / 3f;
+                var card = UIFactory.Rect("Build_" + id, area, new Vector2(0, y0), new Vector2(1, y1), new Vector2(24, 12), new Vector2(-24, -12));
                 buildButtons[i] = UIFactory.Button(card, UIFactory.CardColor, out var label, "", 32);
                 label.text = "";
                 buildButtons[i].onClick.AddListener(() => game.TryBuild(id));
 
-                TowerIcon(card, id, new Vector2(0, -16), 120);
-                UIFactory.Text(UIFactory.Box("Name", card, new Vector2(0.5f, 1), new Vector2(0, -150), new Vector2(300, 50)),
-                    type.label, 34, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
-                UIFactory.Text(UIFactory.Box("Role", card, new Vector2(0.5f, 1), new Vector2(0, -192), new Vector2(300, 40)),
-                    TowerRoles[i], 26, TextAnchor.MiddleCenter, UIFactory.TextDim);
-                UIFactory.Icon(UIFactory.Box("CoinIcon", card, new Vector2(0.5f, 0), new Vector2(-50, 16), new Vector2(40, 40)), Art.Coin);
-                buildCosts[i] = UIFactory.Text(UIFactory.Box("Cost", card, new Vector2(0.5f, 0), new Vector2(20, 10), new Vector2(120, 52)),
-                    type.cost.ToString(), 36, TextAnchor.MiddleCenter, Art.Palette.Gold, true);
+                var icon = UIFactory.Box("Icon", card, new Vector2(0, 0.5f), new Vector2(20, 3), new Vector2(150, 150));
+                UIFactory.Icon(UIFactory.Fill("Base", icon), Art.TowerBase);
+                UIFactory.Icon(UIFactory.Fill("Turret", icon), TurretSprite(id), 90f);
+                UIFactory.Text(UIFactory.Box("Name", card, new Vector2(0, 0.5f), new Vector2(190, 30), new Vector2(260, 50)),
+                    type.label, 36, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
+                UIFactory.Text(UIFactory.Box("Role", card, new Vector2(0, 0.5f), new Vector2(190, -22), new Vector2(260, 40)),
+                    TowerRoles[i], 26, TextAnchor.MiddleLeft, UIFactory.TextDim);
+                UIFactory.Icon(UIFactory.Box("CoinIcon", card, new Vector2(1, 0.5f), new Vector2(-120, 3), new Vector2(44, 44)), Art.Coin);
+                buildCosts[i] = UIFactory.Text(UIFactory.Box("Cost", card, new Vector2(1, 0.5f), new Vector2(-24, 3), new Vector2(90, 52)),
+                    type.cost.ToString(), 38, TextAnchor.MiddleRight, Art.Palette.Gold, true);
             }
         }
 
         void BuildTowerPanel(RectTransform root)
         {
-            var panel = BottomPanel("TowerPanel", root, out towerTitle);
+            var panel = SidePanel("TowerPanel", root, out towerTitle);
             towerPanel = panel.gameObject;
 
-            var iconBox = UIFactory.Box("Icon", panel, new Vector2(0, 1), new Vector2(40, -110), new Vector2(170, 170));
+            var iconBox = UIFactory.Box("Icon", panel, new Vector2(0, 1), new Vector2(36, -110), new Vector2(170, 170));
             UIFactory.Icon(UIFactory.Fill("Base", iconBox), Art.TowerBase);
             towerIconTurret = UIFactory.Icon(UIFactory.Fill("Turret", iconBox), Art.MgTurret, 90f);
-            towerStats = UIFactory.Text(UIFactory.Rect("Stats", panel, new Vector2(0, 0), new Vector2(0.5f, 1), new Vector2(230, 24), new Vector2(0, -96)),
+            towerStats = UIFactory.Text(UIFactory.Rect("Stats", panel, new Vector2(0, 1), new Vector2(1, 1), new Vector2(230, -290), new Vector2(-24, -100)),
                 "", 30, TextAnchor.MiddleLeft, UIFactory.TextMain);
 
-            var upgrade = UIFactory.Button(UIFactory.Rect("UpgradeButton", panel, new Vector2(0.52f, 0.5f), new Vector2(1, 1), new Vector2(0, 8), new Vector2(-24, -96)),
+            var upgrade = UIFactory.Button(UIFactory.Rect("UpgradeButton", panel, Vector2.zero, new Vector2(1, 0), new Vector2(24, 180), new Vector2(-24, 320)),
                 Art.Palette.Accent, out upgradeLabel, "", 36);
             upgradeImage = (Image)upgrade.targetGraphic;
             upgrade.onClick.AddListener(() => game.TryUpgrade());
-            var sell = UIFactory.Button(UIFactory.Rect("SellButton", panel, new Vector2(0.52f, 0), new Vector2(1, 0.5f), new Vector2(0, 24), new Vector2(-24, -8)),
+            var sell = UIFactory.Button(UIFactory.Rect("SellButton", panel, Vector2.zero, new Vector2(1, 0), new Vector2(24, 24), new Vector2(-24, 150)),
                 new Color(0.45f, 0.16f, 0.18f), out sellLabel, "", 32);
             sell.onClick.AddListener(() => game.TrySell());
         }
 
-        RectTransform BottomPanel(string name, RectTransform root, out Text title)
+        // Full-height panel on one side of the screen, below the HUD; see PlaceSidePanel.
+        RectTransform SidePanel(string name, RectTransform root, out Text title)
         {
-            var panel = UIFactory.Rect(name, root, Vector2.zero, new Vector2(1, 0), new Vector2(Margin, Margin), new Vector2(-Margin, Margin + 400));
+            var panel = UIFactory.Rect(name, root, Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
+            PlaceSidePanel(panel, false);
             PanelFace(panel);
             title = UIFactory.Text(UIFactory.Rect("Title", panel, new Vector2(0, 1), Vector2.one, new Vector2(36, -90), new Vector2(-130, -10)),
                 "", 40, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
@@ -179,11 +188,14 @@ namespace Corehold
             return panel;
         }
 
-        void TowerIcon(RectTransform parent, string id, Vector2 topOffset, float size)
+        // Panels open on the side away from the selected pad so it stays visible.
+        static void PlaceSidePanel(RectTransform panel, bool left)
         {
-            var box = UIFactory.Box("Icon", parent, new Vector2(0.5f, 1), topOffset, new Vector2(size, size));
-            UIFactory.Icon(UIFactory.Fill("Base", box), Art.TowerBase);
-            UIFactory.Icon(UIFactory.Fill("Turret", box), TurretSprite(id), 90f);
+            float x = left ? 0f : 1f;
+            panel.anchorMin = new Vector2(x, 0f);
+            panel.anchorMax = new Vector2(x, 1f);
+            panel.offsetMin = new Vector2(left ? Margin : -Margin - SideWidth, Margin);
+            panel.offsetMax = new Vector2(left ? Margin + SideWidth : -Margin, -Margin - HudHeight - 20f);
         }
 
         static Sprite TurretSprite(string id) => id == "cannon" ? Art.CannonTurret : id == "aa" ? Art.AaTurret : Art.MgTurret;
@@ -236,17 +248,17 @@ namespace Corehold
             UIFactory.Image(root, new Color(0.04f, 0.06f, 0.05f, 0.55f), true, false);
             menu = root.gameObject;
 
-            UIFactory.Icon(UIFactory.Box("Logo", root, new Vector2(0.5f, 1), new Vector2(0, -260), new Vector2(240, 240)), Art.Headquarters);
-            UIFactory.Text(UIFactory.Box("Title", root, new Vector2(0.5f, 1), new Vector2(0, -540), new Vector2(1000, 150)),
+            UIFactory.Icon(UIFactory.Box("Logo", root, new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(170, 170)), Art.Headquarters);
+            UIFactory.Text(UIFactory.Box("Title", root, new Vector2(0.5f, 1), new Vector2(0, -220), new Vector2(1000, 130)),
                 "COREHOLD", 120, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
-            UIFactory.Text(UIFactory.Box("Subtitle", root, new Vector2(0.5f, 1), new Vector2(0, -660), new Vector2(1000, 70)),
+            UIFactory.Text(UIFactory.Box("Subtitle", root, new Vector2(0.5f, 1), new Vector2(0, -345), new Vector2(1000, 60)),
                 "Hold the road. Protect the base.", 40, TextAnchor.MiddleCenter, UIFactory.TextDim);
 
             var levels = game.Balance.levels;
             for (int i = 0; i < levels.Length; i++)
             {
                 int index = i;
-                var b = UIFactory.Button(UIFactory.Box("Level_" + (i + 1), root, new Vector2(0.5f, 1), new Vector2(0, -820 - i * 170), new Vector2(760, 140)),
+                var b = UIFactory.Button(UIFactory.Box("Level_" + (i + 1), root, new Vector2(0.5f, 1), new Vector2(0, -450 - i * 165), new Vector2(760, 140)),
                     UIFactory.CardColor, out var label, "", 40);
                 label.alignment = TextAnchor.MiddleLeft;
                 label.rectTransform.offsetMin = new Vector2(48, 0);
@@ -308,7 +320,14 @@ namespace Corehold
             var sel = game.Selected;
             buildPanel.SetActive(playing && sel != null && sel.tower == null);
             towerPanel.SetActive(playing && sel != null && sel.tower != null);
-            bottomBar.SetActive(playing && sel == null);
+            waveBar.SetActive(playing);
+            if (sel != null)
+            {
+                // Side panels cover about a third of the screen: open them on the half without the pad.
+                bool left = sel.position.x > 0f;
+                PlaceSidePanel((RectTransform)buildPanel.transform, left);
+                PlaceSidePanel((RectTransform)towerPanel.transform, left);
+            }
             if (game.Level == null) return;
 
             coinsText.text = game.Coins.ToString();

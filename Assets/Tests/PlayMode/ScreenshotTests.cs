@@ -13,7 +13,7 @@ namespace Corehold.Tests
     [Explicit, Category("Screenshots")]
     public class ScreenshotTests
     {
-        const int Width = 720, Height = 1600;
+        const int Width = 1600, Height = 720;
 
         [UnityTest]
         public IEnumerator CaptureMenuAndLevels()
@@ -53,7 +53,7 @@ namespace Corehold.Tests
         {
             var cam = Camera.main;
             var rt = new RenderTexture(Width, Height, 24) { antiAliasing = 2 };
-            var canvases = Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+            var canvases = Object.FindObjectsByType<Canvas>();
             foreach (var c in canvases)
             {
                 c.renderMode = RenderMode.ScreenSpaceCamera;

@@ -20,7 +20,12 @@ public static class ProjectSetup
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, BundleId);
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, BundleId);
 
-        PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
+        // Landscape only; the phone may be turned either way.
+        PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
+        PlayerSettings.allowedAutorotateToPortrait = false;
+        PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
+        PlayerSettings.allowedAutorotateToLandscapeLeft = true;
+        PlayerSettings.allowedAutorotateToLandscapeRight = true;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.iOS, ScriptingImplementation.IL2CPP);
