@@ -103,6 +103,24 @@ namespace Corehold
             UIFactory.Shadow(speedRt, 12f, 6f);
             var speedButton = UIFactory.Button(speedRt, UIFactory.CardColor, out speedLabel, "x1", 38);
             speedButton.onClick.AddListener(ToggleSpeed);
+
+            SoundButton(bar, "SoundButton", new Vector2(-Margin - 240, 0));
+        }
+
+        // Toggles all audio; every sound button shows the same state.
+        readonly System.Collections.Generic.List<Image> soundIcons = new System.Collections.Generic.List<Image>();
+
+        void SoundButton(RectTransform parent, string name, Vector2 position)
+        {
+            var rt = UIFactory.Box(name, parent, new Vector2(1, 1), position, new Vector2(104, 104));
+            UIFactory.Shadow(rt, 12f, 6f);
+            var b = UIFactory.IconButton(rt, UIFactory.CardColor, Art.SoundOn, 50);
+            soundIcons.Add(rt.Find("Icon").GetComponent<Image>());
+            b.onClick.AddListener(() =>
+            {
+                Sfx.SetMuted(!Sfx.Muted);
+                foreach (var icon in soundIcons) icon.sprite = Sfx.Muted ? Art.SoundOff : Art.SoundOn;
+            });
         }
 
         // Shadow + background inside a panel container, so both hide together with it.
@@ -364,6 +382,8 @@ namespace Corehold
                 "COREHOLD", 112, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
             UIFactory.Text(UIFactory.Box("Subtitle", safe, new Vector2(0, 1), new Vector2(96, -200), new Vector2(760, 50)),
                 "Hold the road. Protect the base.", 34, TextAnchor.MiddleLeft, Art.Palette.Gold);
+
+            SoundButton(root, "MenuSoundButton", new Vector2(-Margin, -Margin));
 
             var levels = game.Balance.levels;
             for (int i = 0; i < levels.Length; i++)

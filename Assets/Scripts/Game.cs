@@ -77,7 +77,8 @@ namespace Corehold
         Pool<Enemy> enemies;
         Pool<Projectile> projectiles;
         Pool<Effect> effects;
-        SpriteRenderer rangeFill, rangeRing;
+        SpriteRenderer rangeDecal, padMarker;
+        float selectionTime;
 
         // Spawning state of the current wave.
         readonly List<SpawnGroup> groups = new List<SpawnGroup>();
@@ -99,8 +100,8 @@ namespace Corehold
             overlay = new GameObject("Overlay").transform;
             CreatePools();
 
-            rangeFill = FlatSprite("RangeFill", Art.Disc, new Color(1f, 1f, 1f, 0.12f));
-            rangeRing = FlatSprite("RangeRing", Art.Ring, new Color(1f, 1f, 1f, 0.7f));
+            rangeDecal = FlatSprite("RangeDecal", Art.RangeDecal, new Color(0.6f, 0.88f, 1f, 0.9f));
+            padMarker = FlatSprite("PadMarker", Art.PadMarker, new Color(1f, 0.85f, 0.35f, 0.95f));
             ShowRange(Vector2.zero, 0f);
 
             ShowMenu();
@@ -114,6 +115,7 @@ namespace Corehold
             ClearLevel();
             Time.timeScale = 1f;
             levelRoot = GarageView.Build(world, cam).transform;
+            Sfx.Music(Sounds.MenuMusic, 0.5f);
             State = GameState.Menu;
             StateChanged?.Invoke();
         }
@@ -134,6 +136,7 @@ namespace Corehold
             WavesStarted = 0;
             Spawning = false;
             NextWaveTimer = Balance.economy.firstWaveDelay;
+            Sfx.Music(Sounds.BattleMusic, 0.32f);
             State = GameState.Playing;
             StateChanged?.Invoke();
         }
@@ -198,6 +201,7 @@ namespace Corehold
             }
             WavesStarted++;
             Spawning = true;
+            Sfx.Play(Sounds.WaveHorn, 0.55f, 0f, 0f);
             StateChanged?.Invoke();
         }
 
@@ -298,6 +302,7 @@ namespace Corehold
             Flash(e.position, 0.8f, 1.6f, Art.Palette.Danger);
             Smoke(e.position, 0.6f, 3, 1f);
             shake = Mathf.Max(shake, 0.12f);
+            Sfx.Play(Sounds.Alarm, 0.5f, 0.4f, 0f);
             ReleaseEnemy(e);
         }
 
@@ -408,10 +413,8 @@ namespace Corehold
             Selected = spot;
             if (spot != null)
             {
-                float range = spot.tower != null
-                    ? Formulas.TowerRange(spot.tower.type, spot.tower.level)
-                    : 0.62f;                    // just highlight an empty pad
-                ShowRange(spot.position, range);
+                if (spot.tower != null) ShowRange(spot.position, Formulas.TowerRange(spot.tower.type, spot.tower.level));
+                else ShowPadMarker(spot.position);
             }
             else ShowRange(Vector2.zero, 0f);
             SelectionChanged?.Invoke();
@@ -421,21 +424,51 @@ namespace Corehold
 
         public void Deselect()
         {
-            if (Selected == null && !rangeRing.enabled) return;
+            if (Selected == null && !rangeDecal.enabled && !padMarker.enabled) return;
             Select((BuildSpot)null);
         }
 
+        // Range decal around a tower; range 0 hides it.
         public void ShowRange(Vector2 center, float range)
         {
-            bool on = range > 0f;
-            rangeFill.enabled = rangeRing.enabled = on;
-            if (!on) return;
-            var pos = View.World(center, 0.12f);
-            rangeFill.transform.localPosition = rangeRing.transform.localPosition = pos;
-            rangeFill.transform.localScale = rangeRing.transform.localScale = new Vector3(range * 2f, range * 2f * View.ZStretch, 1f);
+            padMarker.enabled = false;
+            rangeDecal.enabled = range > 0f;
+            if (!rangeDecal.enabled) return;
+            rangeDecal.transform.localPosition = View.World(center, 0.13f);
+            rangeDecal.transform.localScale = new Vector3(range * 2f, range * 2f, 1f);
+            selectionTime = 0f;
         }
 
-        // A sprite lying flat on the ground, stretched in depth so it reads as a circle on screen.
+        void ShowPadMarker(Vector2 center)
+        {
+            rangeDecal.enabled = false;
+            padMarker.enabled = true;
+            padMarker.transform.localPosition = View.World(center, 0.13f);
+            selectionTime = 0f;
+        }
+
+        // The range decal turns slowly and pops in; the pad marker pulses.
+        void UpdateSelection(float dt)
+        {
+            if (!rangeDecal.enabled && !padMarker.enabled) return;
+            selectionTime += dt;
+            float pop = 1f + 0.12f * Mathf.Exp(-selectionTime * 10f) * Mathf.Sin(selectionTime * 30f);
+            if (rangeDecal.enabled && Selected?.tower != null)
+            {
+                rangeDecal.transform.localRotation = Quaternion.Euler(90f, 0f, selectionTime * 12f);
+                var s = rangeDecal.transform.localScale;
+                float r = Formulas.TowerRange(Selected.tower.type, Selected.tower.level) * 2f * pop;
+                rangeDecal.transform.localScale = new Vector3(r, r, s.z);
+            }
+            if (padMarker.enabled)
+            {
+                float k = 1.35f * (1f + 0.06f * Mathf.Sin(selectionTime * 5f)) * pop;
+                padMarker.transform.localScale = new Vector3(k, k, 1f);
+                padMarker.transform.localRotation = Quaternion.Euler(90f, 0f, selectionTime * 25f);
+            }
+        }
+
+        // A sprite lying flat on the ground.
         SpriteRenderer FlatSprite(string name, Sprite sprite, Color color)
         {
             var go = new GameObject(name);
@@ -481,6 +514,7 @@ namespace Corehold
             spot.tower = tower;
             Flash(spot.position, 0.4f, 1.4f, Art.Palette.Accent);
             Smoke(spot.position, 0.1f, 4, 0.8f);
+            Sfx.Play(Sounds.Build, 0.8f);
             Select(spot);
             return true;
         }
@@ -504,6 +538,7 @@ namespace Corehold
             t.turretFilter.sharedMesh = Models.Turret(t.type.id, t.level);
             t.bounce = 1f;
             Smoke(Selected.position, 0.1f, 3, 0.7f);
+            Sfx.Play(Sounds.Upgrade, 0.7f, 0f, 0f);
             Flash(Selected.position, 0.6f, 1.3f, Art.Palette.Gold);
             Select(Selected);
             return true;
@@ -515,6 +550,7 @@ namespace Corehold
             var spot = Selected;
             Coins += Formulas.SellValue(spot.tower.spent, Balance.economy);
             Destroy(spot.tower.root);
+            Sfx.Play(Sounds.Sell, 0.7f, 0f, 0f);
             spot.tower = null;
             Select(spot);
             return true;
@@ -596,6 +632,9 @@ namespace Corehold
             p.height = MuzzleHeight;
             SpawnEffect(p.position, MuzzleHeight, 0.06f, MuzzleColor, t.type.splash > 0f ? 0.7f : 0.4f, 0.2f);
             if (t.type.splash > 0f) Smoke(p.position, MuzzleHeight, 1, 0.5f);
+            if (t.type.projectile == "shell") Sfx.Play(Sounds.Cannon, 0.6f, 0.08f);
+            else if (t.type.projectile == "missile") Sfx.Play(Sounds.Missile, 0.45f, 0.08f);
+            else Sfx.Play(Sounds.Mg, 0.3f, 0.05f, 0.1f);
             p.source = t;
             t.recoil = 1f;
             p.damage = Formulas.TowerDamage(t.type, t.level);
@@ -658,7 +697,11 @@ namespace Corehold
             }
             if (target == null) return;
             if (type.projectile == "missile") Explosion(at, height, 0.45f);
-            else SpawnEffect(at, height, 0.08f, SparkColor, 0.35f, 0.15f);
+            else
+            {
+                SpawnEffect(at, height, 0.08f, SparkColor, 0.35f, 0.15f);
+                Sfx.Play(Sounds.Hit, 0.18f, 0.06f, 0.15f);
+            }
             Damage(target, damage);
         }
 
@@ -699,6 +742,8 @@ namespace Corehold
         void Explosion(Vector2 at, float height, float size)
         {
             SpawnEffect(at, height, 0.3f, Art.Palette.Explosion, size * 0.8f, size * 2.4f);
+            if (size >= 0.8f) Sfx.Play(Sounds.BigExplosion, 0.7f, 0.1f);
+            else Sfx.Play(Sounds.Explosion, 0.45f, 0.07f);
             SpawnEffect(at, height + 0.05f, 0.15f, FireCoreColor, size * 0.6f, size * 1.2f);
             Smoke(at, height, 3, size * 1.4f);
         }
@@ -755,6 +800,7 @@ namespace Corehold
             UpdateTowers(dt);
             UpdateProjectiles(dt);
             UpdateEffects(dt);
+            UpdateSelection(Time.unscaledDeltaTime);
             UpdateCamera(Time.unscaledDeltaTime);
 
             if (Lives <= 0)
@@ -767,6 +813,8 @@ namespace Corehold
         {
             Deselect();
             shake = 0f;
+            Sfx.Music(null);
+            Sfx.Play(result == GameState.Won ? Sounds.Victory : Sounds.Defeat, 0.8f, 0f, 0f);
             State = result;
             Time.timeScale = 1f;
             StateChanged?.Invoke();

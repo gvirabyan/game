@@ -9,9 +9,9 @@ namespace Corehold
     // models keep their real proportions. CameraRig fits the camera so the whole play area is visible.
     public static class View
     {
-        public const float Pitch = 38f;
+        public const float Pitch = 42f;
         public const float FieldOfView = 32f;
-        public const float ZStretch = 1.4f;
+        public const float ZStretch = 1f;
 
         // Map -> world stretch for flat geometry built in map coordinates (ground, road).
         public static readonly Matrix4x4 GroundTransform = Matrix4x4.Scale(new Vector3(1f, 1f, ZStretch));

@@ -151,6 +151,7 @@ namespace Corehold
             img.sprite = Art.ButtonFace;
             var button = rt.gameObject.AddComponent<Button>();
             button.targetGraphic = img;
+            button.onClick.AddListener(() => Sfx.Play(Sounds.Click, 0.5f));
             var colors = button.colors;
             colors.pressedColor = new Color(0.75f, 0.75f, 0.75f);
             colors.fadeDuration = 0.05f;

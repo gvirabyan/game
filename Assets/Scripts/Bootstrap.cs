@@ -28,6 +28,8 @@ namespace Corehold
             var cam = new GameObject("Main Camera") { tag = "MainCamera" }.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             CameraRig.Fit(cam);
+            cam.gameObject.AddComponent<AudioListener>();
+            Sfx.Create(new GameObject("Audio"));
 
             // Warm low sun, cool sky fill, soft shadows (distance haze is set by CameraRig).
             var light = new GameObject("Sun").AddComponent<Light>();

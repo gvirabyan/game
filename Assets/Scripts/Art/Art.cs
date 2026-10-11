@@ -11,7 +11,7 @@ namespace Corehold
         // UI icons (the world itself is 3D, see Models).
         public static Sprite TowerBase, MgTurret, CannonTurret, AaTurret, Headquarters;
         public static Sprite Coin, Heart, Flag, Pause, Play, FastForward, Close;
-        public static Sprite Panel, PanelShadow, ButtonFace, Vignette, Star, Pill, Header, Fade;
+        public static Sprite Panel, PanelShadow, ButtonFace, Vignette, Star, Pill, Header, Fade, RangeDecal, PadMarker, SoundOn, SoundOff;
         // World helpers: billboards, range indicator, health bars.
         public static Sprite Glow, Disc, Ring, Pixel;
 
@@ -43,6 +43,10 @@ namespace Corehold
             Glow = Draw(128, 1f, p => p.Circle(0f, 0f, 0.55f, White, 0.9f), "Glow");
             Disc = Draw(128, 1f, p => p.Circle(0f, 0f, 0.97f, White), "Disc");
             Ring = Draw(256, 1f, p => p.Ring(0f, 0f, 0.96f, 0.04f, White), "Ring");
+            RangeDecal = Draw(256, 1f, DrawRangeDecal, "RangeDecal");
+            SoundOn = Draw(64, 1f, p => DrawSpeaker(p, true), "SoundOn");
+            SoundOff = Draw(64, 1f, p => DrawSpeaker(p, false), "SoundOff");
+            PadMarker = Draw(128, 1f, DrawPadMarker, "PadMarker");
             Pixel = Draw(16, 1f, p => p.Box(0f, 0f, 1f, 1f, 0f, White), "Pixel", inset: 4);
             Coin = Draw(64, 1f, DrawCoin, "Coin");
             Heart = Draw(64, 1f, DrawHeart, "Heart");
@@ -174,6 +178,52 @@ namespace Corehold
         }
 
         static Color Grey(float v) => new Color(v, v, v, 1f);
+
+        // Ground decal for a tower's reach: faint fill that brightens toward a solid rim, plus a dashed inner ring
+        // (the decal is rotated slowly so the dashes travel).
+        static void DrawRangeDecal(Painter p)
+        {
+            p.Circle(0f, 0f, 0.95f, new Color(1f, 1f, 1f, 0.07f));
+            for (int i = 0; i < 6; i++)
+                p.Ring(0f, 0f, 0.62f + i * 0.06f, 0.06f, new Color(1f, 1f, 1f, 0.025f + i * 0.02f));
+            p.Ring(0f, 0f, 0.955f, 0.035f, White);
+            const int dashes = 36;
+            for (int i = 0; i < dashes; i++)
+            {
+                float a = i * 360f / dashes;
+                float r = a * Mathf.Deg2Rad;
+                p.Box(Mathf.Cos(r) * 0.875f, Mathf.Sin(r) * 0.875f, 0.012f, 0.04f, 0.01f, new Color(1f, 1f, 1f, 0.75f), a);
+            }
+        }
+
+        static void DrawSpeaker(Painter p, bool on)
+        {
+            p.Box(-0.52f, 0f, 0.14f, 0.22f, 0.04f, White);
+            p.Polygon(new[] { new Vector2(-0.42f, 0.22f), new Vector2(-0.02f, 0.6f), new Vector2(-0.02f, -0.6f), new Vector2(-0.42f, -0.22f) }, White);
+            if (on)
+            {
+                p.Capsule(0.22f, 0.24f, 0.22f, -0.24f, 0.07f, White);
+                p.Capsule(0.48f, 0.44f, 0.48f, -0.44f, 0.07f, White);
+            }
+            else
+            {
+                p.Box(0.36f, 0f, 0.3f, 0.07f, 0.05f, White, 45f);
+                p.Box(0.36f, 0f, 0.3f, 0.07f, 0.05f, White, -45f);
+            }
+        }
+
+        // Selection marker for an empty pad: a ring with four bracket ticks.
+        static void DrawPadMarker(Painter p)
+        {
+            p.Circle(0f, 0f, 0.86f, new Color(1f, 1f, 1f, 0.16f));
+            p.Ring(0f, 0f, 0.86f, 0.07f, White);
+            for (int i = 0; i < 4; i++)
+            {
+                float a = (45f + i * 90f);
+                float r = a * Mathf.Deg2Rad;
+                p.Box(Mathf.Cos(r) * 0.95f, Mathf.Sin(r) * 0.95f, 0.035f, 0.1f, 0.03f, White, a + 90f);
+            }
+        }
 
         // Five-pointed star from convex pieces: a pentagon and five triangles.
         static void DrawStar(Painter p)
