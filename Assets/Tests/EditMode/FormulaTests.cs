@@ -5,8 +5,8 @@ namespace Corehold.Tests
 {
     public class FormulaTests
     {
-        static readonly string[] EnemyIds = { "soldier", "tank", "drone" };
-        static readonly string[] TowerIds = { "mg", "cannon", "aa" };
+        static readonly string[] EnemyIds = { "soldier", "jeep", "drone", "tank", "apc", "heli", "boss" };
+        static readonly string[] TowerIds = { "mg", "cannon", "aa", "flame", "tesla", "mortar", "sniper", "cryo" };
 
         [Test]
         public void BalanceFile_LoadsWithAllEnemiesTowersAndLevels()
@@ -44,7 +44,8 @@ namespace Corehold.Tests
             var b = Balance.Load();
             float roadHalf = b.economy.roadWidth * 0.5f;
             const float spotHalf = 0.475f;
-            foreach (var level in b.levels)
+            var all = new System.Collections.Generic.List<LevelConfig>(b.levels) { b.endless.ToLevel() };
+            foreach (var level in all)
             {
                 var path = new LevelPath(level.path);
                 var hq = level.path[level.path.Length - 1];
@@ -63,6 +64,27 @@ namespace Corehold.Tests
                 for (int i = 1; i < level.path.Length; i++)
                     Assert.LessOrEqual(Mathf.Abs(level.path[i].x) + roadHalf, Bootstrap.WorldHalfWidth, $"{level.name} path point {i} off screen");
             }
+        }
+
+        [Test]
+        public void TowerAttackKindsAreKnown()
+        {
+            foreach (var t in Balance.Load().towers)
+            {
+                Assert.Contains(t.attack, new[] { "projectile", "chain", "instant", "pulse" }, t.id);
+                if (t.attack == "projectile") Assert.Greater(t.projectileSpeed, 0f, t.id);
+                Assert.IsFalse(string.IsNullOrEmpty(t.role), t.id + " has no role text");
+            }
+        }
+
+        [Test]
+        public void EndlessBudgetAndHealthGrow()
+        {
+            var b = Balance.Load();
+            Assert.Greater(Formulas.EndlessBudget(b.endless, 10), Formulas.EndlessBudget(b.endless, 0));
+            Assert.Greater(Formulas.EndlessHealth(b.Enemy("soldier"), b.endless, 10), Formulas.EndlessHealth(b.Enemy("soldier"), b.endless, 0));
+            foreach (var u in b.endless.unlocks) Assert.NotNull(b.Enemy(u.enemy));
+            Assert.IsTrue(System.Array.Exists(b.enemies, e => e.boss), "endless needs a boss enemy");
         }
 
         [Test]

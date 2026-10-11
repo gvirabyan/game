@@ -14,6 +14,7 @@ namespace Corehold
         public EnemyConfig[] enemies;
         public TowerConfig[] towers;
         public LevelConfig[] levels;
+        public EndlessConfig endless;
 
         public EnemyConfig Enemy(string id) =>
             Array.Find(enemies, e => e.id == id) ?? throw new InvalidOperationException($"balance.json: unknown enemy '{id}'");
@@ -40,28 +41,41 @@ namespace Corehold
     [Serializable]
     public class EnemyConfig
     {
-        public string id;               // soldier | tank | drone
+        public string id;               // soldier | jeep | drone | tank | apc | heli | boss
+        public string label;
         public float health;
         public float speed;             // world units per second
         public int reward;              // coins per kill
         public int leakDamage;          // lives lost when it reaches the base
         public bool air;                // only towers with hitsAir can shoot it
-        public float size;              // sprite size in world units
+        public float size;              // model size in world units
+        public int threat;              // cost in an endless-mode wave budget
+        public string spawnOnDeath;     // e.g. an APC drops soldiers when destroyed
+        public int spawnCount;
+        public bool boss;               // big health bar, camera shake, own model
     }
 
     [Serializable]
     public class TowerConfig
     {
-        public string id;               // mg | cannon | aa
+        public string id;               // mg | cannon | aa | flame | tesla | mortar | sniper | cryo
         public string label;
+        public string role;             // one-line description for the build panel
         public int cost;
         public float damage, damagePerLevel;
         public float fireRate, fireRatePerLevel;    // shots per second
         public float range, rangePerLevel;
+        public string attack;           // projectile | chain (instant, jumps) | instant (hitscan) | pulse (area around the tower)
         public float splash;            // 0 = single target
         public bool hitsGround, hitsAir;
-        public string projectile;       // bullet | shell | missile
+        public string projectile;       // bullet | shell | missile | flame | mortar
         public float projectileSpeed;
+        public string target;           // "" = furthest along the road, "strongest" = most health
+        public float minRange;          // cannot hit closer than this (mortar)
+        public float burn, burnPerLevel, burnTime;      // damage per second after a hit, for burnTime seconds
+        public int chain;               // extra targets a chain attack jumps to (plus one per level)
+        public float chainRange;
+        public float slow, slowPerLevel, slowTime;      // speed reduction share, for slowTime seconds
         public int upgradeCost;
         public float upgradeCostGrowth;
         public int maxLevel;            // number of upgrades available
@@ -77,6 +91,33 @@ namespace Corehold
         public Vector2[] path;          // waypoints; the first is extended to the screen edge, the last is the base
         public Vector2[] spots;         // where towers can be built
         public WaveConfig[] waves;
+    }
+
+    // Endless mode: one map, waves generated from a growing threat budget.
+    [Serializable]
+    public class EndlessConfig
+    {
+        public string name;
+        public int lives, startCoins;
+        public float budget, budgetGrowth, healthGrowth;
+        public int bossEvery;
+        public float spawnInterval;
+        public EnemyUnlock[] unlocks;
+        public Vector2[] path;
+        public Vector2[] spots;
+
+        public LevelConfig ToLevel() => new LevelConfig
+        {
+            name = name, lives = lives, startCoins = startCoins, healthMultiplier = 1f,
+            path = path, spots = spots, waves = new WaveConfig[0],
+        };
+    }
+
+    [Serializable]
+    public class EnemyUnlock
+    {
+        public string enemy;
+        public int wave;                // first endless wave (0-based) that may contain it
     }
 
     [Serializable]
@@ -109,6 +150,14 @@ namespace Corehold
 
         public static int SellValue(int totalSpent, EconomyConfig e) =>
             Mathf.FloorToInt(totalSpent * e.sellRefund);
+
+        public static float Burn(TowerConfig t, int level) => t.burn + t.burnPerLevel * level;
+        public static int ChainTargets(TowerConfig t, int level) => t.chain + level;
+        public static float Slow(TowerConfig t, int level) => Mathf.Clamp(t.slow + t.slowPerLevel * level, 0f, 0.9f);
+
+        public static float EndlessBudget(EndlessConfig e, int waveIndex) => e.budget * Mathf.Pow(e.budgetGrowth, waveIndex);
+        public static float EndlessHealth(EnemyConfig enemy, EndlessConfig e, int waveIndex) =>
+            enemy.health * Mathf.Pow(e.healthGrowth, waveIndex);
     }
 
     public static class Balance

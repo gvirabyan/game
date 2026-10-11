@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Corehold
@@ -12,10 +13,31 @@ namespace Corehold
         public static Mesh Soldier, SoldierLeg, Tank, TankTurret, Drone, DroneRotor;
         public static Mesh AlliedTank, AlliedTankTurret, AlliedDrone;     // player-side vehicles for the garage menu
         public const int TowerLevels = 4;
+        public static readonly string[] TowerIds = { "mg", "cannon", "aa", "flame", "tesla", "mortar", "sniper", "cryo" };
         public static Mesh Pip;
         static readonly Mesh[] towerBases = new Mesh[TowerLevels];
-        static readonly Mesh[,] turrets = new Mesh[3, TowerLevels];
-        public static Mesh Bullet, Shell, Missile;
+        static readonly Mesh[,] turrets = new Mesh[TowerIds.Length, TowerLevels];
+
+        // How a unit's parts move (see Game.Animate).
+        public enum Motion { Walk, Turret, Rotors, Wheels, Heli }
+
+        // A unit model split into a body and up to four moving parts with their joint positions.
+        public sealed class UnitRig
+        {
+            public Mesh Body;
+            public Mesh[] Parts;
+            public Vector3[] Joints;
+            public Motion Motion;
+        }
+
+        static readonly Dictionary<string, UnitRig> rigs = new Dictionary<string, UnitRig>();
+
+        public static UnitRig Rig(string enemyId) =>
+            rigs.TryGetValue(enemyId, out var rig) ? rig : throw new System.InvalidOperationException("No model for enemy " + enemyId);
+        public static Mesh Bullet, Shell, Missile, Flame, MortarShell;
+
+        public static Mesh Projectile(string kind) =>
+            kind == "shell" ? Shell : kind == "missile" ? Missile : kind == "flame" ? Flame : kind == "mortar" ? MortarShell : Bullet;
 
         // Colours. Alpha below 1 makes a part glow (see LowPoly.shader).
         static readonly Color Sand = Art.Hex("A68F5E"), SandLight = Art.Hex("BFA673"), SandDark = Art.Hex("7A6640");
@@ -44,24 +66,38 @@ namespace Corehold
             AlliedTank = Make("AlliedTank", b => BuildTankHull(b, Allied));
             AlliedTankTurret = Make("AlliedTankTurret", b => BuildTankTurret(b, Allied));
             AlliedDrone = Make("AlliedDrone", b => BuildDrone(b, Allied.Main, Allied.Light, Allied.Dark));
+            var turretBuilders = new System.Action<MeshBuilder, int>[]
+            {
+                BuildMgTurret, BuildCannonTurret, BuildAaTurret, BuildFlameTurret,
+                BuildTeslaTurret, BuildMortarTurret, BuildSniperTurret, BuildCryoTurret,
+            };
             for (int level = 0; level < TowerLevels; level++)
             {
                 int l = level;
                 towerBases[l] = Make("TowerBase" + l, b => BuildTowerBase(b, l));
-                turrets[0, l] = Make("MgTurret" + l, b => BuildMgTurret(b, l));
-                turrets[1, l] = Make("CannonTurret" + l, b => BuildCannonTurret(b, l));
-                turrets[2, l] = Make("AaTurret" + l, b => BuildAaTurret(b, l));
+                for (int i = 0; i < TowerIds.Length; i++)
+                {
+                    var build = turretBuilders[i];
+                    turrets[i, l] = Make(TowerIds[i] + "Turret" + l, b => build(b, l));
+                }
             }
+            BuildRigs();
             Pip = Make("Pip", b => b.Box(new Vector3(0f, 0.03f, 0f), new Vector3(0.09f, 0.06f, 0.09f), Glow(Art.Palette.Gold, 0.7f)));
             Bullet = Make("Bullet", b => b.Box(Vector3.zero, new Vector3(0.32f, 0.05f, 0.05f), Glow(Art.Hex("FFE27A"))));
             Shell = Make("Shell", b => b.Sphere(Vector3.zero, Vector3.one * 0.09f, Art.Hex("2E2E2E"), 3, 6));
             Missile = Make("Missile", BuildMissile);
+            Flame = Make("Flame", b => b.Sphere(Vector3.zero, Vector3.one * 0.13f, Glow(Art.Hex("FF8A3D"), 0.9f), 3, 6));
+            MortarShell = Make("MortarShell", b =>
+            {
+                b.Sphere(Vector3.zero, new Vector3(0.14f, 0.1f, 0.1f), Art.Hex("3A3A30"), 3, 6);
+                b.Box(new Vector3(-0.12f, 0f, 0f), new Vector3(0.08f, 0.12f, 0.02f), Art.Hex("2A2A22"));
+            });
         }
 
         public static Mesh TowerBase(int level) => towerBases[Mathf.Clamp(level, 0, TowerLevels - 1)];
 
         public static Mesh Turret(string towerId, int level) =>
-            turrets[towerId == "cannon" ? 1 : towerId == "aa" ? 2 : 0, Mathf.Clamp(level, 0, TowerLevels - 1)];
+            turrets[Mathf.Max(0, System.Array.IndexOf(TowerIds, towerId)), Mathf.Clamp(level, 0, TowerLevels - 1)];
 
         static Mesh Make(string name, System.Action<MeshBuilder> build)
         {
@@ -244,6 +280,213 @@ namespace Corehold
                 b.Cylinder(new Vector3(-0.12f, top, 0f), 0.025f, 0.18f, 5, Gun);
                 b.Box(new Vector3(-0.12f, top + 0.2f, 0f), new Vector3(0.05f, 0.12f, 0.3f), Art.Hex("D9DEE2"));
             }
+        }
+
+        static void BuildFlameTurret(MeshBuilder b, int level)
+        {
+            b.Cylinder(Vector3.zero, 0.22f, 0.14f, 8, Steel, level >= 3 ? Gold : SteelLight);
+            int tanks = level >= 2 ? 3 : 2;
+            for (int i = 0; i < tanks; i++)
+            {
+                float z = (i - (tanks - 1) * 0.5f) * 0.13f;
+                b.Cylinder(new Vector3(-0.13f, 0.1f, z), 0.065f, 0.3f, 8, Art.Hex("B5473A"), Art.Hex("D0614F"));
+            }
+            float length = 0.36f + 0.05f * level;
+            b.Box(new Vector3(0.05f, 0.18f, 0f), new Vector3(0.2f, 0.12f, 0.16f), SteelDark);
+            b.Barrel(new Vector3(0.12f, 0.18f, 0f), length, 0.05f, 6, Gun);
+            b.Barrel(new Vector3(0.1f + length, 0.18f, 0f), 0.06f, 0.065f, 6, Glow(Art.Palette.Explosion, 0.5f));
+            if (level >= 1) b.Box(new Vector3(0.22f, 0.2f, 0f), new Vector3(0.04f, 0.18f, 0.3f), SteelLight);
+        }
+
+        static void BuildTeslaTurret(MeshBuilder b, int level)
+        {
+            var copper = Art.Hex("C87533");
+            b.Cylinder(Vector3.zero, 0.22f, 0.1f, 8, SteelDark, level >= 3 ? Gold : Steel);
+            float height = 0.38f + 0.06f * level;
+            b.Cylinder(new Vector3(0f, 0.1f, 0f), 0.06f, height, 6, Steel);
+            int rings = 3 + level;
+            for (int i = 0; i < rings; i++)
+                b.Cylinder(new Vector3(0f, 0.14f + i * (height - 0.1f) / rings, 0f), 0.15f - i * 0.012f, 0.035f, 10, copper, Art.Hex("E09050"));
+            b.Sphere(new Vector3(0f, 0.16f + height, 0f), Vector3.one * (0.1f + 0.015f * level), Glow(Art.Hex("8FE3FF"), 0.9f), 3, 8);
+            if (level >= 2)
+                for (int i = 0; i < 3; i++)
+                {
+                    float a = i * 120f * Mathf.Deg2Rad;
+                    b.Box(new Vector3(Mathf.Cos(a) * 0.18f, 0.2f, Mathf.Sin(a) * 0.18f), new Vector3(0.04f, 0.3f, 0.04f), copper);
+                    b.Sphere(new Vector3(Mathf.Cos(a) * 0.18f, 0.37f, Mathf.Sin(a) * 0.18f), Vector3.one * 0.035f, Glow(Art.Hex("8FE3FF"), 0.8f), 2, 5);
+                }
+        }
+
+        static void BuildMortarTurret(MeshBuilder b, int level)
+        {
+            b.Box(new Vector3(0f, 0.04f, 0f), new Vector3(0.46f, 0.08f, 0.46f), SteelDark, 0f, false, level >= 3 ? Gold : Steel);
+            float length = 0.42f + 0.05f * level, radius = 0.08f + 0.012f * level;
+            var tubes = level >= 2 ? new[] { -0.11f, 0.11f } : new[] { 0f };
+            foreach (var z in tubes)
+            {
+                b.Barrel(new Vector3(-0.08f, 0.1f, z), length, radius, 8, Gun, 0f, 58f);
+                b.Box(new Vector3(0.08f, 0.12f, z), new Vector3(0.04f, 0.16f, 0.04f), SteelDark);
+            }
+            if (level >= 1)
+                for (int i = 0; i < 2; i++)
+                    b.Box(new Vector3(-0.16f, 0.13f, -0.16f + i * 0.32f), new Vector3(0.12f, 0.1f, 0.08f), Art.Hex("4F6B3A"));
+        }
+
+        static void BuildSniperTurret(MeshBuilder b, int level)
+        {
+            b.Cylinder(Vector3.zero, 0.18f, 0.1f, 8, SteelDark);
+            b.Box(new Vector3(0f, 0.16f, 0f), new Vector3(0.34f, 0.12f, 0.16f), Steel, 0f, false, level >= 3 ? Gold : SteelLight);
+            float length = 0.75f + 0.08f * level;
+            b.Barrel(new Vector3(0.14f, 0.17f, 0f), length, 0.025f, 6, Gun);
+            b.Barrel(new Vector3(-0.08f, 0.26f, 0f), 0.24f, 0.035f, 6, Art.Hex("1E2228"));
+            b.Box(new Vector3(0.165f, 0.26f, 0f), new Vector3(0.01f, 0.05f, 0.05f), Glow(Art.Hex("7FDBFF"), 0.7f));
+            if (level >= 1) b.Barrel(new Vector3(0.1f + length, 0.17f, 0f), 0.08f, 0.04f, 6, Art.Hex("161A1F"));
+            if (level >= 2)
+                for (int side = -1; side <= 1; side += 2)
+                    b.Box(new Vector3(0.4f, 0.09f, 0.06f * side), new Vector3(0.03f, 0.16f, 0.03f), SteelDark);
+        }
+
+        static void BuildCryoTurret(MeshBuilder b, int level)
+        {
+            var ice = Art.Hex("BFE6F7");
+            b.Cylinder(Vector3.zero, 0.22f, 0.1f, 8, SteelDark, level >= 3 ? Gold : Steel);
+            b.Cylinder(new Vector3(0f, 0.1f, 0f), 0.17f, 0.22f, 8, Art.Hex("8FB8CC"), ice, 0.09f);
+            int crystals = 3 + level;
+            for (int i = 0; i < crystals; i++)
+            {
+                float a = i * Mathf.PI * 2f / crystals;
+                b.Cylinder(new Vector3(Mathf.Cos(a) * 0.17f, 0.1f, Mathf.Sin(a) * 0.17f), 0.035f, 0.2f + 0.03f * (i % 2), 4, Glow(ice, 0.45f), null, 0f);
+            }
+            b.Sphere(new Vector3(0f, 0.38f, 0f), Vector3.one * (0.08f + 0.012f * level), Glow(Art.Hex("9EE8FF"), 0.9f), 3, 6);
+        }
+
+        // ---------------- Enemy rigs ----------------
+
+        static readonly Camo Heavy = new Camo("5E5048", "7A6A5E", "3E342E", "2A2420");
+
+        static void BuildRigs()
+        {
+            float r = DroneRotorReach;
+            rigs["soldier"] = new UnitRig
+            {
+                Body = Soldier, Motion = Motion.Walk,
+                Parts = new[] { SoldierLeg, SoldierLeg },
+                Joints = new[] { new Vector3(0f, SoldierHip, SoldierLegOffset), new Vector3(0f, SoldierHip, -SoldierLegOffset) },
+            };
+            rigs["tank"] = new UnitRig { Body = Tank, Motion = Motion.Turret, Parts = new[] { TankTurret }, Joints = new[] { TankTurretPivot } };
+            rigs["drone"] = new UnitRig
+            {
+                Body = Drone, Motion = Motion.Rotors,
+                Parts = new[] { DroneRotor, DroneRotor, DroneRotor, DroneRotor },
+                Joints = new[]
+                {
+                    new Vector3(r, DroneRotorHeight, r), new Vector3(r, DroneRotorHeight, -r),
+                    new Vector3(-r, DroneRotorHeight, r), new Vector3(-r, DroneRotorHeight, -r),
+                },
+            };
+            var wheel = Make("Wheel", b =>
+            {
+                b.Barrel(new Vector3(0f, 0f, 0.05f), 0.1f, 0.14f, 8, Art.Hex("24262A"), 90f);
+                b.Barrel(new Vector3(0f, 0f, 0.055f), 0.11f, 0.06f, 6, Art.Hex("8A8F96"), 90f);
+            });
+            rigs["jeep"] = new UnitRig
+            {
+                Body = Make("Jeep", BuildJeep), Motion = Motion.Wheels,
+                Parts = new[] { wheel, wheel, wheel, wheel },
+                Joints = new[] { new Vector3(0.3f, 0.14f, 0.27f), new Vector3(0.3f, 0.14f, -0.27f), new Vector3(-0.3f, 0.14f, 0.27f), new Vector3(-0.3f, 0.14f, -0.27f) },
+            };
+            rigs["apc"] = new UnitRig
+            {
+                Body = Make("Apc", BuildApc), Motion = Motion.Wheels,
+                Parts = new[] { wheel, wheel, wheel, wheel },
+                Joints = new[] { new Vector3(0.32f, 0.15f, 0.31f), new Vector3(0.32f, 0.15f, -0.31f), new Vector3(-0.32f, 0.15f, 0.31f), new Vector3(-0.32f, 0.15f, -0.31f) },
+            };
+            rigs["heli"] = new UnitRig
+            {
+                Body = Make("Heli", BuildHeli), Motion = Motion.Heli,
+                Parts = new[]
+                {
+                    Make("HeliRotor", b =>
+                    {
+                        b.Box(Vector3.zero, new Vector3(1.5f, 0.015f, 0.07f), Gun);
+                        b.Box(Vector3.zero, new Vector3(0.07f, 0.015f, 1.5f), Gun);
+                        b.Cylinder(new Vector3(0f, -0.05f, 0f), 0.05f, 0.06f, 6, Gun);
+                    }),
+                    Make("HeliTailRotor", b =>
+                    {
+                        b.Box(Vector3.zero, new Vector3(0.32f, 0.04f, 0.01f), Gun);
+                        b.Box(Vector3.zero, new Vector3(0.04f, 0.32f, 0.01f), Gun);
+                    }),
+                },
+                Joints = new[] { new Vector3(0f, 0.42f, 0f), new Vector3(-0.86f, 0.3f, 0.06f) },
+            };
+            rigs["boss"] = new UnitRig
+            {
+                Body = Make("Boss", b => { BuildTankHull(b, Heavy); BossArmor(b); }), Motion = Motion.Turret,
+                Parts = new[] { Make("BossTurret", BuildBossTurret) },
+                Joints = new[] { TankTurretPivot + new Vector3(0f, 0.02f, 0f) },
+            };
+        }
+
+        static void BuildJeep(MeshBuilder b)
+        {
+            b.Box(new Vector3(0f, 0.27f, 0f), new Vector3(0.86f, 0.18f, 0.5f), Sand, 0f, false, SandLight);
+            b.Box(new Vector3(0.32f, 0.36f, 0f), new Vector3(0.24f, 0.04f, 0.46f), SandDark);                // hood
+            b.Box(new Vector3(0.14f, 0.45f, 0f), new Vector3(0.03f, 0.18f, 0.46f), Art.Hex("3A3020"));      // windscreen frame
+            b.Box(new Vector3(0.15f, 0.45f, 0f), new Vector3(0.01f, 0.14f, 0.4f), Glow(Art.Hex("9CC9E0"), 0.25f));
+            b.Box(new Vector3(-0.22f, 0.5f, 0f), new Vector3(0.04f, 0.26f, 0.46f), Art.Hex("3A3020"));      // roll bar
+            b.Barrel(new Vector3(-0.2f, 0.66f, 0f), 0.36f, 0.025f, 5, Gun);                                 // mounted gun
+            b.Sphere(new Vector3(-0.05f, 0.5f, 0.12f), Vector3.one * 0.09f, Skin, 2, 5);
+            b.Sphere(new Vector3(-0.05f, 0.56f, 0.12f), new Vector3(0.11f, 0.06f, 0.11f), Art.Hex("6F5D38"), 2, 6);
+        }
+
+        static void BuildApc(MeshBuilder b)
+        {
+            b.Box(new Vector3(-0.05f, 0.38f, 0f), new Vector3(0.9f, 0.32f, 0.56f), Sand, 0f, false, SandLight);
+            b.Box(new Vector3(0.44f, 0.32f, 0f), new Vector3(0.16f, 0.2f, 0.54f), SandDark);                  // sloped nose
+            b.Box(new Vector3(-0.5f, 0.38f, 0f), new Vector3(0.04f, 0.24f, 0.3f), Art.Hex("6E5B36"));         // rear door
+            b.Cylinder(new Vector3(0.05f, 0.54f, 0f), 0.13f, 0.1f, 8, SandDark, SandLight);
+            b.Barrel(new Vector3(0.12f, 0.6f, 0f), 0.4f, 0.025f, 5, Gun);
+            for (int side = -1; side <= 1; side += 2)
+                b.Box(new Vector3(0.1f, 0.44f, 0.285f * side), new Vector3(0.12f, 0.06f, 0.01f), Glow(Art.Hex("9CC9E0"), 0.2f));
+        }
+
+        static void BuildHeli(MeshBuilder b)
+        {
+            var body = Art.Hex("6B7A4A");
+            b.Sphere(new Vector3(0.2f, 0.2f, 0f), new Vector3(0.36f, 0.22f, 0.22f), body, 4, 8);
+            b.Box(new Vector3(-0.1f, 0.2f, 0f), new Vector3(0.5f, 0.24f, 0.3f), body, 0f, false, Art.Hex("7E8E58"));
+            b.Sphere(new Vector3(0.38f, 0.26f, 0f), new Vector3(0.16f, 0.12f, 0.17f), Glow(Art.Hex("9CC9E0"), 0.3f), 3, 6);
+            b.Barrel(new Vector3(-0.3f, 0.26f, 0f), 0.56f, 0.05f, 6, body, 180f);
+            b.Box(new Vector3(-0.84f, 0.36f, 0f), new Vector3(0.16f, 0.22f, 0.03f), Art.Hex("54613A"));
+            b.Cylinder(new Vector3(0f, 0.32f, 0f), 0.06f, 0.1f, 6, Gun);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                b.Box(new Vector3(0f, 0.02f, 0.16f * side), new Vector3(0.6f, 0.03f, 0.03f), Gun);
+                b.Box(new Vector3(0.05f, 0.18f, 0.24f * side), new Vector3(0.16f, 0.07f, 0.12f), Art.Hex("3E4A2C"));   // rocket pods
+            }
+        }
+
+        static void BossArmor(MeshBuilder b)
+        {
+            for (int side = -1; side <= 1; side += 2)
+                b.Box(new Vector3(0f, 0.28f, 0.49f * side), new Vector3(1.0f, 0.18f, 0.04f), Heavy.Dark);       // side skirts
+            b.Box(new Vector3(0.48f, 0.36f, 0f), new Vector3(0.06f, 0.14f, 0.62f), Art.Hex("2A2420"));
+            for (int side = -1; side <= 1; side += 2)
+                b.Box(new Vector3(0.5f, 0.38f, 0.22f * side), new Vector3(0.03f, 0.05f, 0.08f), Glow(Art.Hex("FF4A3A"), 0.8f));
+        }
+
+        static void BuildBossTurret(MeshBuilder b)
+        {
+            b.Cylinder(Vector3.zero, 0.33f, 0.2f, 8, MeshBuilder.Shade(Heavy.Main, 0.9f), Heavy.Light);
+            b.Box(new Vector3(-0.05f, 0.16f, 0f), new Vector3(0.4f, 0.12f, 0.42f), Heavy.Main, 0f, false, Heavy.Light);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                b.Barrel(new Vector3(0.22f, 0.12f, 0.08f * side), 0.72f, 0.045f, 6, Heavy.Barrel);
+                b.Barrel(new Vector3(0.88f, 0.12f, 0.08f * side), 0.1f, 0.065f, 6, Art.Hex("181410"));
+            }
+            b.Cylinder(new Vector3(-0.2f, 0.22f, 0.18f), 0.015f, 0.5f, 4, Gun);
+            b.Sphere(new Vector3(-0.2f, 0.73f, 0.18f), Vector3.one * 0.035f, Glow(Red), 2, 5);
         }
 
         static void BuildMissile(MeshBuilder b)

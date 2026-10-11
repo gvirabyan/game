@@ -8,6 +8,7 @@ namespace Corehold
         public const int Rate = 22050;
 
         public static AudioClip Mg, Cannon, Missile, Explosion, BigExplosion, Hit;
+        public static AudioClip Mortar, Flame, Zap, Sniper, Freeze;
         public static AudioClip Build, Upgrade, Sell, Click, WaveHorn, Alarm, Victory, Defeat;
         public static AudioClip BattleMusic, MenuMusic;
 
@@ -24,6 +25,16 @@ namespace Corehold
             Explosion = Clip("Explosion", 1f, t => Blast(t, 1f));
             BigExplosion = Clip("BigExplosion", 1.6f, t => Blast(t, 0.6f));
             Hit = Clip("Hit", 0.06f, t => Noise() * Mathf.Exp(-t * 90f) * 0.5f + Sine(2400f, t) * Mathf.Exp(-t * 120f) * 0.2f);
+
+            Mortar = Clip("Mortar", 0.6f, t => Mathf.Sin(2f * Mathf.PI * (60f * t + 8f * (1f - Mathf.Exp(-12f * t)))) * Mathf.Exp(-t * 9f) * 0.9f
+                                               + LowNoise(0.15f) * Mathf.Exp(-t * 14f) * 0.9f);
+            Flame = Clip("Flame", 0.35f, t => LowNoise(0.25f) * Envelope(t, 0.35f, 0.03f, 0.2f) * 0.9f + Noise() * Envelope(t, 0.35f, 0.02f, 0.25f) * 0.15f);
+            Zap = Clip("Zap", 0.3f, t => (Square(90f + 40f * Mathf.Sin(t * 180f), t) * 0.25f + Noise() * 0.35f) * Mathf.Exp(-t * 11f)
+                                         * (0.6f + 0.4f * Square(31f, t)));
+            Sniper = Clip("Sniper", 0.5f, t => Noise() * Mathf.Exp(-t * 70f) * 0.9f + LowNoise(0.05f) * Mathf.Exp(-t * 5f) * 1.2f
+                                               + Sine(900f, t) * Mathf.Exp(-t * 40f) * 0.2f);
+            Freeze = Clip("Freeze", 0.6f, t => (Sine(1800f - 900f * t, t) * 0.15f + Sine(2700f, t) * 0.08f) * Mathf.Exp(-t * 5f)
+                                               + LowNoise(0.4f) * Envelope(t, 0.6f, 0.05f, 0.4f) * 0.3f);
 
             Build = Clip("Build", 0.45f, BuildClunk);
             Upgrade = Clip("Upgrade", 0.75f, t => Arpeggio(t, new[] { 523.3f, 659.3f, 784f, 1046.5f }, 0.09f, 7f) * 0.35f);

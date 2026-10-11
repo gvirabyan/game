@@ -28,15 +28,19 @@ namespace Corehold.Tests
             game.ShowMenu();
             yield return null;
             Capture("menu");
+            GameObject.Find("ModeLevels").GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            Capture("levels");
 
-            for (int level = 0; level < game.Balance.levels.Length; level++)
+            for (int level = 0; level < 4; level++)
             {
                 game.LoadLevel(level);
                 game.AddCoins(10000);
                 for (int i = 0; i < game.Spots.Count; i += 2)
                 {
                     game.Select(i);
-                    game.TryBuild(i % 3 == 0 ? "mg" : i % 3 == 1 ? "cannon" : "aa");
+                    var towers = game.Balance.towers;
+                    game.TryBuild(towers[(i / 2 + level * 3) % towers.Length].id);
                     for (int u = 0; u < (i / 2) % 4; u++) game.TryUpgrade();
                 }
                 game.Select(0);
@@ -45,6 +49,12 @@ namespace Corehold.Tests
                 for (int f = 0; f < 120; f++) yield return null;
                 Time.timeScale = 1f;
                 Capture("level" + (level + 1));
+                if (level == 1)
+                {
+                    game.Select(1);
+                    yield return null;
+                    Capture("build_panel");
+                }
                 if (level == 0)
                 {
                     game.Deselect();

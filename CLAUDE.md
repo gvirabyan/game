@@ -1,7 +1,8 @@
 # Corehold
 
-Path-based tower defense for Android/iOS, landscape, one finger. Enemies (soldier, tank, drone) walk a winding road to the base (HQ);
-leaks cost lives, 0 lives = level failed. The player builds/upgrades/sells towers (mg, cannon, aa) on pads. 3 levels.
+Path-based tower defense for Android/iOS, landscape, one finger. Enemies (soldier, jeep, drone, tank, apc, heli, boss) walk a
+winding road to the base (HQ); leaks cost lives, 0 lives = level failed. The player builds/upgrades/sells 8 towers (mg, cannon,
+aa, flame, tesla, mortar, sniper, cryo) on pads. Two modes: 6 missions and Endless (generated waves, boss every 10th).
 Working title; bundle id `com.virabyan.corehold`. The user asked for chat replies in Russian.
 
 ## Hard rules
@@ -75,7 +76,8 @@ adb shell am start -n com.virabyan.corehold/com.unity3d.player.UnityPlayerGameAc
   - `LevelView.cs` — `View` (2.5D mapping), `Layers`, builds the combined static level mesh (ground, road, pads, HQ, decor).
   - `Pools.cs` — `Enemy`, `Projectile`, `Effect`, `Tower`, `BuildSpot`, `LevelPath`, generic `Pool<T>`.
   - `Balance.cs` — data classes for `balance.json` + `Formulas`.
-  - `Art/Models.cs`, `Art/MeshBuilder.cs` — low-poly 3D models. `Art/Art.cs`, `Art/Atlas.cs` — UI sprites/icons atlas.
+  - `Art/Models.cs`, `Art/MeshBuilder.cs` — low-poly 3D models (towers per level, enemy rigs). `Art/Icons.cs` — UI icons
+    rendered from the 3D models at startup (atlas fallback without a GPU). `Art/Art.cs`, `Art/Atlas.cs` — UI sprites/icons atlas.
   - `GameUI.cs`, `UIFactory.cs` — menu, HUD, build/tower panels, pause, result, debug overlay (fps, enemies, stress toggle).
   - `Audio/Sounds.cs` — every sound and both music loops synthesised at startup (no audio files).
     `Audio/Sfx.cs` — voice pool with per-clip throttling, music crossfade, mute.
@@ -88,11 +90,13 @@ adb shell am start -n com.virabyan.corehold/com.unity3d.player.UnityPlayerGameAc
 - Namespace `Corehold`. Editor scripts in the global namespace so `-executeMethod ClassName.Method` stays short.
 - UI is uGUI built in code with the legacy `Text` (Russo One font), reference resolution 1920x1080,
   rounded panels use the sliced `Art.Panel` sprite. Object names used by tests — keep them stable:
-  `Level_1..3`, `WaveBar`, `WaveButton`, `BuildPanel`, `Build_mg|cannon|aa`, `TowerPanel`, `UpgradeButton`, `SellButton`,
+  `ModeLevels`, `ModeEndless`, `Level_1..6`, `WaveBar`, `WaveButton`, `BuildPanel`, `Build_<towerId>`, `TowerPanel`, `UpgradeButton`, `SellButton`,
   `ResultPanel`, `RetryButton`, `NextLevelButton`, `MenuButton`, `PauseButton`, `ResumeButton`, `SpeedButton`, `StressButton`.
 - Level coordinates (landscape): x in -8.5..8.5, pads in y -4.7..3.6 (HUD row on top). Canvas reference 1920x1080,
   scaled by height. The wave button sits in the HUD row; build/tower panels open on the screen side away from the pad. The first path point is
   extended off-screen automatically; the last one is the HQ.
+- Tower attack kinds (`attack` in balance.json): projectile (bullet/shell/missile/flame/mortar arc), chain (tesla),
+  instant (sniper), pulse (cryo slow). Enemies can burn, be slowed, and drop units on death (`spawnOnDeath`).
 - Units are animated from parts (soldier legs, tank turret, drone rotors) set up by `Game.SetupParts`; pooled enemies
   keep their part objects and only swap meshes. The first wave starts by itself after `economy.firstWaveDelay`.
 - Towers change look per level: `Models.TowerBase(level)` / `Models.Turret(id, level)`, swapped on upgrade.

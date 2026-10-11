@@ -47,6 +47,9 @@ namespace Corehold
             RenderSettings.ambientEquatorColor = Art.Hex("65705A");
             RenderSettings.ambientGroundColor = Art.Hex("3A3528");
 
+            // UI icons are rendered from the 3D models, so the lighting above must be set first.
+            Icons.Build(Balance.Load());
+
             var game = new GameObject("Game").AddComponent<Game>();
             game.Init(cam);
             GameUI.Create(game);

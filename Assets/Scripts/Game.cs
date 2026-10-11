@@ -8,30 +8,34 @@ namespace Corehold
     public enum GameState { Menu, Playing, Won, Lost }
 
     // Owns a level: path, build spots, towers, waves, enemies, projectiles, effects, coins and lives.
-    // Logic runs in flat map coordinates; see View for how they map to the 2.5D world.
+    // Logic runs in flat map coordinates; see View for how they map to the 3D world.
     public sealed class Game : MonoBehaviour
     {
         public const int StressEnemyCount = 200;
         const int EnemyPrewarm = 260;
         const int ProjectilePrewarm = 200;
-        const int EffectPrewarm = 240;
+        const int EffectPrewarm = 260;
+        const int BoltPrewarm = 32;
+        const int RipplePrewarm = 16;
         const float TurretTurnSpeed = 540f;
         const float EnemyTurnSpeed = 360f;
         const float HitRadius = 0.12f;
         const float HealthBarWidth = 0.6f;
-        const float DroneHeight = 1.3f;
+        const float AirHeight = 1.3f;
         const float TowerTop = 0.32f;          // turret mount height on the tower base
         const float MuzzleHeight = 0.45f;
-        const float UnitScale = 1.3f;
+        const float UnitScale = 1.3f;          // models are drawn larger than their logic size for readability
         const float TurretScanSpeed = 20f;     // idle turrets slowly sweep
         const float RecoilDistance = 0.07f, RecoilRecovery = 7f;
-        const int Soldier = 0, Tank = 1, Drone = 2;
         const float MaxZoom = 2.2f;
         const float DragThreshold = 0.025f;    // fraction of screen height a press may move and still count as a tap
-        const float BounceTime = 0.45f;          // models are drawn larger than their logic size for readability
+        const float BounceTime = 0.45f;
         const float FlashFade = 8f;            // enemy hit flash fades in 1/8 s
+        const float MortarArc = 2.2f;
+        const float SpawnSpread = 0.35f;       // soldiers dropped by a destroyed APC spread along the road
         static readonly Color SmokeColor = new Color(0.42f, 0.42f, 0.4f, 0.55f);
         static readonly Color MuzzleColor = Art.Hex("FFE9A8"), SparkColor = Art.Hex("FFD27A"), FireCoreColor = Art.Hex("FFF4D6");
+        static readonly Color FlameColor = Art.Hex("FF8A3D"), BoltColor = Art.Hex("9EE8FF"), TracerColor = Art.Hex("FFF1B0"), IceColor = Art.Hex("9EE8FF");
         static readonly int FlashId = Shader.PropertyToID("_Flash");
 
         public static Game Instance { get; private set; }
@@ -40,21 +44,26 @@ namespace Corehold
         public GameState State { get; private set; }
         public int LevelIndex { get; private set; }
         public LevelConfig Level { get; private set; }
+        public bool Endless { get; private set; }
         public int Coins { get; private set; }
         public int Lives { get; private set; }
         public int Kills { get; private set; }
         public int WavesStarted { get; private set; }
-        public int WaveCount => Level != null ? Level.waves.Length : 0;
+        public int WaveCount => Endless ? int.MaxValue : Level != null ? Level.waves.Length : 0;
         public bool Spawning { get; private set; }
         public float NextWaveTimer { get; private set; }
         public bool StressMode { get; set; }
         public BuildSpot Selected { get; private set; }
         public IReadOnlyList<BuildSpot> Spots => spots;
 
+        // Best results of this session (nothing is saved between launches).
+        public int[] LevelStars { get; private set; }
+        public int EndlessBest { get; private set; }
+
         public int EnemyCount => enemies.Active.Count;
         public float Zoom { get => zoom; set => zoom = Mathf.Clamp(value, 1f, MaxZoom); }
         public int ProjectileCount => projectiles.Active.Count;
-        public int PoolGrowth => enemies.Created + projectiles.Created + effects.Created;
+        public int PoolGrowth => enemies.Created + projectiles.Created + effects.Created + bolts.Created + ripples.Created;
         public bool CanStartNextWave => State == GameState.Playing && !Spawning && WavesStarted < WaveCount;
 
         public event Action StateChanged;
@@ -77,8 +86,12 @@ namespace Corehold
         Pool<Enemy> enemies;
         Pool<Projectile> projectiles;
         Pool<Effect> effects;
+        Pool<Bolt> bolts;
+        Pool<Ripple> ripples;
         SpriteRenderer rangeDecal, padMarker;
         float selectionTime;
+        readonly List<Enemy> chainHits = new List<Enemy>();
+        readonly Vector3[] boltPoints = new Vector3[6];
 
         // Spawning state of the current wave.
         readonly List<SpawnGroup> groups = new List<SpawnGroup>();
@@ -94,6 +107,7 @@ namespace Corehold
             FitCamera();
             billboard = cam.transform.rotation;
             Balance = Corehold.Balance.Load();
+            LevelStars = new int[Balance.levels.Length];
 
             // 3D models live under the world root; billboards (health bars, effects) live under the overlay.
             world = new GameObject("World").transform;
@@ -122,13 +136,26 @@ namespace Corehold
 
         public void LoadLevel(int index)
         {
-            ClearLevel();
             LevelIndex = Mathf.Clamp(index, 0, Balance.levels.Length - 1);
-            Level = Balance.levels[LevelIndex];
+            Begin(Balance.levels[LevelIndex], false, 1000 + LevelIndex * 97);
+        }
+
+        public void StartEndless()
+        {
+            LevelIndex = -1;
+            Begin(Balance.endless.ToLevel(), true, 4242);
+        }
+
+        void Begin(LevelConfig level, bool endless, int seed)
+        {
+            ClearLevel();
+            Level = level;
+            Endless = endless;
+            peekIndex = -1;
 
             var view = FitCamera();
             path = new LevelPath(ExtendStartOffscreen(Level.path, view));
-            levelRoot = LevelView.Build(Level, path, Balance.economy.roadWidth, view, 1000 + LevelIndex * 97, world, spots);
+            levelRoot = LevelView.Build(Level, path, Balance.economy.roadWidth, view, seed, world, spots);
 
             Coins = Level.startCoins;
             Lives = Level.lives;
@@ -141,7 +168,11 @@ namespace Corehold
             StateChanged?.Invoke();
         }
 
-        public void RestartLevel() => LoadLevel(LevelIndex);
+        public void RestartLevel()
+        {
+            if (Endless) StartEndless();
+            else LoadLevel(LevelIndex);
+        }
 
         public void NextLevel() => LoadLevel((LevelIndex + 1) % Balance.levels.Length);
 
@@ -151,10 +182,13 @@ namespace Corehold
             enemies.ReleaseAll();
             projectiles.ReleaseAll();
             effects.ReleaseAll();
+            bolts.ReleaseAll();
+            ripples.ReleaseAll();
             spots.Clear();
             if (levelRoot != null) Destroy(levelRoot.gameObject);
             levelRoot = null;
             Level = null;
+            Endless = false;
             StressMode = false;
         }
 
@@ -188,10 +222,10 @@ namespace Corehold
         public void StartNextWave()
         {
             if (!CanStartNextWave) return;
-            var wave = Level.waves[WavesStarted];
             groups.Clear();
             groupRemaining.Clear();
             groupTimer.Clear();
+            var wave = PeekNextWave();
             foreach (var g in wave.groups)
             {
                 Balance.Enemy(g.enemy);     // fail fast on typos in balance.json
@@ -205,13 +239,62 @@ namespace Corehold
             StateChanged?.Invoke();
         }
 
+        // The upcoming wave's groups (for the wave preview); null when there is none.
+        public WaveConfig PeekNextWave()
+        {
+            if (Level == null || WavesStarted >= WaveCount) return null;
+            if (!Endless) return Level.waves[WavesStarted];
+            if (peekIndex != WavesStarted)
+            {
+                peekIndex = WavesStarted;
+                peekWave = EndlessWave(WavesStarted);
+            }
+            return peekWave;
+        }
+
+        WaveConfig peekWave;
+        int peekIndex = -1;
+
+        // Endless waves spend a growing threat budget on 1-3 unlocked enemy types; every bossEvery-th wave adds bosses.
+        WaveConfig EndlessWave(int index)
+        {
+            var cfg = Balance.endless;
+            var random = new System.Random(index * 7919 + 17);
+            float budget = Formulas.EndlessBudget(cfg, index);
+            var list = new List<SpawnGroup>();
+            if ((index + 1) % cfg.bossEvery == 0)
+            {
+                var boss = Balance.enemies[Array.FindIndex(Balance.enemies, e => e.boss)];
+                int count = 1 + index / (cfg.bossEvery * 2);
+                list.Add(new SpawnGroup { enemy = boss.id, count = count, interval = 6f, delay = 4f });
+                budget = Mathf.Max(budget * 0.4f, budget - boss.threat * count);
+            }
+            var unlocked = new List<string>();
+            foreach (var u in cfg.unlocks) if (u.wave <= index) unlocked.Add(u.enemy);
+            int kinds = Mathf.Min(unlocked.Count, 1 + random.Next(3));
+            for (int k = 0; k < kinds; k++)
+            {
+                // Newer enemies are more likely, so each wave feels different.
+                int pick = Mathf.Min(unlocked.Count - 1, (int)(Mathf.Sqrt((float)random.NextDouble()) * unlocked.Count));
+                var type = Balance.Enemy(unlocked[pick]);
+                unlocked.RemoveAt(pick);
+                int count = Mathf.Max(1, Mathf.RoundToInt(budget / kinds / type.threat));
+                float interval = Mathf.Clamp(cfg.spawnInterval * Mathf.Sqrt(type.threat), 0.3f, 3f);
+                list.Add(new SpawnGroup { enemy = type.id, count = count, interval = interval, delay = k * 2.5f });
+            }
+            return new WaveConfig { groups = list.ToArray() };
+        }
+
         void UpdateWaves(float dt)
         {
             if (StressMode)
             {
                 var types = Balance.enemies;
                 while (enemies.Active.Count < StressEnemyCount)
-                    SpawnEnemy(types[stressSpawnCycle++ % types.Length], Mathf.Max(0, WavesStarted - 1), true);
+                {
+                    var type = types[stressSpawnCycle++ % types.Length];
+                    if (!type.boss) SpawnEnemy(type, Mathf.Max(0, WavesStarted - 1), UnityEngine.Random.value * path.Length * 0.9f);
+                }
             }
 
             if (Spawning)
@@ -225,7 +308,7 @@ namespace Corehold
                     var type = Balance.Enemy(groups[i].enemy);
                     while (groupTimer[i] <= 0f && groupRemaining[i] > 0)
                     {
-                        SpawnEnemy(type, WavesStarted - 1, false);
+                        SpawnEnemy(type, WavesStarted - 1, 0f);
                         groupRemaining[i]--;
                         groupTimer[i] += groups[i].interval;
                     }
@@ -246,22 +329,28 @@ namespace Corehold
 
         // ---------------- Enemies ----------------
 
-        void SpawnEnemy(EnemyConfig type, int waveIndex, bool spreadAlongPath)
+        Enemy SpawnEnemy(EnemyConfig type, int waveIndex, float distance)
         {
             var e = enemies.Get();
             e.type = type;
-            e.maxHealth = e.health = Formulas.EnemyHealth(type, Level, Balance.waves, waveIndex);
-            e.distance = spreadAlongPath ? UnityEngine.Random.value * path.Length * 0.9f : 0f;
+            e.maxHealth = e.health = Endless
+                ? Formulas.EndlessHealth(type, Balance.endless, waveIndex)
+                : Formulas.EnemyHealth(type, Level, Balance.waves, waveIndex);
+            e.distance = Mathf.Clamp(distance, 0f, path.Length * 0.98f);
             e.segment = 0;
             e.position = path.Sample(e.distance, ref e.segment, out var dir);
             e.angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-            e.height = type.air ? DroneHeight : 0f;
+            e.height = type.air ? AirHeight : 0f;
+            e.slow = e.slowTime = e.burnDps = e.burnTime = 0f;
 
-            SetupParts(e, type.id == "tank" ? Tank : type.air ? Drone : Soldier);
+            SetupParts(e, Models.Rig(type.id));
             e.root.localScale = Vector3.one * (type.size * UnitScale);
             e.root.localPosition = View.World(e.position, e.height);
             e.root.localRotation = View.Yaw(e.angle);
+            float barWidth = type.boss ? 2.5f : 1f;
+            e.hpBackRenderer.transform.localScale = new Vector3(HealthBarWidth * barWidth + 0.05f, type.boss ? 0.18f : 0.13f, 1f);
             SetHealthBar(e);
+            return e;
         }
 
         void UpdateEnemies(float dt)
@@ -271,7 +360,26 @@ namespace Corehold
             for (int i = list.Count - 1; i >= 0; i--)
             {
                 var e = list[i];
-                e.distance += e.type.speed * dt;
+                float speed = e.type.speed;
+                if (e.slowTime > 0f)
+                {
+                    e.slowTime -= dt;
+                    speed *= 1f - e.slow;
+                }
+                if (e.burnTime > 0f)
+                {
+                    e.burnTime -= dt;
+                    e.burnFx -= dt;
+                    if (e.burnFx <= 0f)
+                    {
+                        e.burnFx = 0.25f;
+                        var fx = SpawnEffect(e.position, e.height + 0.35f, 0.4f, FlameColor, 0.25f, 0.45f);
+                        fx.velocity = new Vector3(0f, 0.8f, 0f);
+                    }
+                    if (Damage(e, e.burnDps * dt, false)) continue;
+                }
+
+                e.distance += speed * dt;
                 if (e.distance >= path.Length)
                 {
                     Leak(e);
@@ -285,9 +393,11 @@ namespace Corehold
                 e.root.localPosition = View.World(e.position, e.height + bob);
                 e.root.localRotation = View.Yaw(e.angle);
                 if (e.flash > 0f) SetFlash(e, Mathf.Max(0f, e.flash - FlashFade * dt));
-                if (e.hpRoot.gameObject.activeSelf) e.hpRoot.position = View.World(e.position, e.height + e.type.size * 1.3f * UnitScale + 0.2f);
+                if (e.hpRoot.gameObject.activeSelf) e.hpRoot.position = HealthBarPosition(e);
             }
         }
+
+        Vector3 HealthBarPosition(Enemy e) => View.World(e.position, e.height + e.type.size * 1.3f * UnitScale + 0.2f);
 
         void Leak(Enemy e)
         {
@@ -301,25 +411,36 @@ namespace Corehold
             Lives = Mathf.Max(0, Lives - e.type.leakDamage);
             Flash(e.position, 0.8f, 1.6f, Art.Palette.Danger);
             Smoke(e.position, 0.6f, 3, 1f);
-            shake = Mathf.Max(shake, 0.12f);
+            shake = Mathf.Max(shake, e.type.boss ? 0.3f : 0.12f);
             Sfx.Play(Sounds.Alarm, 0.5f, 0.4f, 0f);
             ReleaseEnemy(e);
         }
 
-        void Damage(Enemy e, float amount)
+        // Returns true when the enemy died (and was released).
+        bool Damage(Enemy e, float amount, bool flash = true)
         {
             e.health -= amount;
             if (e.health > 0f)
             {
-                e.flash = 1f;
+                if (flash) e.flash = 1f;
                 SetHealthBar(e);
-                return;
+                return false;
             }
             Kills++;
             Coins += e.type.reward;
             Explosion(e.position, e.height + 0.3f, e.type.size);
-            if (e.type.id == "tank") shake = Mathf.Max(shake, 0.08f);
+            if (e.type.size >= 0.85f) shake = Mathf.Max(shake, e.type.boss ? 0.35f : 0.08f);
+            var drop = e.type.spawnOnDeath;
+            int dropCount = e.type.spawnCount;
+            float at = e.distance;
             ReleaseEnemy(e);
+            if (!string.IsNullOrEmpty(drop) && !StressMode)
+            {
+                var type = Balance.Enemy(drop);
+                for (int i = 0; i < dropCount; i++)
+                    SpawnEnemy(type, Mathf.Max(0, WavesStarted - 1), at - i * SpawnSpread);
+            }
+            return true;
         }
 
         void SetFlash(Enemy e, float value)
@@ -330,53 +451,49 @@ namespace Corehold
                 if (r.gameObject.activeSelf) r.SetPropertyBlock(flashBlock);
         }
 
-        // Puts the right meshes on a pooled enemy's body and parts (only when its unit kind changes).
-        static void SetupParts(Enemy e, int kind)
+        // Puts the right meshes on a pooled enemy's body and parts (only when its model changes).
+        static void SetupParts(Enemy e, Models.UnitRig rig)
         {
-            if (e.kind == kind) return;
-            e.kind = kind;
-            e.body.sharedMesh = kind == Tank ? Models.Tank : kind == Drone ? Models.Drone : Models.Soldier;
-            int used = kind == Soldier ? 2 : kind == Tank ? 1 : 4;
+            if (e.rig == rig) return;
+            e.rig = rig;
+            e.body.sharedMesh = rig.Body;
             for (int i = 0; i < Enemy.PartCount; i++)
             {
                 var part = e.parts[i];
-                part.gameObject.SetActive(i < used);
-                if (i >= used) continue;
+                bool used = i < rig.Parts.Length;
+                part.gameObject.SetActive(used);
+                if (!used) continue;
+                e.partFilters[i].sharedMesh = rig.Parts[i];
+                part.localPosition = rig.Joints[i];
                 part.localRotation = Quaternion.identity;
-                if (kind == Soldier)
-                {
-                    e.partFilters[i].sharedMesh = Models.SoldierLeg;
-                    part.localPosition = new Vector3(0f, Models.SoldierHip, i == 0 ? Models.SoldierLegOffset : -Models.SoldierLegOffset);
-                }
-                else if (kind == Tank)
-                {
-                    e.partFilters[i].sharedMesh = Models.TankTurret;
-                    part.localPosition = Models.TankTurretPivot;
-                }
-                else
-                {
-                    e.partFilters[i].sharedMesh = Models.DroneRotor;
-                    float r = Models.DroneRotorReach;
-                    part.localPosition = new Vector3(i < 2 ? r : -r, Models.DroneRotorHeight, i % 2 == 0 ? r : -r);
-                }
             }
         }
 
-        // Walk cycle, turret sway, spinning rotors. Returns the body's vertical bob.
+        // Walk cycle, turret sway, wheels and rotors. Returns the body's vertical bob.
         static float Animate(Enemy e, float time)
         {
-            switch (e.kind)
+            switch (e.rig.Motion)
             {
-                case Soldier:
+                case Models.Motion.Walk:
                 {
                     float swing = Mathf.Sin(e.distance * 7f);
                     e.parts[0].localRotation = Quaternion.Euler(0f, 0f, swing * 35f);
                     e.parts[1].localRotation = Quaternion.Euler(0f, 0f, -swing * 35f);
                     return Mathf.Abs(swing) * 0.04f;
                 }
-                case Tank:
+                case Models.Motion.Turret:
                     e.parts[0].localRotation = Quaternion.Euler(0f, Mathf.Sin(time * 0.7f + e.activeIndex) * 18f, 0f);
                     return Mathf.Sin(time * 40f + e.activeIndex) * 0.006f;      // engine rumble
+                case Models.Motion.Wheels:
+                {
+                    var spin = Quaternion.Euler(0f, 0f, -e.distance * 320f / Mathf.Max(e.type.size, 0.1f));
+                    for (int i = 0; i < 4; i++) e.parts[i].localRotation = spin;
+                    return Mathf.Sin(time * 25f + e.activeIndex) * 0.008f;
+                }
+                case Models.Motion.Heli:
+                    e.parts[0].localRotation = Quaternion.Euler(0f, time * 1300f, 0f);
+                    e.parts[1].localRotation = Quaternion.Euler(0f, 0f, time * 2000f);
+                    return Mathf.Sin(time * 1.5f + e.activeIndex) * 0.06f;
                 default:
                     for (int i = 0; i < 4; i++)
                         e.parts[i].localRotation = Quaternion.Euler(0f, time * (i % 2 == 0 ? 1500f : -1500f), 0f);
@@ -387,14 +504,16 @@ namespace Corehold
         void SetHealthBar(Enemy e)
         {
             float frac = Mathf.Clamp01(e.health / e.maxHealth);
-            bool show = frac < 0.999f;
+            bool show = frac < 0.999f || e.type.boss;
             if (e.hpRoot.gameObject.activeSelf != show) e.hpRoot.gameObject.SetActive(show);
             if (!show) return;
-            float w = HealthBarWidth * frac;
-            e.hpFill.localScale = new Vector3(w, 0.08f, 1f);
-            e.hpFill.localPosition = new Vector3(-HealthBarWidth * 0.5f + w * 0.5f, 0f, -0.01f);
-            e.hpFillRenderer.color = frac > 0.5f ? Art.Palette.Good : frac > 0.25f ? Art.Palette.Gold : Art.Palette.Danger;
-            e.hpRoot.position = View.World(e.position, e.height + e.type.size * 1.3f * UnitScale + 0.2f);
+            float full = HealthBarWidth * (e.type.boss ? 2.5f : 1f);
+            float w = full * frac;
+            e.hpFill.localScale = new Vector3(w, e.type.boss ? 0.12f : 0.08f, 1f);
+            e.hpFill.localPosition = new Vector3(-full * 0.5f + w * 0.5f, 0f, -0.01f);
+            e.hpFillRenderer.color = e.type.boss ? Art.Palette.Danger
+                : frac > 0.5f ? Art.Palette.Good : frac > 0.25f ? Art.Palette.Gold : Art.Palette.Danger;
+            e.hpRoot.position = HealthBarPosition(e);
         }
 
         void ReleaseEnemy(Enemy e)
@@ -406,7 +525,7 @@ namespace Corehold
 
         static bool CanHit(TowerConfig t, Enemy e) => e.type.air ? t.hitsAir : t.hitsGround;
 
-        // ---------------- Towers ----------------
+        // ---------------- Selection ----------------
 
         public void Select(BuildSpot spot)
         {
@@ -456,9 +575,8 @@ namespace Corehold
             if (rangeDecal.enabled && Selected?.tower != null)
             {
                 rangeDecal.transform.localRotation = Quaternion.Euler(90f, 0f, selectionTime * 12f);
-                var s = rangeDecal.transform.localScale;
                 float r = Formulas.TowerRange(Selected.tower.type, Selected.tower.level) * 2f * pop;
-                rangeDecal.transform.localScale = new Vector3(r, r, s.z);
+                rangeDecal.transform.localScale = new Vector3(r, r, 1f);
             }
             if (padMarker.enabled)
             {
@@ -469,10 +587,10 @@ namespace Corehold
         }
 
         // A sprite lying flat on the ground.
-        SpriteRenderer FlatSprite(string name, Sprite sprite, Color color)
+        SpriteRenderer FlatSprite(string name, Sprite sprite, Color color, Transform parent = null)
         {
             var go = new GameObject(name);
-            go.transform.SetParent(world, false);
+            go.transform.SetParent(parent != null ? parent : world, false);
             go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             var r = go.AddComponent<SpriteRenderer>();
             r.sprite = sprite;
@@ -480,6 +598,8 @@ namespace Corehold
             r.sortingOrder = Layers.Range;
             return r;
         }
+
+        // ---------------- Building ----------------
 
         public bool CanBuild(string towerId) =>
             State == GameState.Playing && Selected != null && Selected.tower == null && Coins >= Balance.Tower(towerId).cost;
@@ -556,6 +676,8 @@ namespace Corehold
             return true;
         }
 
+        // ---------------- Towers ----------------
+
         void UpdateTowers(float dt)
         {
             for (int s = 0; s < spots.Count; s++)
@@ -563,13 +685,8 @@ namespace Corehold
                 var t = spots[s].tower;
                 if (t == null) continue;
                 var pos = spots[s].position;
-                float range = Formulas.TowerRange(t.type, t.level);
-
-                if (!IsValidTarget(t, t.target, t.targetGeneration, pos, range))
-                {
-                    t.target = FindTarget(t.type, pos, range);
-                    t.targetGeneration = t.target != null ? t.target.generation : 0;
-                }
+                var type = t.type;
+                float range = Formulas.TowerRange(type, t.level);
 
                 t.cooldown -= dt;
                 if (t.bounce > 0f)
@@ -582,6 +699,26 @@ namespace Corehold
                 {
                     t.recoil = Mathf.Max(0f, t.recoil - RecoilRecovery * dt);
                     t.turret.localPosition = new Vector3(0f, TowerTop, 0f) - View.Yaw(t.angle) * Vector3.right * (RecoilDistance * t.recoil);
+                }
+
+                if (type.attack == "pulse")
+                {
+                    // Cryo: no aiming, the emitter spins and pulses whenever anything is in reach.
+                    t.angle += 90f * dt;
+                    t.turret.localRotation = View.Yaw(t.angle);
+                    if (t.cooldown <= 0f && AnyInRange(type, pos, range))
+                    {
+                        Pulse(t, pos, range);
+                        t.cooldown = 1f / Formulas.TowerFireRate(type, t.level);
+                    }
+                    else if (t.cooldown < 0f) t.cooldown = 0f;
+                    continue;
+                }
+
+                if (!IsValidTarget(t, pos, range))
+                {
+                    t.target = FindTarget(type, pos, range);
+                    t.targetGeneration = t.target != null ? t.target.generation : 0;
                 }
                 if (t.target == null)
                 {
@@ -596,56 +733,170 @@ namespace Corehold
                 t.angle = Mathf.MoveTowardsAngle(t.angle, want, TurretTurnSpeed * dt);
                 t.turret.localRotation = View.Yaw(t.angle);
 
-                float interval = 1f / Formulas.TowerFireRate(t.type, t.level);
+                float interval = 1f / Formulas.TowerFireRate(type, t.level);
                 for (int shots = 0; t.cooldown <= 0f && shots < 4; shots++)
                 {
-                    Fire(t, pos, t.target);
+                    if (t.target.generation != t.targetGeneration) break;
+                    if (type.attack == "chain") Chain(t, pos, t.target);
+                    else if (type.attack == "instant") Snipe(t, pos, t.target);
+                    else Fire(t, pos, t.target);
                     t.cooldown += interval;
                 }
             }
         }
 
-        static bool IsValidTarget(Tower t, Enemy e, int generation, Vector2 pos, float range) =>
-            e != null && e.generation == generation && (e.position - pos).sqrMagnitude <= range * range;
+        bool IsValidTarget(Tower t, Vector2 pos, float range)
+        {
+            var e = t.target;
+            if (e == null || e.generation != t.targetGeneration) return false;
+            float d2 = (e.position - pos).sqrMagnitude;
+            // Snipers keep re-checking for a stronger target; others stick to theirs while it is in reach.
+            return d2 <= range * range && d2 >= t.type.minRange * t.type.minRange && t.type.target != "strongest";
+        }
 
-        // Target the enemy furthest along the path, i.e. the one closest to the base.
+        // Default: the enemy furthest along the path (closest to the base). "strongest": most health left.
         Enemy FindTarget(TowerConfig type, Vector2 pos, float range)
         {
-            float r2 = range * range;
+            float r2 = range * range, min2 = type.minRange * type.minRange;
+            bool strongest = type.target == "strongest";
             Enemy best = null;
             var list = enemies.Active;
             for (int i = 0; i < list.Count; i++)
             {
                 var e = list[i];
                 if (!CanHit(type, e)) continue;
-                if ((e.position - pos).sqrMagnitude > r2) continue;
-                if (best == null || e.distance > best.distance) best = e;
+                float d2 = (e.position - pos).sqrMagnitude;
+                if (d2 > r2 || d2 < min2) continue;
+                if (best == null || (strongest ? e.health > best.health : e.distance > best.distance)) best = e;
             }
             return best;
         }
 
+        bool AnyInRange(TowerConfig type, Vector2 pos, float range)
+        {
+            float r2 = range * range;
+            var list = enemies.Active;
+            for (int i = 0; i < list.Count; i++)
+                if (CanHit(type, list[i]) && (list[i].position - pos).sqrMagnitude <= r2) return true;
+            return false;
+        }
+
+        Vector2 Muzzle(Tower t, Vector2 pos)
+        {
+            float rad = t.angle * Mathf.Deg2Rad;
+            return pos + new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * 0.45f;
+        }
+
         void Fire(Tower t, Vector2 pos, Enemy target)
         {
+            var type = t.type;
             var p = projectiles.Get();
-            float rad = t.angle * Mathf.Deg2Rad;
-            p.position = pos + new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * 0.45f;
-            p.height = MuzzleHeight;
-            SpawnEffect(p.position, MuzzleHeight, 0.06f, MuzzleColor, t.type.splash > 0f ? 0.7f : 0.4f, 0.2f);
-            if (t.type.splash > 0f) Smoke(p.position, MuzzleHeight, 1, 0.5f);
-            if (t.type.projectile == "shell") Sfx.Play(Sounds.Cannon, 0.6f, 0.08f);
-            else if (t.type.projectile == "missile") Sfx.Play(Sounds.Missile, 0.45f, 0.08f);
-            else Sfx.Play(Sounds.Mg, 0.3f, 0.05f, 0.1f);
+            p.position = p.start = Muzzle(t, pos);
+            p.height = p.startHeight = MuzzleHeight;
+            p.arc = type.projectile == "mortar";
             p.source = t;
             t.recoil = 1f;
-            p.damage = Formulas.TowerDamage(t.type, t.level);
+            p.damage = Formulas.TowerDamage(type, t.level);
             p.target = target;
             p.targetGeneration = target.generation;
             p.aim = target.position;
 
-            p.filter.sharedMesh = t.type.projectile == "shell" ? Models.Shell
-                : t.type.projectile == "missile" ? Models.Missile : Models.Bullet;
+            switch (type.projectile)
+            {
+                case "shell":
+                    Sfx.Play(Sounds.Cannon, 0.6f, 0.08f);
+                    break;
+                case "missile":
+                    Sfx.Play(Sounds.Missile, 0.45f, 0.08f);
+                    break;
+                case "mortar":
+                    Sfx.Play(Sounds.Mortar, 0.6f, 0.1f);
+                    // Lead the target a little: shells are slow.
+                    int seg = target.segment;
+                    p.aim = path.Sample(target.distance + target.type.speed * 0.9f, ref seg, out _);
+                    break;
+                case "flame":
+                    Sfx.Play(Sounds.Flame, 0.35f, 0.12f);
+                    break;
+                default:
+                    Sfx.Play(Sounds.Mg, 0.3f, 0.05f, 0.1f);
+                    break;
+            }
+            if (type.projectile != "flame") SpawnEffect(p.position, MuzzleHeight, 0.06f, MuzzleColor, type.splash > 0f ? 0.7f : 0.4f, 0.2f);
+            if (type.splash > 0f && type.projectile != "flame") Smoke(p.position, MuzzleHeight, 1, 0.5f);
+
+            p.filter.sharedMesh = Models.Projectile(type.projectile);
             p.transform.localPosition = View.World(p.position, p.height);
             p.transform.localRotation = View.Yaw(t.angle);
+        }
+
+        // Tesla: instant hit that jumps to the nearest enemies not yet struck.
+        void Chain(Tower t, Vector2 pos, Enemy first)
+        {
+            var type = t.type;
+            float damage = Formulas.TowerDamage(type, t.level);
+            int jumps = Formulas.ChainTargets(type, t.level);
+            chainHits.Clear();
+            var from = View.World(pos, 0.95f);
+            var current = first;
+            for (int n = 0; n <= jumps && current != null; n++)
+            {
+                chainHits.Add(current);
+                var to = View.World(current.position, current.height + 0.3f);
+                SpawnBolt(from, to, BoltColor, 0.14f, 0.07f, true);
+                SpawnEffect(current.position, current.height + 0.3f, 0.15f, BoltColor, 0.3f, 0.6f);
+                from = to;
+                var hit = current;
+                current = NearestUnhit(type, hit.position, type.chainRange);
+                Damage(hit, damage * (n == 0 ? 1f : 0.75f));
+            }
+            Sfx.Play(Sounds.Zap, 0.45f, 0.08f);
+        }
+
+        Enemy NearestUnhit(TowerConfig type, Vector2 from, float range)
+        {
+            float best = range * range;
+            Enemy pick = null;
+            var list = enemies.Active;
+            for (int i = 0; i < list.Count; i++)
+            {
+                var e = list[i];
+                if (!CanHit(type, e) || chainHits.Contains(e)) continue;
+                float d2 = (e.position - from).sqrMagnitude;
+                if (d2 < best) { best = d2; pick = e; }
+            }
+            return pick;
+        }
+
+        // Sniper: hitscan with a bright tracer.
+        void Snipe(Tower t, Vector2 pos, Enemy target)
+        {
+            var muzzle = Muzzle(t, pos);
+            t.recoil = 1f;
+            SpawnBolt(View.World(muzzle, MuzzleHeight), View.World(target.position, target.height + 0.3f), TracerColor, 0.1f, 0.035f, false);
+            SpawnEffect(muzzle, MuzzleHeight, 0.08f, MuzzleColor, 0.6f, 0.2f);
+            SpawnEffect(target.position, target.height + 0.3f, 0.12f, SparkColor, 0.5f, 0.2f);
+            Sfx.Play(Sounds.Sniper, 0.5f, 0.05f);
+            Damage(target, Formulas.TowerDamage(t.type, t.level));
+        }
+
+        // Cryo: damages and slows everything in reach, with an expanding frost ring.
+        void Pulse(Tower t, Vector2 pos, float range)
+        {
+            var type = t.type;
+            float damage = Formulas.TowerDamage(type, t.level), slow = Formulas.Slow(type, t.level);
+            float r2 = range * range;
+            var list = enemies.Active;
+            for (int i = list.Count - 1; i >= 0; i--)
+            {
+                var e = list[i];
+                if (!CanHit(type, e) || (e.position - pos).sqrMagnitude > r2) continue;
+                e.slow = Mathf.Max(e.slowTime > 0f ? e.slow : 0f, slow);
+                e.slowTime = type.slowTime;
+                Damage(e, damage, false);
+            }
+            SpawnRipple(pos, range, IceColor);
+            Sfx.Play(Sounds.Freeze, 0.35f, 0.15f);
         }
 
         void UpdateProjectiles(float dt)
@@ -656,6 +907,27 @@ namespace Corehold
                 var p = list[i];
                 var type = p.source.type;
                 bool targetAlive = p.target.generation == p.targetGeneration;
+                if (p.arc)
+                {
+                    // Mortar: fixed landing point, parabolic height.
+                    var span = p.aim - p.start;
+                    float total = Mathf.Max(span.magnitude, 0.01f);
+                    float travelled = (p.position - p.start).magnitude + type.projectileSpeed * dt;
+                    float k = Mathf.Clamp01(travelled / total);
+                    var prev = View.World(p.position, p.height);
+                    p.position = p.start + span * k;
+                    p.height = Mathf.Lerp(p.startHeight, 0.1f, k) + Mathf.Sin(k * Mathf.PI) * MortarArc;
+                    var now = View.World(p.position, p.height);
+                    p.transform.localPosition = now;
+                    if (now != prev) p.transform.localRotation = Quaternion.LookRotation(now - prev) * Quaternion.Euler(0f, -90f, 0f);
+                    if (k >= 1f)
+                    {
+                        projectiles.Release(p);
+                        Impact(p.source, p.aim, 0.1f, p.damage, null);
+                    }
+                    continue;
+                }
+
                 if (targetAlive) p.aim = p.target.position;
                 else if (type.splash <= 0f)
                 {
@@ -670,7 +942,7 @@ namespace Corehold
                 if (dist <= step + HitRadius)
                 {
                     projectiles.Release(p);
-                    Impact(type, p.aim, aimHeight, p.damage, targetAlive ? p.target : null);
+                    Impact(p.source, p.aim, aimHeight, p.damage, targetAlive ? p.target : null);
                     continue;
                 }
                 // Climb or drop toward the target height over the remaining distance.
@@ -681,18 +953,28 @@ namespace Corehold
             }
         }
 
-        void Impact(TowerConfig type, Vector2 at, float height, float damage, Enemy target)
+        void Impact(Tower source, Vector2 at, float height, float damage, Enemy target)
         {
+            var type = source.type;
             if (type.splash > 0f)
             {
+                bool flame = type.projectile == "flame";
                 float r2 = type.splash * type.splash;
+                float burn = Formulas.Burn(type, source.level);
                 var list = enemies.Active;
                 for (int i = list.Count - 1; i >= 0; i--)
                 {
                     var e = list[i];
-                    if (CanHit(type, e) && (e.position - at).sqrMagnitude <= r2) Damage(e, damage);
+                    if (!CanHit(type, e) || (e.position - at).sqrMagnitude > r2) continue;
+                    if (flame)
+                    {
+                        e.burnDps = Mathf.Max(e.burnTime > 0f ? e.burnDps : 0f, burn);
+                        e.burnTime = type.burnTime;
+                    }
+                    Damage(e, damage, !flame);
                 }
-                Explosion(at, 0.2f, type.splash);
+                if (flame) SpawnEffect(at, 0.3f, 0.3f, FlameColor, 0.4f, type.splash * 2f);
+                else Explosion(at, 0.2f, type.splash);
                 return;
             }
             if (target == null) return;
@@ -748,6 +1030,41 @@ namespace Corehold
             Smoke(at, height, 3, size * 1.4f);
         }
 
+        // Jagged (lightning) or straight (tracer) line that fades out.
+        void SpawnBolt(Vector3 from, Vector3 to, Color color, float life, float width, bool jagged)
+        {
+            var b = bolts.Get();
+            b.age = 0f;
+            b.life = life;
+            b.color = color;
+            int n = jagged ? boltPoints.Length : 2;
+            b.line.positionCount = n;
+            var side = Vector3.Cross((to - from).normalized, Vector3.up);
+            for (int i = 0; i < n; i++)
+            {
+                float k = i / (float)(n - 1);
+                var p = Vector3.Lerp(from, to, k);
+                if (jagged && i > 0 && i < n - 1)
+                    p += side * UnityEngine.Random.Range(-0.18f, 0.18f) + Vector3.up * UnityEngine.Random.Range(-0.12f, 0.12f);
+                boltPoints[i] = p;
+            }
+            b.line.SetPositions(boltPoints);
+            b.line.widthMultiplier = width;
+            b.line.startColor = b.line.endColor = color;
+        }
+
+        void SpawnRipple(Vector2 at, float radius, Color color)
+        {
+            var r = ripples.Get();
+            r.age = 0f;
+            r.life = 0.5f;
+            r.radius = radius;
+            r.color = color;
+            r.renderer.transform.localPosition = View.World(at, 0.15f);
+            r.renderer.transform.localScale = Vector3.one * 0.2f;
+            r.renderer.color = color;
+        }
+
         void UpdateEffects(float dt)
         {
             var list = effects.Active;
@@ -766,6 +1083,39 @@ namespace Corehold
                 var c = fx.color;
                 c.a = fx.color.a * (1f - t * t);
                 fx.renderer.color = c;
+            }
+
+            var bl = bolts.Active;
+            for (int i = bl.Count - 1; i >= 0; i--)
+            {
+                var b = bl[i];
+                b.age += dt;
+                if (b.age >= b.life)
+                {
+                    bolts.Release(b);
+                    continue;
+                }
+                var c = b.color;
+                c.a = 1f - b.age / b.life;
+                b.line.startColor = b.line.endColor = c;
+            }
+
+            var rl = ripples.Active;
+            for (int i = rl.Count - 1; i >= 0; i--)
+            {
+                var r = rl[i];
+                r.age += dt;
+                float t = r.age / r.life;
+                if (t >= 1f)
+                {
+                    ripples.Release(r);
+                    continue;
+                }
+                float size = Mathf.Lerp(0.2f, r.radius * 2f, Mathf.Sqrt(t));
+                r.renderer.transform.localScale = new Vector3(size, size, 1f);
+                var c = r.color;
+                c.a = 0.9f * (1f - t);
+                r.renderer.color = c;
             }
         }
 
@@ -805,14 +1155,20 @@ namespace Corehold
 
             if (Lives <= 0)
                 Finish(GameState.Lost);
-            else if (!StressMode && WavesStarted == WaveCount && !Spawning && enemies.Active.Count == 0)
+            else if (!Endless && !StressMode && WavesStarted == WaveCount && !Spawning && enemies.Active.Count == 0)
                 Finish(GameState.Won);
         }
+
+        // Stars for a won level: 3 with every life kept, 2 with at least half, otherwise 1.
+        public int StarsFor(int lives, int maxLives) => lives >= maxLives ? 3 : lives * 2 >= maxLives ? 2 : 1;
 
         void Finish(GameState result)
         {
             Deselect();
             shake = 0f;
+            if (Endless) EndlessBest = Mathf.Max(EndlessBest, Mathf.Max(0, WavesStarted - 1));
+            else if (result == GameState.Won)
+                LevelStars[LevelIndex] = Mathf.Max(LevelStars[LevelIndex], StarsFor(Lives, Level.lives));
             Sfx.Music(null);
             Sfx.Play(result == GameState.Won ? Sounds.Victory : Sounds.Defeat, 0.8f, 0f, 0f);
             State = result;
@@ -931,6 +1287,7 @@ namespace Corehold
             enemyRoot.SetParent(world, false);
             var barRoot = new GameObject("HealthBars").transform;
             barRoot.SetParent(overlay, false);
+            var soldier = Models.Rig("soldier");
             enemies = new Pool<Enemy>(EnemyPrewarm, () =>
             {
                 var root = new GameObject("Enemy").transform;
@@ -938,17 +1295,17 @@ namespace Corehold
                 var hp = new GameObject("HealthBar").transform;
                 hp.SetParent(barRoot, false);
                 hp.rotation = billboard;
-                var body = MeshObject("Body", Models.Soldier, root);
+                var body = MeshObject("Body", soldier.Body, root);
                 var e = new Enemy { root = root, body = body.GetComponent<MeshFilter>(), hpRoot = hp };
                 e.renderers[0] = body.GetComponent<MeshRenderer>();
                 for (int i = 0; i < Enemy.PartCount; i++)
                 {
-                    var part = MeshObject("Part", Models.SoldierLeg, root);
+                    var part = MeshObject("Part", soldier.Parts[0], root);
                     e.parts[i] = part;
                     e.partFilters[i] = part.GetComponent<MeshFilter>();
                     e.renderers[i + 1] = part.GetComponent<MeshRenderer>();
                 }
-                SetupParts(e, Soldier);
+                SetupParts(e, soldier);
                 e.hpBackRenderer = Billboard("Back", Art.Pixel, new Color(0f, 0f, 0f, 0.65f), Layers.HealthBar, hp);
                 e.hpBackRenderer.transform.localScale = new Vector3(HealthBarWidth + 0.05f, 0.13f, 1f);
                 e.hpFillRenderer = Billboard("Fill", Art.Pixel, Art.Palette.Good, Layers.HealthBar + 1, hp);
@@ -985,6 +1342,28 @@ namespace Corehold
             },
             (fx, on) => fx.transform.gameObject.SetActive(on),
             fx => fx.activeIndex, (fx, i) => fx.activeIndex = i);
+
+            var lineMaterial = new Material(Shader.Find("Sprites/Default"));
+            bolts = new Pool<Bolt>(BoltPrewarm, () =>
+            {
+                var go = new GameObject("Bolt");
+                go.transform.SetParent(effectRoot, false);
+                var line = go.AddComponent<LineRenderer>();
+                line.sharedMaterial = lineMaterial;
+                line.useWorldSpace = true;
+                line.numCapVertices = 2;
+                line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                line.receiveShadows = false;
+                line.sortingOrder = Layers.Effect + 1;
+                return new Bolt { line = line };
+            },
+            (b, on) => b.line.gameObject.SetActive(on),
+            b => b.activeIndex, (b, i) => b.activeIndex = i);
+
+            ripples = new Pool<Ripple>(RipplePrewarm, () =>
+                new Ripple { renderer = FlatSprite("Ripple", Art.Ring, Color.white, effectRoot) },
+            (r, on) => r.renderer.gameObject.SetActive(on),
+            r => r.activeIndex, (r, i) => r.activeIndex = i);
         }
     }
 }

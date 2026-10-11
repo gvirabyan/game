@@ -30,7 +30,7 @@ namespace Corehold.Tests
         {
             yield return LoadScene();
             var game = Game.Instance;
-            Click("Level_1");
+            OpenLevel(1);
             Assert.AreEqual(GameState.Playing, game.State);
             int startCoins = game.Coins;
 
@@ -56,7 +56,7 @@ namespace Corehold.Tests
         {
             yield return LoadScene();
             var game = Game.Instance;
-            Click("Level_1");
+            OpenLevel(1);
             Assert.AreEqual(0, game.WavesStarted);
             float delay = game.Balance.economy.firstWaveDelay;
             Assert.Greater(delay, 0f);
@@ -71,7 +71,7 @@ namespace Corehold.Tests
         {
             yield return LoadScene();
             var game = Game.Instance;
-            Click("Level_1");
+            OpenLevel(1);
             game.AddCoins(1000);
 
             game.Select(0);
@@ -98,7 +98,7 @@ namespace Corehold.Tests
         {
             yield return LoadScene();
             var game = Game.Instance;
-            Click("Level_1");
+            OpenLevel(1);
 
             for (int level = 0; level < game.Balance.levels.Length; level++)
             {
@@ -113,17 +113,49 @@ namespace Corehold.Tests
             }
         }
 
-        // Build a mix of towers on every pad, fully upgraded: mostly mg, a cannon and missiles where drones appear.
+        // Every tower type in turn on every pad, fully upgraded, so each attack kind gets exercised.
         static void FortifyAllSpots(Game game)
         {
             game.AddCoins(100000);
+            var towers = game.Balance.towers;
             for (int i = 0; i < game.Spots.Count; i++)
             {
                 game.Select(i);
-                Click(i % 3 == 0 ? "Build_aa" : i % 3 == 1 ? "Build_cannon" : "Build_mg");
+                Click("Build_" + towers[i % towers.Length].id);
                 for (int u = 0; u < 3; u++) Click("UpgradeButton");
             }
             game.Deselect();
+        }
+
+        static void OpenLevel(int number)
+        {
+            Click("ModeLevels");
+            Click("Level_" + number);
+        }
+
+        [UnityTest]
+        public IEnumerator Endless_GeneratesHarderWavesUntilTheBaseFalls()
+        {
+            yield return LoadScene();
+            var game = Game.Instance;
+            Click("ModeEndless");
+            Assert.IsTrue(game.Endless);
+            Assert.AreEqual(GameState.Playing, game.State);
+            FortifyAllSpots(game);
+            Click("WaveButton");
+            Time.timeScale = TimeScale;
+            yield return WaitUntil(() => game.WavesStarted >= 6, "six endless waves");
+            Assert.AreEqual(GameState.Playing, game.State, "a fully fortified base fell in the first waves");
+            Debug.Log($"[RunTests] endless: reached wave {game.WavesStarted}, kills {game.Kills}, lives {game.Lives}");
+
+            // Without towers the base must eventually fall, and the result screen offers a retry.
+            game.Select(0);
+            for (int i = 0; i < game.Spots.Count; i++) { game.Select(i); game.TrySell(); }
+            yield return WaitUntil(() => game.State == GameState.Lost, "the undefended endless base to fall");
+            Assert.IsTrue(game.EndlessBest >= 5);
+            Click("RetryButton");
+            Assert.IsTrue(game.Endless);
+            Assert.AreEqual(0, game.WavesStarted);
         }
 
         [UnityTest]
@@ -131,7 +163,7 @@ namespace Corehold.Tests
         {
             yield return LoadScene();
             var game = Game.Instance;
-            Click("Level_1");
+            OpenLevel(1);
             Click("StressButton");
             Assert.IsTrue(game.StressMode);
 

@@ -11,10 +11,10 @@ namespace Corehold
         public const int PartCount = 4;
         public Transform root;              // positioned, rotated and scaled; holds the body and the parts
         public MeshFilter body;
-        public readonly Transform[] parts = new Transform[PartCount];     // legs, turret or rotors
+        public readonly Transform[] parts = new Transform[PartCount];     // legs, turret, wheels or rotors
         public readonly MeshFilter[] partFilters = new MeshFilter[PartCount];
         public readonly MeshRenderer[] renderers = new MeshRenderer[PartCount + 1];    // body first
-        public int kind = -1;               // which unit the parts are set up for (UnitKind)
+        public Models.UnitRig rig;          // which model the body and parts are set up for
         public float flash;                 // hit flash, 1 right after a hit, fades to 0
         public Transform hpRoot, hpFill;    // billboard under the overlay root
         public SpriteRenderer hpBackRenderer, hpFillRenderer;
@@ -23,6 +23,8 @@ namespace Corehold
         public float distance;              // travelled along the path
         public int segment;                 // current path segment, only ever increases
         public float health, maxHealth, angle, height;
+        public float slow, slowTime;        // speed reduction share and how long it lasts
+        public float burnDps, burnTime, burnFx;
         public int generation;              // bumps on every release so stale references can be detected
         public int activeIndex;
     }
@@ -35,8 +37,27 @@ namespace Corehold
         public float damage;
         public Enemy target;
         public int targetGeneration;
-        public Vector2 position, aim;
-        public float height;
+        public Vector2 position, aim, start;
+        public float height, startHeight;
+        public bool arc;                    // mortar shells fly a high arc to a fixed point
+        public int activeIndex;
+    }
+
+    // A short-lived line: tesla lightning or a sniper tracer.
+    public sealed class Bolt
+    {
+        public LineRenderer line;
+        public float age, life;
+        public Color color;
+        public int activeIndex;
+    }
+
+    // A flat ring expanding on the ground (cryo pulse).
+    public sealed class Ripple
+    {
+        public SpriteRenderer renderer;
+        public float age, life, radius;
+        public Color color;
         public int activeIndex;
     }
 
