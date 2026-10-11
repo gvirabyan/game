@@ -2,7 +2,7 @@
 
 Path-based tower defense for Android/iOS, landscape, one finger. Enemies (soldier, jeep, drone, tank, apc, heli, boss) walk a
 winding road to the base (HQ); leaks cost lives, 0 lives = level failed. The player builds/upgrades/sells 8 towers (mg, cannon,
-aa, flame, tesla, mortar, sniper, cryo) on pads. Two modes: 6 missions and Endless (generated waves, boss every 10th).
+aa, flame, tesla, mortar, sniper, cryo) on pads. Two modes: 12 missions and Endless (generated waves, boss every 10th). Bosses: boss (Juggernaut), gunship, titan.
 Working title; bundle id `com.virabyan.corehold`. The user asked for chat replies in Russian.
 
 ## Hard rules
@@ -81,7 +81,8 @@ adb shell am start -n com.virabyan.corehold/com.unity3d.player.UnityPlayerGameAc
   - `GameUI.cs`, `UIFactory.cs` — menu, HUD, build/tower panels, pause, result, debug overlay (fps, enemies, stress toggle).
   - `Audio/Sounds.cs` — every sound and both music loops synthesised at startup (no audio files).
     `Audio/Sfx.cs` — voice pool with per-clip throttling, music crossfade, mute.
-  - `GarageView.cs` — main menu backdrop: animated hangar with the player's vehicles (own camera, no fog).
+  - `WorldMapView.cs` — main menu: scrollable 3D campaign map (green/desert/snow), one marker per mission, convoy and
+    helicopter animation. GameUI keeps the `Level_N` buttons glued to the markers and opens a mission card (`PlayButton`).
 - `Assets/Editor/` — `ProjectSetup.cs` (player settings + scene), `BuildScript.cs` (APK builds).
 - `Assets/Tests/EditMode` — balance + level geometry. `Assets/Tests/PlayMode` — lose/retry, build/upgrade/sell,
   win all levels with full defense, 200-enemy stress (PlayMode takes ~3 min).
@@ -90,11 +91,13 @@ adb shell am start -n com.virabyan.corehold/com.unity3d.player.UnityPlayerGameAc
 - Namespace `Corehold`. Editor scripts in the global namespace so `-executeMethod ClassName.Method` stays short.
 - UI is uGUI built in code with the legacy `Text` (Russo One font), reference resolution 1920x1080,
   rounded panels use the sliced `Art.Panel` sprite. Object names used by tests — keep them stable:
-  `ModeLevels`, `ModeEndless`, `Level_1..6`, `WaveBar`, `WaveButton`, `BuildPanel`, `Build_<towerId>`, `TowerPanel`, `UpgradeButton`, `SellButton`,
+  `ModeEndless`, `Level_1..12`, `PlayButton`, `WaveBar`, `WaveButton`, `BuildPanel`, `Build_<towerId>`, `TowerPanel`, `UpgradeButton`, `SellButton`,
   `ResultPanel`, `RetryButton`, `NextLevelButton`, `MenuButton`, `PauseButton`, `ResumeButton`, `SpeedButton`, `StressButton`.
 - Level coordinates (landscape): x in -8.5..8.5, pads in y -4.7..3.6 (HUD row on top). Canvas reference 1920x1080,
   scaled by height. The wave button sits in the HUD row; build/tower panels open on the screen side away from the pad. The first path point is
   extended off-screen automatically; the last one is the HQ.
+- Roads are off-road dirt tracks (`DirtRoad` in LevelView.cs) along `LevelPath.Rounded` paths: corners are curved
+  and enemies follow the curves; pad clearance is tested against the rounded path.
 - Tower attack kinds (`attack` in balance.json): projectile (bullet/shell/missile/flame/mortar arc), chain (tesla),
   instant (sniper), pulse (cryo slow). Enemies can burn, be slowed, and drop units on death (`spawnOnDeath`).
 - Units are animated from parts (soldier legs, tank turret, drone rotors) set up by `Game.SetupParts`; pooled enemies

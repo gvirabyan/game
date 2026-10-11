@@ -117,6 +117,30 @@ namespace Corehold
 
         public int SegmentCount => dirs.Length;
 
+        // Corner radius of roads: waypoints are authored as straight runs, the road itself curves around corners.
+        public const float CornerRadius = 0.8f;
+
+        // Replaces every corner with a smooth curve (quadratic Bezier through the corner point).
+        public static Vector2[] Rounded(Vector2[] pts, float radius = CornerRadius)
+        {
+            var result = new List<Vector2> { pts[0] };
+            for (int i = 1; i < pts.Length - 1; i++)
+            {
+                Vector2 a = pts[i - 1], b = pts[i], c = pts[i + 1];
+                float l1 = (b - a).magnitude, l2 = (c - b).magnitude;
+                float r = Mathf.Min(radius, l1 * 0.45f, l2 * 0.45f);
+                var p1 = b - (b - a) / l1 * r;
+                var p2 = b + (c - b) / l2 * r;
+                for (int k = 0; k <= 6; k++)
+                {
+                    float t = k / 6f;
+                    result.Add((1 - t) * (1 - t) * p1 + 2 * (1 - t) * t * b + t * t * p2);
+                }
+            }
+            result.Add(pts[pts.Length - 1]);
+            return result.ToArray();
+        }
+
         public Vector2 Sample(float distance, ref int segment, out Vector2 dir)
         {
             while (segment < dirs.Length - 1 && distance > start[segment + 1]) segment++;

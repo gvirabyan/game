@@ -18,7 +18,7 @@ namespace Corehold
         static readonly Color Shade = new Color(0f, 0f, 0f, 0.3f);
 
         Game game;
-        GameObject menuHome, menuLevels, menuRoot, hud, waveBar, buildPanel, towerPanel, resultPanel, pausePanel, debugRoot;
+        GameObject menuRoot, levelInfo, hud, waveBar, buildPanel, towerPanel, resultPanel, pausePanel, debugRoot;
         Text coinsText, livesText, waveText, waveButtonLabel, speedLabel, debugText, stressLabel, previewLabel, endlessBestText;
         Text towerTitle, upgradeLabel, sellLabel, resultTitle, resultStats;
         Image waveButtonImage, waveTimerFill, upgradeImage, towerIcon, towerHeader, resultHeader;
@@ -30,7 +30,14 @@ namespace Corehold
         readonly StatBar[] statBars = new StatBar[3];
         readonly Image[] previewIcons = new Image[PreviewSlots];
         readonly Text[] previewCounts = new Text[PreviewSlots];
-        readonly List<Image[]> levelStars = new List<Image[]>();
+        readonly List<RectTransform> nodeButtons = new List<RectTransform>();
+        readonly List<Image[]> nodeStars = new List<Image[]>();
+        RectTransform nodeLayer, currentRing, infoMap;
+        Text infoTitle, infoText, infoBoss;
+        Image infoHeader;
+        readonly Image[] infoStars = new Image[3];
+        readonly Image[] infoEnemies = new Image[8];
+        int infoLevel;
         readonly List<Image> soundIcons = new List<Image>();
         readonly Dictionary<string, Color> towerColors = new Dictionary<string, Color>();
         float refreshTimer, speed = 1f;
@@ -379,104 +386,184 @@ namespace Corehold
 
         // ---------------- Main menu ----------------
 
-        // Home: two game modes over the garage. Missions: level cards with a mini map of each road.
+        // Over the 3D campaign map: title and Endless button on top, one button per mission marker, and a mission card.
         void BuildMenu(Transform canvas)
         {
             var root = UIFactory.Fill("Menu", canvas);
             menuRoot = root.gameObject;
 
-            var home = UIFactory.Fill("Home", root);
-            menuHome = home.gameObject;
-            var column = UIFactory.Rect("Column", home, Vector2.zero, new Vector2(0, 1), Vector2.zero, new Vector2(900, 0));
-            UIFactory.Image(column, new Color(0.03f, 0.05f, 0.09f, 0.75f), false, false).sprite = Art.Fade;
-            var safe = UIFactory.Fill("SafeArea", column);
-            UIFactory.Text(UIFactory.Box("Title", safe, new Vector2(0, 1), new Vector2(90, -80), new Vector2(760, 130)),
-                "COREHOLD", 112, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
-            UIFactory.Text(UIFactory.Box("Subtitle", safe, new Vector2(0, 1), new Vector2(96, -210), new Vector2(760, 50)),
-                "Hold the road. Protect the base.", 34, TextAnchor.MiddleLeft, Art.Palette.Gold);
-
-            ModeButton(safe, "ModeLevels", "MISSIONS", $"{game.Balance.levels.Length} levels, growing threats", UIFactory.Go, Art.Flag, -330,
-                () => ShowLevelSelect(true));
-            endlessBestText = ModeButton(safe, "ModeEndless", "ENDLESS", "", UIFactory.Warn, Art.Heart, -530, game.StartEndless);
-            SoundButton(root, "MenuSoundButton", new Vector2(-Margin, -Margin));
-
-            BuildLevelSelect(root);
-        }
-
-        Text ModeButton(RectTransform parent, string name, string title, string subtitle, Color color, Sprite icon, float y, UnityEngine.Events.UnityAction onClick)
-        {
-            var rt = UIFactory.Box(name, parent, new Vector2(0, 1), new Vector2(90, y), new Vector2(720, 170));
-            UIFactory.Shadow(rt, 16f, 10f);
-            var b = UIFactory.Button(rt, color, out var label, "", 56);
-            label.alignment = TextAnchor.UpperLeft;
-            label.rectTransform.offsetMin = new Vector2(190, 8);
-            label.rectTransform.offsetMax = new Vector2(0, -26);
-            label.text = title;
-            var badge = UIFactory.Box("Badge", rt, new Vector2(0, 0.5f), new Vector2(30, 6), new Vector2(130, 130));
-            UIFactory.Icon(badge, Art.Disc).color = new Color(0f, 0f, 0f, 0.25f);
-            Centered(UIFactory.Icon(UIFactory.Box("Icon", badge, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(76, 76)), icon));
-            var sub = UIFactory.Text(UIFactory.Rect("Sub", rt, Vector2.zero, Vector2.one, new Vector2(192, 30), new Vector2(-90, -100)),
-                subtitle, 28, TextAnchor.UpperLeft, new Color(1f, 1f, 1f, 0.8f));
-            UIFactory.Icon(UIFactory.Box("Play", rt, new Vector2(1, 0.5f), new Vector2(-36, 6), new Vector2(60, 60)), Art.Play);
-            b.onClick.AddListener(onClick);
-            return sub;
-        }
-
-        void BuildLevelSelect(RectTransform root)
-        {
-            var screen = UIFactory.Fill("LevelSelect", root);
-            menuLevels = screen.gameObject;
-            UIFactory.Image(screen, new Color(0.03f, 0.05f, 0.09f, 0.82f), true, false);
-            var safe = UIFactory.Fill("SafeArea", screen);
-            safe.gameObject.AddComponent<SafeArea>();
-
-            var back = UIFactory.Box("BackButton", safe, new Vector2(0, 1), new Vector2(Margin + 10, -Margin), new Vector2(200, 96));
-            UIFactory.Shadow(back, 12f, 6f);
-            UIFactory.Button(back, UIFactory.CardColor, out _, "Back", 36).onClick.AddListener(() => ShowLevelSelect(false));
-            UIFactory.Text(UIFactory.Rect("Title", safe, new Vector2(0, 1), Vector2.one, new Vector2(0, -130), new Vector2(0, -Margin)),
-                "Select mission", 60, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
-
+            nodeLayer = UIFactory.Fill("Nodes", root);
             var levels = game.Balance.levels;
-            int cols = 3, rows = (levels.Length + cols - 1) / cols;
-            var grid = UIFactory.Rect("Grid", safe, Vector2.zero, Vector2.one, new Vector2(40, 30), new Vector2(-40, -150));
+            currentRing = UIFactory.Box("Current", nodeLayer, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(150, 150));
+            currentRing.pivot = new Vector2(0.5f, 0.5f);
+            UIFactory.Icon(currentRing, Art.Ring).color = Art.Palette.Gold;
             for (int i = 0; i < levels.Length; i++)
             {
                 int index = i;
-                var level = levels[i];
-                int col = i % cols, row = i / cols;
-                var card = UIFactory.Rect("Level_" + (i + 1), grid, new Vector2(col / (float)cols, 1f - (row + 1f) / rows),
-                    new Vector2((col + 1f) / cols, 1f - row / (float)rows), new Vector2(14, 12), new Vector2(-14, -12));
-                UIFactory.Shadow(card, 14f, 8f);
-                var b = UIFactory.Button(card, UIFactory.CardColor, out var label, "", 24);
-                label.text = "";
-                b.onClick.AddListener(() => game.LoadLevel(index));
-
-                var map = UIFactory.Box("Map", card, new Vector2(0.5f, 1), new Vector2(0, -16), new Vector2(500, 250));
-                map.pivot = new Vector2(0.5f, 1f);
-                MiniMap(map, level.path, level.spots);
-
-                var badge = UIFactory.Box("Badge", card, new Vector2(0, 1), new Vector2(10, -6), new Vector2(84, 84));
-                UIFactory.Icon(badge, Art.Disc).color = UIFactory.Primary;
-                UIFactory.Text(UIFactory.Fill("Number", badge), (i + 1).ToString(), 44, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
-
-                UIFactory.Text(UIFactory.Rect("Name", card, Vector2.zero, new Vector2(1, 0), new Vector2(26, 70), new Vector2(-180, 124)),
-                    level.name, 40, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
-                UIFactory.Text(UIFactory.Rect("Info", card, Vector2.zero, new Vector2(1, 0), new Vector2(26, 24), new Vector2(-180, 70)),
-                    $"{level.waves.Length} waves  Â·  {level.lives} lives", 26, TextAnchor.MiddleLeft, UIFactory.TextDim);
+                var node = UIFactory.Box("Level_" + (i + 1), nodeLayer, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(110, 110));
+                node.pivot = new Vector2(0.5f, 0.5f);
+                bool boss = BossOf(levels[i]) != null;
+                var face = UIFactory.Icon(node, Art.Disc);
+                face.color = boss ? UIFactory.Bad : UIFactory.Primary;
+                face.raycastTarget = true;
+                var button = node.gameObject.AddComponent<Button>();
+                button.targetGraphic = face;
+                button.onClick.AddListener(() => Sfx.Play(Sounds.Click, 0.5f));
+                button.onClick.AddListener(() => { if (game.Map == null || !game.Map.Dragged) OpenLevelInfo(index); });
+                UIFactory.Icon(UIFactory.Fill("Ring", node), Art.Ring).color = new Color(1f, 1f, 1f, 0.8f);
+                UIFactory.Text(UIFactory.Fill("Number", node), (i + 1).ToString(), 52, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
 
                 var stars = new Image[3];
-                for (int s = 0; s < 3; s++)
-                    stars[s] = UIFactory.Icon(UIFactory.Box("Star" + s, card, new Vector2(1, 0), new Vector2(-24 - (2 - s) * 52, 76), new Vector2(48, 48)), Art.Star);
-                levelStars.Add(stars);
-
-                // Enemy types in this mission.
-                var types = new List<string>();
-                foreach (var w in level.waves)
-                    foreach (var g in w.groups)
-                        if (!types.Contains(g.enemy)) types.Add(g.enemy);
-                for (int k = 0; k < types.Count && k < 7; k++)
-                    UIFactory.Icon(UIFactory.Box("Enemy" + k, card, new Vector2(1, 0), new Vector2(-20 - k * 46, 20), new Vector2(50, 50)), Icons.Enemy(types[k]));
+                for (int k = 0; k < 3; k++)
+                {
+                    var star = UIFactory.Box("Star" + k, node, new Vector2(0.5f, 0f), new Vector2((k - 1) * 38f, -36f + (k == 1 ? -6f : 0f)), new Vector2(40, 40));
+                    star.pivot = new Vector2(0.5f, 0.5f);
+                    stars[k] = UIFactory.Icon(star, Art.Star);
+                }
+                nodeStars.Add(stars);
+                var name = UIFactory.Text(UIFactory.Box("Name", node, new Vector2(0.5f, 0f), new Vector2(0f, -82f), new Vector2(320, 40)),
+                    levels[i].name, 26, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
+                name.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                name.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.7f);
+                if (boss)
+                {
+                    var tag = UIFactory.Box("Boss", node, new Vector2(0.5f, 1f), new Vector2(0f, 26f), new Vector2(120, 40));
+                    tag.pivot = new Vector2(0.5f, 0.5f);
+                    UIFactory.Image(tag, UIFactory.Bad).sprite = Art.Pill;
+                    UIFactory.Text(UIFactory.Fill("Label", tag), "BOSS", 24, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
+                }
+                nodeButtons.Add(node);
             }
+
+            // Top bar.
+            UIFactory.Image(UIFactory.Rect("TopShade", root, new Vector2(0, 1), Vector2.one, new Vector2(0, -190), Vector2.zero),
+                new Color(0.03f, 0.05f, 0.09f, 0.55f), false, false).sprite = Art.Fade;
+            var title = UIFactory.Text(UIFactory.Box("Title", root, new Vector2(0, 1), new Vector2(60, -26), new Vector2(700, 100)),
+                "COREHOLD", 84, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
+            title.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.4f);
+            UIFactory.Text(UIFactory.Box("Subtitle", root, new Vector2(0, 1), new Vector2(64, -122), new Vector2(700, 44)),
+                "Swipe the map, tap a mission", 28, TextAnchor.MiddleLeft, Art.Palette.Gold).gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.6f);
+
+            var endless = UIFactory.Box("ModeEndless", root, new Vector2(1, 1), new Vector2(-Margin - 130, -Margin), new Vector2(430, 120));
+            UIFactory.Shadow(endless, 14f, 8f);
+            var eb = UIFactory.Button(endless, UIFactory.Warn, out var el, "ENDLESS", 44);
+            el.alignment = TextAnchor.UpperLeft;
+            el.rectTransform.offsetMin = new Vector2(120, 8);
+            el.rectTransform.offsetMax = new Vector2(0, -14);
+            var badge = UIFactory.Box("Badge", endless, new Vector2(0, 0.5f), new Vector2(18, 5), new Vector2(88, 88));
+            UIFactory.Icon(badge, Art.Disc).color = new Color(0f, 0f, 0f, 0.25f);
+            Centered(UIFactory.Icon(UIFactory.Box("Icon", badge, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(52, 52)), Art.Heart));
+            endlessBestText = UIFactory.Text(UIFactory.Rect("Sub", endless, Vector2.zero, Vector2.one, new Vector2(122, 18), new Vector2(-10, -68)),
+                "", 24, TextAnchor.UpperLeft, new Color(1f, 1f, 1f, 0.85f));
+            eb.onClick.AddListener(game.StartEndless);
+            SoundButton(root, "MenuSoundButton", new Vector2(-Margin, -Margin));
+
+            BuildLevelInfo(root);
+        }
+
+        static string BossOf(LevelConfig level)
+        {
+            var balance = Game.Instance.Balance;
+            string boss = null;
+            foreach (var w in level.waves)
+                foreach (var g in w.groups)
+                    if (balance.Enemy(g.enemy).boss) boss = g.enemy;
+            return boss;
+        }
+
+        // Mission card: mini map, stars, numbers, enemy line-up, boss and Play.
+        void BuildLevelInfo(RectTransform root)
+        {
+            var dim = UIFactory.Fill("LevelInfo", root);
+            UIFactory.Image(dim, new Color(0.02f, 0.03f, 0.06f, 0.6f), true, false);
+            levelInfo = dim.gameObject;
+            var card = UIFactory.Box("Card", dim, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1060, 660));
+            card.pivot = new Vector2(0.5f, 0.5f);
+            UIFactory.Shadow(card, 30f, 16f);
+            UIFactory.Image(card, new Color(0.12f, 0.16f, 0.24f, 0.98f), true);
+            infoHeader = UIFactory.Image(UIFactory.Rect("Header", card, new Vector2(0, 1), Vector2.one, new Vector2(0, -100), Vector2.zero), UIFactory.Primary);
+            infoHeader.sprite = Art.Header;
+            infoTitle = UIFactory.Text(UIFactory.Rect("Title", card, new Vector2(0, 1), Vector2.one, new Vector2(36, -100), new Vector2(-120, 0)),
+                "", 48, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
+            var close = UIFactory.IconButton(UIFactory.Box("Close", card, Vector2.one, new Vector2(-16, -14), new Vector2(80, 72)), UIFactory.Bad, Art.Close, 30);
+            close.onClick.AddListener(CloseLevelInfo);
+
+            infoMap = UIFactory.Box("Map", card, new Vector2(0, 1), new Vector2(36, -130), new Vector2(520, 290));
+
+            for (int k = 0; k < 3; k++)
+                infoStars[k] = UIFactory.Icon(UIFactory.Box("Star" + k, card, new Vector2(0, 1), new Vector2(600 + k * 70, -130), new Vector2(64, 64)), Art.Star);
+            infoText = UIFactory.Text(UIFactory.Rect("Info", card, new Vector2(0, 1), Vector2.one, new Vector2(600, -360), new Vector2(-30, -210)),
+                "", 30, TextAnchor.UpperLeft, UIFactory.TextMain);
+            infoBoss = UIFactory.Text(UIFactory.Rect("BossLine", card, new Vector2(0, 1), Vector2.one, new Vector2(600, -410), new Vector2(-30, -360)),
+                "", 30, TextAnchor.MiddleLeft, Art.Hex("FF8A8A"), true);
+
+            UIFactory.Text(UIFactory.Rect("EnemiesLabel", card, new Vector2(0, 0), new Vector2(0, 0), new Vector2(36, 150), new Vector2(300, 190)),
+                "Enemies", 26, TextAnchor.MiddleLeft, UIFactory.TextDim);
+            for (int k = 0; k < infoEnemies.Length; k++)
+                infoEnemies[k] = UIFactory.Icon(UIFactory.Box("Enemy" + k, card, new Vector2(0, 0), new Vector2(36 + k * 66, 90), new Vector2(62, 62)), Art.Coin);
+
+            var play = UIFactory.Box("PlayButton", card, new Vector2(1, 0), new Vector2(-36, 30), new Vector2(420, 120));
+            UIFactory.Shadow(play, 14f, 8f);
+            UIFactory.Button(play, UIFactory.Go, out _, "PLAY", 52).onClick.AddListener(() => game.LoadLevel(infoLevel));
+            levelInfo.SetActive(false);
+        }
+
+        void OpenLevelInfo(int index)
+        {
+            infoLevel = index;
+            var level = game.Balance.levels[index];
+            string boss = BossOf(level);
+            infoTitle.text = $"Mission {index + 1}  ·  {level.name}";
+            infoHeader.color = boss != null ? MeshBuilder.Shade(UIFactory.Bad, 0.85f) : UIFactory.Primary;
+            for (int k = 0; k < 3; k++) infoStars[k].color = k < game.LevelStars[index] ? Art.Palette.Gold : new Color(0f, 0f, 0f, 0.35f);
+            infoText.text = $"{level.waves.Length} waves\n{level.lives} lives\n{level.startCoins} coins to start";
+            infoBoss.text = boss != null ? "BOSS: " + game.Balance.Enemy(boss).label : "";
+
+            var types = new List<string>();
+            foreach (var w in level.waves)
+                foreach (var g in w.groups)
+                    if (!types.Contains(g.enemy)) types.Add(g.enemy);
+            for (int k = 0; k < infoEnemies.Length; k++)
+            {
+                infoEnemies[k].gameObject.SetActive(k < types.Count);
+                if (k < types.Count) infoEnemies[k].sprite = Icons.Enemy(types[k]);
+            }
+
+            for (int i = infoMap.childCount - 1; i >= 0; i--) Destroy(infoMap.GetChild(i).gameObject);
+            var old = infoMap.GetComponent<Image>();
+            if (old != null) DestroyImmediate(old);
+            MiniMap(infoMap, level.path, level.spots);
+
+            levelInfo.SetActive(true);
+            if (game.Map != null) game.Map.InputEnabled = false;
+        }
+
+        void CloseLevelInfo()
+        {
+            levelInfo.SetActive(false);
+            if (game.Map != null) game.Map.InputEnabled = true;
+        }
+
+        // Keeps the mission buttons glued to their 3D markers while the map scrolls.
+        void UpdateNodes()
+        {
+            var map = game.Map;
+            if (map == null || !menuRoot.activeSelf) return;
+            var cam = Camera.main;
+            int current = System.Array.FindIndex(game.LevelStars, st => st == 0);
+            for (int i = 0; i < nodeButtons.Count; i++)
+            {
+                var screen = cam.WorldToScreenPoint(map.Nodes[i] + new Vector3(0f, 0.3f, 0f));
+                bool visible = screen.z > 0f;
+                nodeButtons[i].gameObject.SetActive(visible);
+                if (!visible) continue;
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(nodeLayer, screen, null, out var local);
+                nodeButtons[i].anchoredPosition = local;
+                if (i == current) currentRing.anchoredPosition = local;
+            }
+            currentRing.gameObject.SetActive(current >= 0);
+            float pulse = 1f + 0.08f * Mathf.Sin(Time.unscaledTime * 4f);
+            currentRing.localScale = new Vector3(pulse, pulse, 1f);
         }
 
         // Grass field with the road, pads and base, scaled into the box.
@@ -488,6 +575,7 @@ namespace Corehold
             Vector2 P(Vector2 p) => new Vector2((p.x - area.center.x) * scale, (p.y - area.center.y) * scale);
 
             UIFactory.Image(box, Art.Hex("5E9A44"));
+            box.GetComponent<Image>().raycastTarget = false;
             for (int i = 0; i < road.Length - 1; i++)
             {
                 var a = road[i];
@@ -514,16 +602,6 @@ namespace Corehold
             UIFactory.Icon(hq, Art.Headquarters);
         }
 
-        void ShowLevelSelect(bool on)
-        {
-            menuHome.SetActive(!on);
-            menuLevels.SetActive(on);
-            if (on)
-                for (int i = 0; i < levelStars.Count; i++)
-                    for (int s = 0; s < 3; s++)
-                        levelStars[i][s].color = s < game.LevelStars[i] ? Art.Palette.Gold : new Color(0f, 0f, 0f, 0.35f);
-        }
-
         // ---------------- State ----------------
 
         void OnStateChanged()
@@ -532,8 +610,11 @@ namespace Corehold
             menuRoot.SetActive(s == GameState.Menu);
             if (s == GameState.Menu)
             {
-                ShowLevelSelect(false);
+                CloseLevelInfo();
                 endlessBestText.text = game.EndlessBest > 0 ? $"Best: wave {game.EndlessBest}" : "Survive as long as you can";
+                for (int i = 0; i < nodeStars.Count; i++)
+                    for (int k = 0; k < 3; k++)
+                        nodeStars[i][k].color = k < game.LevelStars[i] ? Art.Palette.Gold : new Color(0f, 0f, 0f, 0.45f);
             }
             hud.SetActive(s != GameState.Menu);
             debugRoot.SetActive(s != GameState.Menu);
@@ -586,6 +667,7 @@ namespace Corehold
         void Update()
         {
             UpdateFps();
+            UpdateNodes();
             refreshTimer += Time.unscaledDeltaTime;
             if (refreshTimer >= RefreshInterval) Refresh();
         }

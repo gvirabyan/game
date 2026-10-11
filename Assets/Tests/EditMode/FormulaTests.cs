@@ -47,7 +47,7 @@ namespace Corehold.Tests
             var all = new System.Collections.Generic.List<LevelConfig>(b.levels) { b.endless.ToLevel() };
             foreach (var level in all)
             {
-                var path = new LevelPath(level.path);
+                var path = new LevelPath(LevelPath.Rounded(level.path));
                 var hq = level.path[level.path.Length - 1];
                 for (int i = 0; i < level.spots.Length; i++)
                 {

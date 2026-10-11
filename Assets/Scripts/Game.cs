@@ -59,6 +59,7 @@ namespace Corehold
         // Best results of this session (nothing is saved between launches).
         public int[] LevelStars { get; private set; }
         public int EndlessBest { get; private set; }
+        public WorldMapView Map { get; private set; }        // the main menu's campaign map, null outside the menu
 
         public int EnemyCount => enemies.Active.Count;
         public float Zoom { get => zoom; set => zoom = Mathf.Clamp(value, 1f, MaxZoom); }
@@ -123,12 +124,13 @@ namespace Corehold
 
         // ---------------- Level flow ----------------
 
-        // The menu shows the vehicle garage as a live backdrop.
+        // The menu is the campaign map with one marker per mission.
         public void ShowMenu()
         {
             ClearLevel();
             Time.timeScale = 1f;
-            levelRoot = GarageView.Build(world, cam).transform;
+            Map = WorldMapView.Build(world, cam, Balance, LevelStars);
+            levelRoot = Map.transform;
             Sfx.Music(Sounds.MenuMusic, 0.5f);
             State = GameState.Menu;
             StateChanged?.Invoke();
@@ -154,7 +156,7 @@ namespace Corehold
             peekIndex = -1;
 
             var view = FitCamera();
-            path = new LevelPath(ExtendStartOffscreen(Level.path, view));
+            path = new LevelPath(LevelPath.Rounded(ExtendStartOffscreen(Level.path, view)));
             levelRoot = LevelView.Build(Level, path, Balance.economy.roadWidth, view, seed, world, spots);
 
             Coins = Level.startCoins;
@@ -187,6 +189,7 @@ namespace Corehold
             spots.Clear();
             if (levelRoot != null) Destroy(levelRoot.gameObject);
             levelRoot = null;
+            Map = null;
             Level = null;
             Endless = false;
             StressMode = false;
@@ -264,7 +267,8 @@ namespace Corehold
             var list = new List<SpawnGroup>();
             if ((index + 1) % cfg.bossEvery == 0)
             {
-                var boss = Balance.enemies[Array.FindIndex(Balance.enemies, e => e.boss)];
+                var bosses = Array.FindAll(Balance.enemies, e => e.boss);
+                var boss = bosses[(index / cfg.bossEvery) % bosses.Length];
                 int count = 1 + index / (cfg.bossEvery * 2);
                 list.Add(new SpawnGroup { enemy = boss.id, count = count, interval = 6f, delay = 4f });
                 budget = Mathf.Max(budget * 0.4f, budget - boss.threat * count);
@@ -482,8 +486,13 @@ namespace Corehold
                     return Mathf.Abs(swing) * 0.04f;
                 }
                 case Models.Motion.Turret:
-                    e.parts[0].localRotation = Quaternion.Euler(0f, Mathf.Sin(time * 0.7f + e.activeIndex) * 18f, 0f);
+                    for (int i = 0; i < e.rig.Parts.Length; i++)
+                        e.parts[i].localRotation = Quaternion.Euler(0f, Mathf.Sin(time * (0.7f + i * 0.4f) + e.activeIndex + i) * (18f + i * 15f), 0f);
                     return Mathf.Sin(time * 40f + e.activeIndex) * 0.006f;      // engine rumble
+                case Models.Motion.Tandem:
+                    e.parts[0].localRotation = Quaternion.Euler(0f, time * 900f, 0f);
+                    e.parts[1].localRotation = Quaternion.Euler(0f, -time * 900f, 0f);
+                    return Mathf.Sin(time * 1.2f + e.activeIndex) * 0.08f;
                 case Models.Motion.Wheels:
                 {
                     var spin = Quaternion.Euler(0f, 0f, -e.distance * 320f / Mathf.Max(e.type.size, 0.1f));

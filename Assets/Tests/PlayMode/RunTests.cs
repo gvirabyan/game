@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -129,8 +129,8 @@ namespace Corehold.Tests
 
         static void OpenLevel(int number)
         {
-            Click("ModeLevels");
             Click("Level_" + number);
+            Click("PlayButton");
         }
 
         [UnityTest]

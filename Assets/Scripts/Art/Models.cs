@@ -19,7 +19,7 @@ namespace Corehold
         static readonly Mesh[,] turrets = new Mesh[TowerIds.Length, TowerLevels];
 
         // How a unit's parts move (see Game.Animate).
-        public enum Motion { Walk, Turret, Rotors, Wheels, Heli }
+        public enum Motion { Walk, Turret, Rotors, Wheels, Heli, Tandem }
 
         // A unit model split into a body and up to four moving parts with their joint positions.
         public sealed class UnitRig
@@ -426,6 +426,80 @@ namespace Corehold
                 Parts = new[] { Make("BossTurret", BuildBossTurret) },
                 Joints = new[] { TankTurretPivot + new Vector3(0f, 0.02f, 0f) },
             };
+            BuildBossRigs();
+        }
+
+        // Bosses: a tandem-rotor gunship and a three-turret super tank.
+        static void BuildBossRigs()
+        {
+            var rotor = Make("GunshipRotor", b =>
+            {
+                for (int i = 0; i < 3; i++)
+                    b.Box(Vector3.zero, new Vector3(1.3f, 0.015f, 0.08f), Gun, i * 60f);
+                b.Cylinder(new Vector3(0f, -0.06f, 0f), 0.06f, 0.08f, 6, Gun);
+            });
+            rigs["gunship"] = new UnitRig
+            {
+                Body = Make("Gunship", BuildGunship), Motion = Motion.Tandem,
+                Parts = new[] { rotor, rotor },
+                Joints = new[] { new Vector3(0.48f, 0.5f, 0f), new Vector3(-0.5f, 0.62f, 0f) },
+            };
+            var mini = Make("TitanMiniTurret", b =>
+            {
+                b.Cylinder(Vector3.zero, 0.13f, 0.1f, 8, Titan.Dark, Titan.Main);
+                b.Barrel(new Vector3(0.08f, 0.06f, 0f), 0.34f, 0.03f, 5, Titan.Barrel);
+            });
+            rigs["titan"] = new UnitRig
+            {
+                Body = Make("Titan", BuildTitanHull), Motion = Motion.Turret,
+                Parts = new[] { Make("TitanTurret", BuildTitanTurret), mini, mini },
+                Joints = new[] { new Vector3(-0.05f, 0.58f, 0f), new Vector3(0.38f, 0.5f, 0.24f), new Vector3(0.38f, 0.5f, -0.24f) },
+            };
+        }
+
+        static readonly Camo Titan = new Camo("3F4744", "56605B", "2A302D", "1C201E");
+
+        static void BuildGunship(MeshBuilder b)
+        {
+            var body = Art.Hex("4E5A3A");
+            b.Box(new Vector3(0f, 0.25f, 0f), new Vector3(1.2f, 0.34f, 0.38f), body, 0f, false, Art.Hex("606E48"));
+            b.Sphere(new Vector3(0.62f, 0.24f, 0f), new Vector3(0.2f, 0.17f, 0.19f), body, 3, 8);
+            b.Sphere(new Vector3(0.7f, 0.3f, 0f), new Vector3(0.12f, 0.08f, 0.15f), Glow(Art.Hex("9CC9E0"), 0.3f), 3, 6);
+            b.Box(new Vector3(0.48f, 0.44f, 0f), new Vector3(0.24f, 0.12f, 0.2f), Art.Hex("3E4A2C"));        // front pylon
+            b.Box(new Vector3(-0.5f, 0.5f, 0f), new Vector3(0.3f, 0.28f, 0.22f), Art.Hex("3E4A2C"));         // rear pylon
+            for (int side = -1; side <= 1; side += 2)
+            {
+                b.Box(new Vector3(0.1f, 0.12f, 0.26f * side), new Vector3(0.5f, 0.12f, 0.12f), Art.Hex("3A4428"));    // sponsons
+                b.Barrel(new Vector3(0.3f, 0.1f, 0.3f * side), 0.3f, 0.03f, 5, Gun);
+                b.Box(new Vector3(-0.1f, 0.02f, 0.2f * side), new Vector3(0.9f, 0.03f, 0.03f), Gun);
+            }
+            for (int i = 0; i < 4; i++)
+                b.Box(new Vector3(-0.3f + i * 0.2f, 0.3f, 0.195f), new Vector3(0.08f, 0.06f, 0.01f), Glow(Art.Hex("FFD27A"), 0.6f));
+        }
+
+        static void BuildTitanHull(MeshBuilder b)
+        {
+            for (int side = -1; side <= 1; side += 2)
+            {
+                b.Box(new Vector3(0f, 0.16f, 0.4f * side), new Vector3(1.15f, 0.32f, 0.26f), Track);
+                b.Box(new Vector3(0f, 0.3f, 0.54f * side), new Vector3(1.15f, 0.22f, 0.04f), Titan.Dark);
+                for (int i = -2; i <= 2; i++)
+                    b.Box(new Vector3(i * 0.22f, 0.3f, 0.565f * side), new Vector3(0.08f, 0.08f, 0.01f), Glow(Art.Hex("FF4A3A"), i == 0 ? 0.8f : 0f));
+            }
+            b.Box(new Vector3(0f, 0.4f, 0f), new Vector3(1.05f, 0.28f, 0.7f), Titan.Main, 0f, false, Titan.Light);
+            b.Box(new Vector3(0.52f, 0.34f, 0f), new Vector3(0.08f, 0.2f, 0.72f), Titan.Dark);
+            for (int side = -1; side <= 1; side += 2)
+                b.Cylinder(new Vector3(-0.48f, 0.5f, 0.22f * side), 0.05f, 0.18f, 6, Titan.Barrel);       // exhausts
+        }
+
+        static void BuildTitanTurret(MeshBuilder b)
+        {
+            b.Cylinder(Vector3.zero, 0.36f, 0.22f, 8, Titan.Main, Titan.Light);
+            b.Box(new Vector3(-0.1f, 0.18f, 0f), new Vector3(0.46f, 0.14f, 0.5f), Titan.Dark, 0f, false, Titan.Main);
+            b.Barrel(new Vector3(0.24f, 0.12f, 0f), 0.9f, 0.065f, 8, Titan.Barrel);
+            b.Barrel(new Vector3(1.04f, 0.12f, 0f), 0.14f, 0.09f, 8, Art.Hex("101210"));
+            b.Box(new Vector3(-0.2f, 0.28f, 0.16f), new Vector3(0.14f, 0.1f, 0.14f), Titan.Dark);
+            b.Sphere(new Vector3(-0.2f, 0.36f, 0.16f), Vector3.one * 0.04f, Glow(Art.Hex("FF4A3A")), 2, 5);
         }
 
         static void BuildJeep(MeshBuilder b)

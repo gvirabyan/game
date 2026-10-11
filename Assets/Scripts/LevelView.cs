@@ -144,7 +144,6 @@ namespace Corehold
         {
             static readonly Color GrassLight = Art.Hex("74A843"), GrassDark = Art.Hex("4A8436"), GrassDry = Art.Hex("A0A852");
             static readonly Color HillRock = Art.Hex("9A8F78"), HillTop = Art.Hex("8DBA55");
-            static readonly Color RoadColor = Art.Hex("C29C66"), RoadEdgeColor = Art.Hex("85663F"), TrackColor = Art.Hex("A68352");
             const float Cell = 0.7f;
 
             public readonly Vector2 Hq;
@@ -227,32 +226,7 @@ namespace Corehold
                 return col;
             }
 
-            public void Road(MeshBuilder b)
-            {
-                var pts = path.Points;
-                float width = roadHalf * 2f;
-                for (int i = 0; i < pts.Length - 1; i++)
-                {
-                    var a = pts[i];
-                    var c = pts[i + 1];
-                    var dir = (c - a).normalized;
-                    var normal = new Vector2(-dir.y, dir.x);
-                    float len = (c - a).magnitude;
-                    float yaw = -Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-                    var mid = (a + c) * 0.5f;
-
-                    b.Box(Map(mid, 0.01f), new Vector3(len, 0.02f, width + 0.3f), RoadEdgeColor, yaw);
-                    b.Box(Map(mid, 0.025f), new Vector3(len, 0.03f, width), RoadColor, yaw);
-                    b.Box(Map(mid + normal * (width * 0.25f), 0.042f), new Vector3(len, 0.004f, 0.1f), TrackColor, yaw);
-                    b.Box(Map(mid - normal * (width * 0.25f), 0.042f), new Vector3(len, 0.004f, 0.1f), TrackColor, yaw);
-                }
-                // Rounded joints so corners look continuous.
-                for (int i = 1; i < pts.Length - 1; i++)
-                {
-                    b.Cylinder(Map(pts[i]), roadHalf + 0.15f, 0.02f, 16, RoadEdgeColor);
-                    b.Cylinder(Map(pts[i]), roadHalf, 0.0415f, 16, RoadColor);
-                }
-            }
+            public void Road(MeshBuilder b) => DirtRoad.Build(b, path.Points, roadHalf, random.Next());
 
             public void Props(MeshBuilder b, Rect view)
             {
@@ -354,8 +328,100 @@ namespace Corehold
             float Range(float min, float max) => min + (float)random.NextDouble() * (max - min);
         }
 
-        // Map point + height in unstretched map coordinates (used under View.GroundTransform).
-        static Vector3 Map(Vector2 p, float height = 0f) => new Vector3(p.x, height, p.y);
+    }
+
+    // An unpaved track: a ribbon along the path with ragged, wobbling edges, a worn grass verge,
+    // patchy dirt colour, darker wheel ruts and the odd puddle. Built in map coordinates.
+    public static class DirtRoad
+    {
+        static readonly Color DirtLight = Art.Hex("C7A06A"), DirtDark = Art.Hex("A07E50"), Verge = Art.Hex("7E7A44");
+        static readonly Color Rut = Art.Hex("8C6C44"), Puddle = Art.Hex("6E7A82");
+        const float Step = 0.22f;
+
+        public static void Build(MeshBuilder b, Vector2[] points, float half, int seed)
+        {
+            var random = new System.Random(seed);
+            float nx = (float)random.NextDouble() * 100f, ny = (float)random.NextDouble() * 100f;
+            var path = new LevelPath(points);
+            int n = Mathf.Max(2, Mathf.CeilToInt(path.Length / Step) + 1);
+            var center = new Vector2[n];
+            var side = new Vector2[n];
+            var left = new float[n];
+            var right = new float[n];
+            int seg = 0;
+            for (int i = 0; i < n; i++)
+            {
+                float d = Mathf.Min(i * Step, path.Length);
+                center[i] = path.Sample(d, ref seg, out var dir);
+                side[i] = new Vector2(-dir.y, dir.x);
+                // Each edge wobbles on its own, so the width changes too.
+                left[i] = half * (1f + 0.3f * (Mathf.PerlinNoise(d * 0.7f + nx, ny) - 0.5f)) + 0.12f * (Mathf.PerlinNoise(d * 3.5f + nx, 7f) - 0.5f);
+                right[i] = half * (1f + 0.3f * (Mathf.PerlinNoise(d * 0.7f + ny, nx) - 0.5f)) + 0.12f * (Mathf.PerlinNoise(d * 3.5f + ny, 9f) - 0.5f);
+            }
+            // Corners need the side vector averaged or the strip folds over itself.
+            for (int i = 1; i < n - 1; i++) side[i] = (side[i - 1] + side[i] + side[i + 1]).normalized;
+
+            for (int i = 0; i < n - 1; i++)
+            {
+                float d = i * Step;
+                // Worn verge of uneven width on each side.
+                float vl0 = 0.1f + 0.3f * Mathf.PerlinNoise(d * 1.3f + nx, 21f), vl1 = 0.1f + 0.3f * Mathf.PerlinNoise((d + Step) * 1.3f + nx, 21f);
+                float vr0 = 0.1f + 0.3f * Mathf.PerlinNoise(d * 1.3f + ny, 23f), vr1 = 0.1f + 0.3f * Mathf.PerlinNoise((d + Step) * 1.3f + ny, 23f);
+                Strip(b, center, side, i, left[i] + vl0, -(right[i] + vr0), left[i + 1] + vl1, -(right[i + 1] + vr1), 0.008f, Verge);
+                var dirt = Color.Lerp(DirtLight, DirtDark, Mathf.SmoothStep(0f, 1f, Mathf.PerlinNoise(d * 0.45f + nx, ny + 3f)));
+                dirt *= 0.97f + 0.06f * (float)random.NextDouble();
+                dirt.a = 1f;
+                Strip(b, center, side, i, left[i], -right[i], left[i + 1], -right[i + 1], 0.02f, dirt);
+                // Broken wheel ruts that drift, fade in and out, and a tuft of grass here and there in the middle.
+                float drift = 0.14f * (Mathf.PerlinNoise(d * 0.6f + 11f, nx) - 0.5f);
+                float rut = Mathf.PerlinNoise(d * 0.5f + 31f, ny);
+                if (rut > 0.45f)
+                {
+                    var rutColor = Color.Lerp(dirt, Rut, Mathf.InverseLerp(0.45f, 0.75f, rut) * 0.7f);
+                    foreach (float o in new[] { 0.5f, -0.5f })
+                    {
+                        float w = 0.035f + 0.03f * Mathf.PerlinNoise(d * 2f + o * 10f, 5f);
+                        Strip(b, center, side, i, half * o + drift + w, half * o + drift - w, half * o + drift + w, half * o + drift - w, 0.026f, rutColor);
+                    }
+                }
+            }
+            // Grass islands between the ruts.
+            for (int i = 3; i < n - 3; i += 5 + random.Next(9))
+                if (Mathf.PerlinNoise(i * Step * 0.5f + 31f, ny) < 0.4f)
+                    Blob(b, center[i] + side[i] * (((float)random.NextDouble() - 0.5f) * 0.2f), 0.07f + 0.06f * (float)random.NextDouble(), 0.024f, Verge, random);
+            // A few puddles and stones on the track.
+            for (int i = 4; i < n - 4; i += 9 + random.Next(14))
+            {
+                var p = center[i] + side[i] * (((float)random.NextDouble() - 0.5f) * half);
+                if (random.Next(3) == 0)
+                    Blob(b, p, 0.16f + 0.12f * (float)random.NextDouble(), 0.03f, Puddle, random);
+                else
+                    b.Sphere(new Vector3(p.x, 0.03f, p.y), new Vector3(0.06f, 0.035f, 0.05f), Art.Hex("8E8A80"), 2, 5, 0.2f, random.Next());
+            }
+        }
+
+        // One quad of a ribbon between cross-sections i and i+1; offsets are along the side vector (left positive).
+        static void Strip(MeshBuilder b, Vector2[] c, Vector2[] s, int i, float l0, float r0, float l1, float r1, float y, Color color)
+        {
+            Vector3 P(Vector2 p) => new Vector3(p.x, y, p.y);
+            b.Quad(P(c[i] + s[i] * l0), P(c[i + 1] + s[i + 1] * l1), P(c[i + 1] + s[i + 1] * r1), P(c[i] + s[i] * r0), color);
+        }
+
+        // Irregular flat disc.
+        static void Blob(MeshBuilder b, Vector2 at, float radius, float y, Color color, System.Random random)
+        {
+            const int sides = 9;
+            var center = new Vector3(at.x, y, at.y);
+            var rim = new Vector3[sides];
+            for (int k = 0; k < sides; k++)
+            {
+                float a = k * Mathf.PI * 2f / sides;
+                float r = radius * (0.75f + 0.5f * (float)random.NextDouble());
+                rim[k] = center + new Vector3(Mathf.Cos(a) * r * 1.4f, 0f, Mathf.Sin(a) * r);
+            }
+            for (int k = 0; k < sides; k++)
+                b.Triangle(center, rim[(k + 1) % sides], rim[k], color);
+        }
     }
 }
 

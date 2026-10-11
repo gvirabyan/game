@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.IO;
 using NUnit.Framework;
 using UnityEngine;
@@ -28,9 +28,9 @@ namespace Corehold.Tests
             game.ShowMenu();
             yield return null;
             Capture("menu");
-            GameObject.Find("ModeLevels").GetComponent<Button>().onClick.Invoke();
+            GameObject.Find("Level_6").GetComponent<Button>().onClick.Invoke();
             yield return null;
-            Capture("levels");
+            Capture("level_info");
 
             for (int level = 0; level < 4; level++)
             {
