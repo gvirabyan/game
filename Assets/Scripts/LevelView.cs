@@ -4,21 +4,27 @@ using UnityEngine;
 namespace Corehold
 {
     // 2.5D view setup. Game logic works in flat 2D "map" coordinates (x, y), exactly as levels are authored.
-    // The 3D world root is stretched along Z by 1/sin(pitch) and seen by an orthographic camera tilted by
-    // `Pitch`, so the ground looks exactly like the 2D map while models show their height and sides.
+    // A low orthographic camera tilted by `Pitch` looks at the battlefield from the side. Map positions are
+    // stretched along Z by 1/sin(pitch), so the ground still looks exactly like the 2D map on screen,
+    // while models keep their real proportions and show their sides.
     public static class View
     {
-        public const float Pitch = 50f;
+        public const float Pitch = 30f;
         public static readonly float ZStretch = 1f / Mathf.Sin(Pitch * Mathf.Deg2Rad);
 
-        // Map point + height -> local position under the stretched world root.
-        public static Vector3 Local(Vector2 p, float height = 0f) => new Vector3(p.x, height, p.y);
+        // Map -> world stretch for flat geometry built in map coordinates (ground, road).
+        public static readonly Matrix4x4 GroundTransform = Matrix4x4.Scale(new Vector3(1f, 1f, ZStretch));
 
-        // Map point + height -> real world position (for billboards that live outside the stretched root).
+        // Map point + height -> world position.
         public static Vector3 World(Vector2 p, float height = 0f) => new Vector3(p.x, height, p.y * ZStretch);
 
-        // Logic angle (degrees, counter-clockwise from +x on the map) -> rotation around the vertical axis.
-        public static Quaternion Yaw(float angle) => Quaternion.Euler(0f, -angle, 0f);
+        // Logic angle (degrees, counter-clockwise from +x on the map) -> rotation around the vertical axis,
+        // so a model faces the same way on screen as the logic direction.
+        public static Quaternion Yaw(float angle)
+        {
+            float a = angle * Mathf.Deg2Rad;
+            return Quaternion.Euler(0f, -Mathf.Atan2(Mathf.Sin(a) * ZStretch, Mathf.Cos(a)) * Mathf.Rad2Deg, 0f);
+        }
     }
 
     // Sorting orders for the few sprites still in the world (range ring, health bars, effects).
@@ -43,18 +49,21 @@ namespace Corehold
             var random = new System.Random(seed);
             var b = new MeshBuilder();
 
+            // Flat parts are built in map coordinates and stretched; everything with height keeps its proportions.
+            b.Transform = View.GroundTransform;
             BuildGround(b, view, random);
             BuildRoad(b, path, roadWidth);
+            b.Transform = Matrix4x4.identity;
 
             spots.Clear();
             for (int i = 0; i < level.spots.Length; i++)
             {
-                Models.Pad(b, View.Local(level.spots[i]));
+                Models.Pad(b, View.World(level.spots[i]));
                 spots.Add(new BuildSpot { index = i, position = level.spots[i] });
             }
 
             var hq = path.Points[path.Points.Length - 1];
-            Models.Headquarters(b, View.Local(hq));
+            Models.Headquarters(b, View.World(hq));
             BuildDecor(b, level, path, roadWidth, view, random, hq);
 
             var go = new GameObject("StaticLevel");
@@ -95,16 +104,16 @@ namespace Corehold
                 float yaw = -Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
                 var mid = (a + c) * 0.5f;
 
-                b.Box(View.Local(mid, 0.015f), new Vector3(len, 0.03f, width + 0.24f), RoadEdgeColor, yaw);
-                b.Box(View.Local(mid, 0.03f), new Vector3(len, 0.03f, width), RoadColor, yaw);
-                b.Box(View.Local(mid + normal * (width * 0.24f), 0.046f), new Vector3(len, 0.004f, 0.08f), TrackColor, yaw);
-                b.Box(View.Local(mid - normal * (width * 0.24f), 0.046f), new Vector3(len, 0.004f, 0.08f), TrackColor, yaw);
+                b.Box(Map(mid, 0.015f), new Vector3(len, 0.03f, width + 0.24f), RoadEdgeColor, yaw);
+                b.Box(Map(mid, 0.03f), new Vector3(len, 0.03f, width), RoadColor, yaw);
+                b.Box(Map(mid + normal * (width * 0.24f), 0.046f), new Vector3(len, 0.004f, 0.08f), TrackColor, yaw);
+                b.Box(Map(mid - normal * (width * 0.24f), 0.046f), new Vector3(len, 0.004f, 0.08f), TrackColor, yaw);
             }
             // Rounded joints so corners look continuous.
             for (int i = 1; i < pts.Length - 1; i++)
             {
-                b.Cylinder(View.Local(pts[i]), (width + 0.24f) * 0.5f, 0.03f, 16, RoadEdgeColor);
-                b.Cylinder(View.Local(pts[i]), width * 0.5f, 0.0455f, 16, RoadColor);
+                b.Cylinder(Map(pts[i]), (width + 0.24f) * 0.5f, 0.03f, 16, RoadEdgeColor);
+                b.Cylinder(Map(pts[i]), width * 0.5f, 0.0455f, 16, RoadColor);
             }
         }
 
@@ -129,18 +138,21 @@ namespace Corehold
                 if (kind < 5)
                 {
                     foreach (var s in level.spots)
-                        if (Mathf.Abs(s.x - p.x) < 0.9f && s.y - p.y > 0f && s.y - p.y < 1.8f) { blocked = true; break; }
-                    if (Mathf.Abs(hq.x - p.x) < 1.3f && hq.y - p.y > 0f && hq.y - p.y < 2f) blocked = true;
+                        if (Mathf.Abs(s.x - p.x) < 0.9f && s.y - p.y > 0f && s.y - p.y < 2.2f) { blocked = true; break; }
+                    if (Mathf.Abs(hq.x - p.x) < 1.3f && hq.y - p.y > 0f && hq.y - p.y < 2.4f) blocked = true;
                 }
                 if (blocked) continue;
 
                 int seed = random.Next();
-                if (kind < 5) Models.Tree(b, View.Local(p), size, seed);
-                else if (kind < 8) Models.Bush(b, View.Local(p), size, seed);
-                else Models.Rock(b, View.Local(p), size, seed);
+                if (kind < 5) Models.Tree(b, View.World(p), size, seed);
+                else if (kind < 8) Models.Bush(b, View.World(p), size, seed);
+                else Models.Rock(b, View.World(p), size, seed);
                 placed++;
             }
         }
+
+        // Map point + height in unstretched map coordinates (used under View.GroundTransform).
+        static Vector3 Map(Vector2 p, float height = 0f) => new Vector3(p.x, height, p.y);
 
         static float Range(System.Random r, float min, float max) => min + (float)r.NextDouble() * (max - min);
     }

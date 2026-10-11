@@ -71,9 +71,8 @@ namespace Corehold
             billboard = cam.transform.rotation;
             Balance = Corehold.Balance.Load();
 
-            // 3D models live under the stretched world root; billboards (health bars, effects) live outside it.
+            // 3D models live under the world root; billboards (health bars, effects) live under the overlay.
             world = new GameObject("World").transform;
-            world.localScale = new Vector3(1f, 1f, View.ZStretch);
             overlay = new GameObject("Overlay").transform;
             CreatePools();
 
@@ -229,7 +228,7 @@ namespace Corehold
 
             e.filter.sharedMesh = type.id == "tank" ? Models.Tank : type.air ? Models.Drone : Models.Soldier;
             e.root.localScale = Vector3.one * type.size;
-            e.root.localPosition = View.Local(e.position, e.height);
+            e.root.localPosition = View.World(e.position, e.height);
             e.root.localRotation = View.Yaw(e.angle);
             SetHealthBar(e);
         }
@@ -255,7 +254,7 @@ namespace Corehold
                 float bob = e.type.air
                     ? Mathf.Sin(time * 3f + e.activeIndex) * 0.08f
                     : e.type.id == "soldier" ? Mathf.Abs(Mathf.Sin(e.distance * 9f)) * 0.05f : 0f;
-                e.root.localPosition = View.Local(e.position, e.height + bob);
+                e.root.localPosition = View.World(e.position, e.height + bob);
                 e.root.localRotation = View.Yaw(e.angle);
                 if (e.hpRoot.gameObject.activeSelf) e.hpRoot.position = View.World(e.position, e.height + e.type.size * 1.3f + 0.25f);
             }
@@ -339,12 +338,12 @@ namespace Corehold
             bool on = range > 0f;
             rangeFill.enabled = rangeRing.enabled = on;
             if (!on) return;
-            var pos = View.Local(center, 0.12f);
+            var pos = View.World(center, 0.12f);
             rangeFill.transform.localPosition = rangeRing.transform.localPosition = pos;
-            rangeFill.transform.localScale = rangeRing.transform.localScale = new Vector3(range * 2f, range * 2f, 1f);
+            rangeFill.transform.localScale = rangeRing.transform.localScale = new Vector3(range * 2f, range * 2f * View.ZStretch, 1f);
         }
 
-        // A sprite lying flat on the ground under the stretched root, so it reads as a circle on screen.
+        // A sprite lying flat on the ground, stretched in depth so it reads as a circle on screen.
         SpriteRenderer FlatSprite(string name, Sprite sprite, Color color)
         {
             var go = new GameObject(name);
@@ -370,7 +369,7 @@ namespace Corehold
             var tower = new Tower { type = type, spent = type.cost, angle = 90f };
             tower.root = new GameObject("Tower_" + type.id);
             tower.root.transform.SetParent(levelRoot, false);
-            tower.root.transform.localPosition = View.Local(spot.position, 0.1f);
+            tower.root.transform.localPosition = View.World(spot.position, 0.1f);
             MeshObject("Base", Models.TowerBase, tower.root.transform);
             var turretMesh = type.id == "cannon" ? Models.CannonTurret : type.id == "aa" ? Models.AaTurret : Models.MgTurret;
             tower.turret = MeshObject("Turret", turretMesh, tower.root.transform);
@@ -491,7 +490,7 @@ namespace Corehold
 
             p.filter.sharedMesh = t.type.projectile == "shell" ? Models.Shell
                 : t.type.projectile == "missile" ? Models.Missile : Models.Bullet;
-            p.transform.localPosition = View.Local(p.position, p.height);
+            p.transform.localPosition = View.World(p.position, p.height);
             p.transform.localRotation = View.Yaw(t.angle);
         }
 
@@ -523,7 +522,7 @@ namespace Corehold
                 // Climb or drop toward the target height over the remaining distance.
                 p.height = Mathf.Lerp(p.height, aimHeight, step / dist);
                 p.position += to * (step / dist);
-                p.transform.localPosition = View.Local(p.position, p.height);
+                p.transform.localPosition = View.World(p.position, p.height);
                 p.transform.localRotation = View.Yaw(Mathf.Atan2(to.y, to.x) * Mathf.Rad2Deg);
             }
         }
@@ -623,7 +622,7 @@ namespace Corehold
             {
                 // Towers stand up from their pad, so also accept taps slightly above it on screen.
                 var d = s.position - p;
-                if (s.tower != null && d.y < 0f) d.y = Mathf.Min(0f, d.y + 0.35f);
+                if (s.tower != null && d.y < 0f) d.y = Mathf.Min(0f, d.y + 0.5f);
                 float d2 = d.sqrMagnitude;
                 if (d2 <= best) { best = d2; picked = s; }
             }
