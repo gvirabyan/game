@@ -31,6 +31,19 @@ namespace Corehold.Tests
             GameObject.Find("Level_1").GetComponent<Button>().onClick.Invoke();
             yield return null;
             Capture("level_info");
+            GameObject.Find("Close").GetComponent<Button>().onClick.Invoke();
+            foreach (var code in new[] { "hy", "ru", "zh" })
+            {
+                Loc.Set(code);
+                yield return null;
+                yield return null;
+                Capture("menu_" + code);
+            }
+            GameObject.Find("SettingsButton").GetComponent<Button>().onClick.Invoke();
+            yield return null;
+            Capture("settings");
+            Loc.Set("en");
+            yield return null;
             Progress.ResetAll();
 
             var picks = new[] { 0, 30, 55, 80 };

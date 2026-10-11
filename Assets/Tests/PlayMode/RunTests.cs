@@ -19,6 +19,7 @@ namespace Corehold.Tests
         IEnumerator LoadScene()
         {
             Progress.ResetAll();
+            Loc.Set("en");
             SceneManager.LoadScene("Main");
             yield return null;
             yield return null;
@@ -204,6 +205,24 @@ namespace Corehold.Tests
             Assert.AreEqual(game.Level.lives, game.Lives, "stress mode must not cost lives");
             Assert.AreEqual(GameState.Playing, game.State);
             Assert.AreEqual(0, game.PoolGrowth, "pools had to allocate during play");
+        }
+
+        [UnityTest]
+        public IEnumerator Settings_ChangeLanguage_RebuildsTheUi()
+        {
+            yield return LoadScene();
+            Click("SettingsButton");
+            Click("Lang_ru");
+            yield return null;
+            var label = GameObject.Find("ModeEndless").GetComponentInChildren<Text>();
+            Assert.AreEqual("БЕСКОНЕЧНО", label.text);
+            Assert.IsTrue(GameObject.Find("SettingsPanel") != null, "settings closed after switching language");
+            Click("Lang_hy");
+            yield return null;
+            Assert.AreEqual("ԱՆՎԵՐՋ", GameObject.Find("ModeEndless").GetComponentInChildren<Text>().text);
+            Click("Lang_en");
+            yield return null;
+            Assert.AreEqual("ENDLESS", GameObject.Find("ModeEndless").GetComponentInChildren<Text>().text);
         }
 
         static void Click(string name)

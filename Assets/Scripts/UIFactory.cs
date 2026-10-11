@@ -7,10 +7,13 @@ namespace Corehold
     // Small helpers for building uGUI from code. Sizes are in reference pixels of a 1920x1080 (landscape) canvas.
     public static class UIFactory
     {
-        static Font font;
+        static Font gameFont;
         // Russo One (SIL OFL, see Resources/Fonts/RussoOne-OFL.txt); falls back to the built-in font.
-        public static Font Font => font != null ? font : font =
+        public static Font GameFont => gameFont != null ? gameFont : gameFont =
             Resources.Load<Font>("Fonts/RussoOne-Regular") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+        // The font for the current language (scripts the game font lacks use a system font).
+        public static Font Font => Loc.FontFor(Loc.Current, GameFont);
 
         public static readonly Color TextMain = Color.white;
         public static readonly Color TextDim = new Color(0.62f, 0.67f, 0.73f);
@@ -100,14 +103,18 @@ namespace Corehold
             t.font = Font;
             t.text = text;
             t.fontSize = size;
-            // Russo One is already heavy; synthetic bold only blurs it.
-            t.fontStyle = font != null && font.name.StartsWith("RussoOne") ? FontStyle.Normal : bold ? FontStyle.Bold : FontStyle.Normal;
+            // Russo One is already heavy, and synthetic bold blurs system fonts (CJK, Armenian): never use it.
+            t.fontStyle = FontStyle.Normal;
             t.alignment = anchor;
             t.color = color;
             t.supportRichText = true;
             t.raycastTarget = false;
-            t.horizontalOverflow = HorizontalWrapMode.Overflow;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
+            // Translations differ in length: long text shrinks to fit its box instead of spilling out.
+            t.horizontalOverflow = HorizontalWrapMode.Wrap;
+            t.verticalOverflow = VerticalWrapMode.Truncate;
+            t.resizeTextForBestFit = true;
+            t.resizeTextMinSize = Mathf.Max(10, Mathf.RoundToInt(size * 0.45f));
+            t.resizeTextMaxSize = size;
             // Big text gets a soft drop shadow so it reads on any background.
             if (size >= 30)
             {

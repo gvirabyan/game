@@ -104,6 +104,34 @@ namespace Corehold.Tests
         }
 
         [Test]
+        public void Localization_EveryKeyInEveryLanguage_WithMatchingPlaceholders()
+        {
+            var json = Resources.Load<TextAsset>("localization").text;
+            var data = JsonUtility.FromJson<LocFile>(json);
+            Assert.GreaterOrEqual(data.languages.Length, 15);
+            Assert.IsTrue(System.Array.Exists(data.languages, l => l.code == "hy"), "Armenian is missing");
+            foreach (var e in data.entries)
+            {
+                Assert.AreEqual(data.languages.Length, e.values.Length, e.key);
+                int placeholders = System.Text.RegularExpressions.Regex.Matches(e.values[0], @"\{\d\}").Count;
+                for (int i = 0; i < e.values.Length; i++)
+                {
+                    Assert.IsFalse(string.IsNullOrEmpty(e.values[i]), $"{e.key} is empty in {data.languages[i].code}");
+                    Assert.AreEqual(placeholders, System.Text.RegularExpressions.Regex.Matches(e.values[i], @"\{\d\}").Count,
+                        $"{e.key} in {data.languages[i].code} has different placeholders");
+                }
+            }
+            // Every tower and enemy has a name and a description.
+            var b = Balance.Load();
+            foreach (var t in b.towers) Assert.IsTrue(System.Array.Exists(data.entries, e => e.key == "tower." + t.id + ".role"), t.id);
+            foreach (var en in b.enemies) Assert.IsTrue(System.Array.Exists(data.entries, e => e.key == "enemy." + en.id + ".info"), en.id);
+        }
+
+        [System.Serializable] class LocFile { public LocLanguage[] languages; public LocEntry[] entries; }
+        [System.Serializable] class LocLanguage { public string code; }
+        [System.Serializable] class LocEntry { public string key; public string[] values; }
+
+        [Test]
         public void TowerAttackKindsAreKnown()
         {
             foreach (var t in Balance.Load().towers)

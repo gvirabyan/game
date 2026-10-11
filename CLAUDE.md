@@ -19,7 +19,8 @@ Working title; bundle id `com.virabyan.corehold`. The user asked for chat replie
 - No external art: low-poly meshes are built in code (`Art/Models.cs` via `MeshBuilder`) with vertex colours and ONE
   material (`Resources/Shaders/LowPoly.shader`, GPU instancing; vertex alpha < 1 = glow). The whole static level is
   one combined mesh. UI icons/panels are SDF sprites in one runtime atlas (`Art/Art.cs`, `Atlas.cs`).
-- Font: Russo One (SIL OFL, `Resources/Fonts`, license file next to it). Project colour space is Gamma.
+- Font: Russo One (SIL OFL, `Resources/Fonts`, license file next to it) for Latin/Cyrillic; system fonts for hy/zh/ja/ko.
+  Never hard-code UI text: add a key to localization.json (all languages, same {n} placeholders; a test checks). Project colour space is Gamma.
 - All balance numbers AND level layouts (path waypoints, pads, waves) live in `Assets/Resources/balance.json`;
   formulas live in `Formulas` in `Assets/Scripts/Balance.cs`. The EditMode geometry test validates pads vs road/screen.
   No tuning constants in gameplay code.
@@ -78,6 +79,8 @@ adb shell am start -n com.virabyan.corehold/com.unity3d.player.UnityPlayerGameAc
   - `LevelView.cs` — `View` (2.5D mapping), `Layers`, builds the combined static level mesh (ground, road, pads, HQ, decor).
   - `Pools.cs` — `Enemy`, `Projectile`, `Effect`, `Tower`, `BuildSpot`, `LevelPath`, generic `Pool<T>`.
   - `Balance.cs` — data classes for `balance.json` + `Formulas`. `Campaign.cs` — generates the 100 missions.
+  - `Loc.cs` + `Resources/localization.json` — UI text in 16 languages (keys ui.*, zone.*, tower.<id>, enemy.<id>[.info]).
+    Armenian/CJK use phone system fonts. Changing language rebuilds the UI (`GameUI.Rebuild`). Settings: `SettingsButton`, `Lang_<code>`.
   - `Progress.cs` — saved progress. `Art/Biomes.cs` — zone palettes and vegetation.
   - `Art/Models.cs`, `Art/MeshBuilder.cs` — low-poly 3D models (towers per level, enemy rigs). `Art/Icons.cs` — UI icons
     rendered from the 3D models at startup (atlas fallback without a GPU). `Art/Art.cs`, `Art/Atlas.cs` — UI sprites/icons atlas.

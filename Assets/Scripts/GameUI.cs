@@ -63,8 +63,21 @@ namespace Corehold
             public Text value;
         }
 
+        static GameUI instance;
+        static bool listening;
+        static GameObject vignetteCanvas;
+        GameObject settingsPanel;
+        Text resetLabel;
+        bool resetArmed;
+
+        // Builds the whole UI. Called again (after tearing the old one down) when the language changes.
         public static GameUI Create(Game game)
         {
+            if (!listening)
+            {
+                listening = true;
+                Loc.Changed += Rebuild;
+            }
             UIFactory.EnsureEventSystem();
             // Soft dark edges over the 3D view, under all UI.
             var back = UIFactory.CreateCanvas("Vignette", 0);
@@ -72,10 +85,30 @@ namespace Corehold
             vignette.sprite = Art.Vignette;
             vignette.raycastTarget = false;
             Object.Destroy(back.GetComponent<GraphicRaycaster>());
+            vignetteCanvas = back.gameObject;
             var canvas = UIFactory.CreateCanvas("UI", 10);
             var ui = canvas.gameObject.AddComponent<GameUI>();
+            instance = ui;
             ui.Build(game, canvas.transform);
             return ui;
+        }
+
+        static void Rebuild()
+        {
+            if (instance == null) return;
+            var game = instance.game;
+            bool settingsOpen = instance.settingsPanel.activeSelf;
+            Destroy(instance.gameObject);
+            Destroy(vignetteCanvas);
+            var ui = Create(game);
+            if (settingsOpen) ui.settingsPanel.SetActive(true);
+        }
+
+        void OnDestroy()
+        {
+            if (game == null) return;
+            game.StateChanged -= OnStateChanged;
+            game.SelectionChanged -= Refresh;
         }
 
         void Build(Game g, Transform canvas)
@@ -102,7 +135,9 @@ namespace Corehold
             BuildPausePanel(canvas);
             BuildResultPanel(canvas);
             BuildIntroPanel(canvas);
+            BuildSettings(canvas);
             BuildMenu(canvas);
+            settingsPanel.transform.SetAsLastSibling();
 
             game.StateChanged += OnStateChanged;
             game.SelectionChanged += Refresh;
@@ -208,7 +243,7 @@ namespace Corehold
             var preview = UIFactory.Box("Preview", bar, new Vector2(0, 1), new Vector2(400, -10), new Vector2(92 + PreviewSlots * 118, 84));
             UIFactory.Image(preview, ChipColor);
             previewLabel = UIFactory.Text(UIFactory.Rect("Label", preview, Vector2.zero, new Vector2(0, 1), new Vector2(14, 0), new Vector2(86, 0)),
-                "NEXT", 22, TextAnchor.MiddleCenter, UIFactory.TextDim);
+                Loc.T("ui.next"), 22, TextAnchor.MiddleCenter, UIFactory.TextDim);
             for (int i = 0; i < PreviewSlots; i++)
             {
                 var slot = UIFactory.Box("Slot" + i, preview, new Vector2(0, 0.5f), new Vector2(92 + i * 118, 0), new Vector2(112, 76));
@@ -261,9 +296,9 @@ namespace Corehold
                 icon.pivot = new Vector2(0.5f, 1f);
                 UIFactory.Icon(icon, Icons.Tower(id, 0));
                 UIFactory.Text(UIFactory.Rect("Name", card, new Vector2(0, 0), new Vector2(1, 0), new Vector2(12, 74), new Vector2(-12, 104)),
-                    type.label, 26, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
+                    Loc.T("tower." + id), 26, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
                 UIFactory.Text(UIFactory.Rect("Role", card, new Vector2(0, 0), new Vector2(1, 0), new Vector2(12, 52), new Vector2(-12, 76)),
-                    type.role, 19, TextAnchor.MiddleCenter, towerColors[id]);
+                    Loc.T("tower." + id + ".role"), 19, TextAnchor.MiddleCenter, towerColors[id]);
 
                 var price = UIFactory.Box("Price", card, new Vector2(0.5f, 0), new Vector2(0, 10), new Vector2(130, 40));
                 price.pivot = new Vector2(0.5f, 0f);
@@ -277,7 +312,7 @@ namespace Corehold
                 UIFactory.Image(veil, new Color(0.05f, 0.07f, 0.1f, 0.8f), false);
                 Centered(UIFactory.Icon(UIFactory.Box("Lock", veil, new Vector2(0.5f, 0.5f), new Vector2(0, 28), new Vector2(70, 70)), Art.Lock));
                 UIFactory.Text(UIFactory.Rect("Opens", veil, Vector2.zero, new Vector2(1, 0), new Vector2(0, 30), new Vector2(0, 80)),
-                    $"Mission {game.Balance.campaign.TowerLevel(id)}", 26, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
+                    Loc.F("ui.mission", game.Balance.campaign.TowerLevel(id)), 26, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
                 buildLocks.Add(veil.gameObject);
             }
         }
@@ -296,7 +331,7 @@ namespace Corehold
                 var pip = UIFactory.Box("Pip" + i, panel, new Vector2(0, 1), new Vector2(230 + i * 60, -120), new Vector2(48, 48));
                 towerPips[i] = UIFactory.Icon(pip, Art.Star);
             }
-            string[] names = { "Damage", "Rate", "Range" };
+            string[] names = { Loc.T("ui.damage"), Loc.T("ui.rate"), Loc.T("ui.range") };
             for (int i = 0; i < 3; i++)
                 statBars[i] = StatRow(panel, names[i], -196 - i * 64);
 
@@ -379,7 +414,7 @@ namespace Corehold
             introInfo = UIFactory.Text(UIFactory.Box("Info", card, new Vector2(0.5f, 1), new Vector2(0, -432), new Vector2(740, 60)),
                 "", 30, TextAnchor.MiddleCenter, UIFactory.TextMain);
             introInfo.rectTransform.pivot = new Vector2(0.5f, 1f);
-            CardButton(card, "IntroOk", "GOT IT", UIFactory.Go, -510, NextIntro);
+            CardButton(card, "IntroOk", Loc.T("ui.got_it"), UIFactory.Go, -510, NextIntro);
             introPanel.SetActive(false);
         }
 
@@ -411,21 +446,89 @@ namespace Corehold
             if (enemy)
             {
                 var e = game.Balance.Enemy(id);
-                introKind.text = e.boss ? "BOSS INCOMING!" : "NEW ENEMY!";
+                introKind.text = Loc.T(e.boss ? "ui.boss_incoming" : "ui.new_enemy");
                 introHeader.color = UIFactory.Bad;
                 introIcon.sprite = Icons.Enemy(id);
-                introName.text = e.label;
-                introInfo.text = e.info;
+                introName.text = Loc.T("enemy." + id);
+                introInfo.text = Loc.T("enemy." + id + ".info");
             }
             else
             {
                 var t = game.Balance.Tower(id);
-                introKind.text = "NEW TOWER!";
+                introKind.text = Loc.T("ui.new_tower");
                 introHeader.color = UIFactory.Go;
                 introIcon.sprite = Icons.Tower(id, 0);
-                introName.text = t.label;
-                introInfo.text = t.role;
+                introName.text = Loc.T("tower." + id);
+                introInfo.text = Loc.T("tower." + id + ".role");
             }
+        }
+
+        // Settings: language grid (each name in its own script), sound toggle and a two-tap progress reset.
+        void BuildSettings(Transform canvas)
+        {
+            var card = Overlay("SettingsPanel", canvas, out settingsPanel, 860, out var header, 1240);
+            header.color = UIFactory.Primary;
+            UIFactory.Text(UIFactory.Rect("Title", card, new Vector2(0, 1), Vector2.one, new Vector2(40, -110), new Vector2(-120, 0)),
+                Loc.T("ui.settings"), 56, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
+            var close = UIFactory.IconButton(UIFactory.Box("Close", card, Vector2.one, new Vector2(-16, -16), new Vector2(84, 78)), UIFactory.Bad, Art.Close, 32);
+            close.onClick.AddListener(() => OpenSettings(false));
+
+            UIFactory.Text(UIFactory.Rect("LanguageLabel", card, new Vector2(0, 1), Vector2.one, new Vector2(40, -170), new Vector2(-40, -120)),
+                Loc.T("ui.language"), 32, TextAnchor.MiddleLeft, UIFactory.TextDim);
+            var languages = Loc.Languages;
+            const int columns = 4;
+            for (int i = 0; i < languages.Length; i++)
+            {
+                var lang = languages[i];
+                int col = i % columns, row = i / columns;
+                var rt = UIFactory.Box("Lang_" + lang.code, card, new Vector2(0, 1), new Vector2(40 + col * 292, -186 - row * 104), new Vector2(276, 90));
+                bool selected = lang.code == Loc.Current.code;
+                var b = UIFactory.Button(rt, selected ? UIFactory.Go : UIFactory.CardColor, out var label, lang.name, 30);
+                label.font = Loc.FontFor(lang, UIFactory.GameFont);
+                label.fontStyle = FontStyle.Normal;
+                string code = lang.code;
+                b.onClick.AddListener(() => Loc.Set(code));
+            }
+
+            float y = -186 - ((languages.Length + columns - 1) / columns) * 104 - 20;
+            UIFactory.Text(UIFactory.Rect("SoundLabel", card, new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, y - 90), new Vector2(320, y)),
+                Loc.T("ui.sound"), 34, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
+            var soundRt = UIFactory.Box("SettingsSound", card, new Vector2(0, 1), new Vector2(330, y), new Vector2(240, 90));
+            var sound = UIFactory.Button(soundRt, Sfx.Muted ? UIFactory.CardColor : UIFactory.Go, out var soundLabel, Loc.T(Sfx.Muted ? "ui.off" : "ui.on"), 32);
+            sound.onClick.AddListener(() =>
+            {
+                Sfx.SetMuted(!Sfx.Muted);
+                soundLabel.text = Loc.T(Sfx.Muted ? "ui.off" : "ui.on");
+                ((Image)sound.targetGraphic).color = Sfx.Muted ? UIFactory.CardColor : UIFactory.Go;
+                foreach (var icon in soundIcons) icon.sprite = Sfx.Muted ? Art.SoundOff : Art.SoundOn;
+            });
+
+            var resetRt = UIFactory.Box("ResetProgress", card, new Vector2(1, 1), new Vector2(-40, y), new Vector2(520, 90));
+            var reset = UIFactory.Button(resetRt, UIFactory.Bad, out resetLabel, Loc.T("ui.reset"), 30);
+            reset.onClick.AddListener(() =>
+            {
+                if (!resetArmed)
+                {
+                    resetArmed = true;
+                    resetLabel.text = Loc.T("ui.reset_confirm");
+                    resetLabel.fontSize = 22;
+                    return;
+                }
+                Progress.ResetAll();
+                OpenSettings(false);
+                game.ShowMenu();
+                Toast(Loc.T("ui.reset_done"));
+            });
+            settingsPanel.SetActive(false);
+        }
+
+        void OpenSettings(bool on)
+        {
+            settingsPanel.SetActive(on);
+            resetArmed = false;
+            resetLabel.text = Loc.T("ui.reset");
+            resetLabel.fontSize = 30;
+            if (game.Map != null) game.Map.InputEnabled = !on;
         }
 
         void BuildPausePanel(Transform canvas)
@@ -433,10 +536,10 @@ namespace Corehold
             var card = Overlay("PausePanel", canvas, out pausePanel, 600, out var header);
             header.color = UIFactory.Primary;
             UIFactory.Text(UIFactory.Rect("Title", card, new Vector2(0, 1), Vector2.one, new Vector2(0, -110), Vector2.zero),
-                "Paused", 60, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
-            CardButton(card, "ResumeButton", "Resume", UIFactory.Go, -170, () => SetPaused(false));
-            CardButton(card, "PauseRestartButton", "Restart", UIFactory.CardColor, -310, () => { SetPaused(false); game.RestartLevel(); });
-            CardButton(card, "PauseMenuButton", "Main menu", UIFactory.CardColor, -450, () => { SetPaused(false); game.ShowMenu(); });
+                Loc.T("ui.paused"), 60, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
+            CardButton(card, "ResumeButton", Loc.T("ui.resume"), UIFactory.Go, -170, () => SetPaused(false));
+            CardButton(card, "PauseRestartButton", Loc.T("ui.restart"), UIFactory.CardColor, -310, () => { SetPaused(false); game.RestartLevel(); });
+            CardButton(card, "PauseMenuButton", Loc.T("ui.main_menu"), UIFactory.CardColor, -450, () => { SetPaused(false); game.ShowMenu(); });
         }
 
         void BuildResultPanel(Transform canvas)
@@ -454,17 +557,17 @@ namespace Corehold
             resultStats = UIFactory.Text(UIFactory.Box("Stats", card, new Vector2(0.5f, 1), new Vector2(0, -290), new Vector2(760, 150)),
                 "", 36, TextAnchor.MiddleCenter, UIFactory.TextDim);
             resultStats.rectTransform.pivot = new Vector2(0.5f, 1f);
-            nextLevelButton = CardButton(card, "NextLevelButton", "Next level", UIFactory.Go, -460, game.NextLevel);
-            CardButton(card, "RetryButton", "Retry", UIFactory.Warn, -600, game.RestartLevel);
-            CardButton(card, "MenuButton", "Main menu", UIFactory.CardColor, -740, game.ShowMenu);
+            nextLevelButton = CardButton(card, "NextLevelButton", Loc.T("ui.next_level"), UIFactory.Go, -460, game.NextLevel);
+            CardButton(card, "RetryButton", Loc.T("ui.retry"), UIFactory.Warn, -600, game.RestartLevel);
+            CardButton(card, "MenuButton", Loc.T("ui.main_menu"), UIFactory.CardColor, -740, game.ShowMenu);
         }
 
-        RectTransform Overlay(string name, Transform canvas, out GameObject root, float cardHeight, out Image header)
+        RectTransform Overlay(string name, Transform canvas, out GameObject root, float cardHeight, out Image header, float cardWidth = 820f)
         {
             var dim = UIFactory.Fill(name, canvas);
             UIFactory.Image(dim, new Color(0.02f, 0.03f, 0.06f, 0.6f), true, false);
             root = dim.gameObject;
-            var card = UIFactory.Box("Card", dim, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(820, cardHeight));
+            var card = UIFactory.Box("Card", dim, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(cardWidth, cardHeight));
             card.pivot = new Vector2(0.5f, 0.5f);
             UIFactory.Shadow(card, 30f, 16f);
             UIFactory.Image(card, new Color(0.12f, 0.16f, 0.24f, 0.98f));
@@ -511,7 +614,7 @@ namespace Corehold
                 {
                     if (game.Map != null && game.Map.Dragged) return;
                     if (game.IsLevelUnlocked(index)) OpenLevelInfo(index);
-                    else Toast($"Win mission {index} first");
+                    else Toast(Loc.F("ui.locked", index));
                 });
                 UIFactory.Icon(UIFactory.Fill("Ring", node), Art.Ring).color = new Color(1f, 1f, 1f, 0.8f);
                 nodeNumbers.Add(UIFactory.Text(UIFactory.Fill("Number", node), (i + 1).ToString(), i >= 99 ? 40 : 52, TextAnchor.MiddleCenter, UIFactory.TextMain, true).gameObject);
@@ -527,7 +630,7 @@ namespace Corehold
                 }
                 nodeStars.Add(stars);
                 var name = UIFactory.Text(UIFactory.Box("Name", node, new Vector2(0.5f, 0f), new Vector2(0f, -82f), new Vector2(320, 40)),
-                    levels[i].name, 26, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
+                    i == 0 || levels[i].biome != levels[i - 1].biome ? Loc.T("zone." + game.Balance.levels[i].biome.ToString().ToLowerInvariant()) : "", 26, TextAnchor.MiddleCenter, Art.Palette.Gold, true);
                 name.rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 name.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.7f);
                 if (boss)
@@ -535,7 +638,7 @@ namespace Corehold
                     var tag = UIFactory.Box("Boss", node, new Vector2(0.5f, 1f), new Vector2(0f, 26f), new Vector2(120, 40));
                     tag.pivot = new Vector2(0.5f, 0.5f);
                     UIFactory.Image(tag, UIFactory.Bad).sprite = Art.Pill;
-                    UIFactory.Text(UIFactory.Fill("Label", tag), "BOSS", 24, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
+                    UIFactory.Text(UIFactory.Fill("Label", tag), Loc.T("ui.boss"), 24, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
                 }
                 nodeButtons.Add(node);
             }
@@ -547,11 +650,11 @@ namespace Corehold
                 "COREHOLD", 84, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
             title.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.4f);
             UIFactory.Text(UIFactory.Box("Subtitle", root, new Vector2(0, 1), new Vector2(64, -122), new Vector2(700, 44)),
-                "Swipe the map, tap a mission", 28, TextAnchor.MiddleLeft, Art.Palette.Gold).gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.6f);
+                Loc.T("ui.swipe"), 28, TextAnchor.MiddleLeft, Art.Palette.Gold).gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.6f);
 
-            var endless = UIFactory.Box("ModeEndless", root, new Vector2(1, 1), new Vector2(-Margin - 130, -Margin), new Vector2(430, 120));
+            var endless = UIFactory.Box("ModeEndless", root, new Vector2(1, 1), new Vector2(-Margin - 250, -Margin), new Vector2(430, 120));
             UIFactory.Shadow(endless, 14f, 8f);
-            var eb = UIFactory.Button(endless, UIFactory.Warn, out var el, "ENDLESS", 44);
+            var eb = UIFactory.Button(endless, UIFactory.Warn, out var el, Loc.T("ui.endless"), 44);
             el.alignment = TextAnchor.UpperLeft;
             el.rectTransform.offsetMin = new Vector2(120, 8);
             el.rectTransform.offsetMax = new Vector2(0, -14);
@@ -561,7 +664,10 @@ namespace Corehold
             endlessBestText = UIFactory.Text(UIFactory.Rect("Sub", endless, Vector2.zero, Vector2.one, new Vector2(122, 18), new Vector2(-10, -68)),
                 "", 24, TextAnchor.UpperLeft, new Color(1f, 1f, 1f, 0.85f));
             eb.onClick.AddListener(game.StartEndless);
-            SoundButton(root, "MenuSoundButton", new Vector2(-Margin, -Margin));
+            SoundButton(root, "MenuSoundButton", new Vector2(-Margin - 120, -Margin));
+            var gear = UIFactory.Box("SettingsButton", root, new Vector2(1, 1), new Vector2(-Margin, -Margin), new Vector2(104, 104));
+            UIFactory.Shadow(gear, 12f, 6f);
+            UIFactory.IconButton(gear, UIFactory.CardColor, Art.Gear, 54).onClick.AddListener(() => OpenSettings(true));
 
             toastText = UIFactory.Text(UIFactory.Box("Toast", root, new Vector2(0.5f, 0f), new Vector2(0, 90), new Vector2(900, 70)),
                 "", 36, TextAnchor.MiddleCenter, UIFactory.TextMain, true);
@@ -604,13 +710,13 @@ namespace Corehold
                 "", 28, TextAnchor.UpperLeft, Art.Hex("FFB08A"), true);
 
             UIFactory.Text(UIFactory.Rect("EnemiesLabel", card, new Vector2(0, 0), new Vector2(0, 0), new Vector2(36, 150), new Vector2(300, 190)),
-                "Enemies", 26, TextAnchor.MiddleLeft, UIFactory.TextDim);
+                Loc.T("ui.enemies"), 26, TextAnchor.MiddleLeft, UIFactory.TextDim);
             for (int k = 0; k < infoEnemies.Length; k++)
                 infoEnemies[k] = UIFactory.Icon(UIFactory.Box("Enemy" + k, card, new Vector2(0, 0), new Vector2(36 + k * 66, 90), new Vector2(62, 62)), Art.Coin);
 
             var play = UIFactory.Box("PlayButton", card, new Vector2(1, 0), new Vector2(-36, 30), new Vector2(420, 120));
             UIFactory.Shadow(play, 14f, 8f);
-            UIFactory.Button(play, UIFactory.Go, out _, "PLAY", 52).onClick.AddListener(() => game.LoadLevel(infoLevel));
+            UIFactory.Button(play, UIFactory.Go, out _, Loc.T("ui.play"), 52).onClick.AddListener(() => game.LoadLevel(infoLevel));
             levelInfo.SetActive(false);
         }
 
@@ -619,15 +725,15 @@ namespace Corehold
             infoLevel = index;
             var level = game.Balance.levels[index];
             string boss = level.boss;
-            infoTitle.text = $"Mission {index + 1}  ·  {level.name}";
+            infoTitle.text = Loc.F("ui.mission", index + 1) + "  ·  " + Loc.T("zone." + game.Balance.levels[index].biome.ToString().ToLowerInvariant());
             infoHeader.color = boss != null ? MeshBuilder.Shade(UIFactory.Bad, 0.85f) : UIFactory.Primary;
             for (int k = 0; k < 3; k++) infoStars[k].color = k < game.LevelStars[index] ? Art.Palette.Gold : new Color(0f, 0f, 0f, 0.35f);
-            infoText.text = $"{level.waves.Length} waves\n{level.lives} lives\n{level.startCoins} coins to start";
+            infoText.text = Loc.F("ui.waves", level.waves.Length) + "\n" + Loc.F("ui.lives", level.lives) + "\n" + Loc.F("ui.coins_start", level.startCoins);
             var news = new List<string>();
-            if (level.newEnemy != null) news.Add("NEW ENEMY: " + game.Balance.Enemy(level.newEnemy).label);
+            if (level.newEnemy != null) news.Add(Loc.F("ui.new_enemy_line", Loc.T("enemy." + level.newEnemy)));
             foreach (var t in game.Balance.towers)
-                if (game.Balance.campaign.TowerLevel(t.id) == level.number && level.number > 1) news.Add("NEW TOWER: " + t.label);
-            if (boss != null && boss != level.newEnemy) news.Add("BOSS: " + game.Balance.Enemy(boss).label);
+                if (game.Balance.campaign.TowerLevel(t.id) == level.number && level.number > 1) news.Add(Loc.F("ui.new_tower_line", Loc.T("tower." + t.id)));
+            if (boss != null && boss != level.newEnemy) news.Add(Loc.F("ui.boss_line", Loc.T("enemy." + boss)));
             infoBoss.text = string.Join("\n", news);
 
             var types = new List<string>();
@@ -727,7 +833,7 @@ namespace Corehold
             if (s == GameState.Menu)
             {
                 CloseLevelInfo();
-                endlessBestText.text = game.EndlessBest > 0 ? $"Best: wave {game.EndlessBest}" : "Survive as long as you can";
+                endlessBestText.text = game.EndlessBest > 0 ? Loc.F("ui.endless_best", game.EndlessBest) : Loc.T("ui.endless_sub");
                 toastText.text = "";
                 for (int i = 0; i < nodeStars.Count; i++)
                 {
@@ -742,6 +848,7 @@ namespace Corehold
                     }
                 }
             }
+            if (s != GameState.Menu && settingsPanel.activeSelf) OpenSettings(false);
             hud.SetActive(s != GameState.Menu);
             debugRoot.SetActive(s != GameState.Menu);
             resultPanel.SetActive(s == GameState.Won || s == GameState.Lost);
@@ -757,21 +864,21 @@ namespace Corehold
                 if (game.Endless)
                 {
                     int survived = Mathf.Max(0, game.WavesStarted - 1);
-                    resultTitle.text = "Base destroyed";
+                    resultTitle.text = Loc.T("ui.base_destroyed");
                     resultHeader.color = UIFactory.Warn;
                     for (int i = 0; i < 3; i++) resultStars[i].color = new Color(0f, 0f, 0f, 0.35f);
-                    resultStats.text = $"Endless\nWaves survived {survived}    Kills {game.Kills}\nBest this session: wave {game.EndlessBest}";
+                    resultStats.text = Loc.T("ui.endless") + "\n" + Loc.F("ui.endless_stats", survived, game.Kills, game.EndlessBest);
                     nextLevelButton.gameObject.SetActive(false);
                 }
                 else
                 {
                     bool last = game.LevelIndex == game.Balance.levels.Length - 1;
-                    resultTitle.text = won ? (last ? "Campaign complete!" : "Victory!") : "Base destroyed";
+                    resultTitle.text = Loc.T(won ? (last ? "ui.campaign_complete" : "ui.victory") : "ui.base_destroyed");
                     resultHeader.color = won ? UIFactory.Go : UIFactory.Bad;
                     int stars = won ? game.StarsFor(game.Lives, game.Level.lives) : 0;
                     for (int i = 0; i < 3; i++)
                         resultStars[i].color = i < stars ? Art.Palette.Gold : new Color(0f, 0f, 0f, 0.35f);
-                    resultStats.text = $"{game.Level.name}\nWaves {game.WavesStarted}/{game.WaveCount}    Kills {game.Kills}    Lives {game.Lives}";
+                    resultStats.text = Loc.F("ui.mission", game.Level.number) + "\n" + Loc.F("ui.result_stats", game.WavesStarted, game.WaveCount, game.Kills, game.Lives);
                     nextLevelButton.gameObject.SetActive(won);
                 }
             }
@@ -842,12 +949,12 @@ namespace Corehold
             if (counting) waveTimerFill.fillAmount = Mathf.Clamp01(game.NextWaveTimer / Mathf.Max(delay, 0.01f));
 
             int seconds = Mathf.CeilToInt(game.NextWaveTimer);
-            waveButtonLabel.text = game.WavesStarted == 0 ? $"START  {seconds}" : game.Spawning ? "Incoming..." : !all ? $"Next wave  {seconds}" : "";
+            waveButtonLabel.text = game.WavesStarted == 0 ? Loc.F("ui.start", seconds) : game.Spawning ? Loc.T("ui.incoming") : !all ? Loc.F("ui.next_wave", seconds) : "";
             waveButtonImage.color = game.CanStartNextWave ? UIFactory.Go : UIFactory.DisabledColor;
 
             // What the next wave brings: one icon per enemy type with its count.
             var next = game.PeekNextWave();
-            previewLabel.text = next == null ? "LAST\nWAVE" : "NEXT";
+            previewLabel.text = Loc.T(next == null ? "ui.last_wave" : "ui.next");
             int slot = 0;
             if (next != null)
                 foreach (var g in next.groups)
@@ -877,7 +984,7 @@ namespace Corehold
         {
             var type = t.type;
             towerIcon.sprite = Icons.Tower(type.id, t.level);
-            towerTitle.text = type.label;
+            towerTitle.text = Loc.T("tower." + type.id);
             towerHeader.color = MeshBuilder.Shade(towerColors[type.id], 0.7f);
             for (int i = 0; i < towerPips.Length; i++)
             {
@@ -893,15 +1000,15 @@ namespace Corehold
 
             if (maxed)
             {
-                upgradeLabel.text = "MAX LEVEL";
+                upgradeLabel.text = Loc.T("ui.max_level");
                 upgradeImage.color = UIFactory.DisabledColor;
             }
             else
             {
-                upgradeLabel.text = $"Upgrade   <color=#FFE08A>{Formulas.UpgradeCost(type, t.level)}</color>";
+                upgradeLabel.text = $"{Loc.T("ui.upgrade")}   <color=#FFE08A>{Formulas.UpgradeCost(type, t.level)}</color>";
                 upgradeImage.color = game.CanUpgrade ? UIFactory.Go : UIFactory.DisabledColor;
             }
-            sellLabel.text = $"Sell   <color=#FFE08A>+{Formulas.SellValue(t.spent, game.Balance.economy)}</color>";
+            sellLabel.text = $"{Loc.T("ui.sell")}   <color=#FFE08A>+{Formulas.SellValue(t.spent, game.Balance.economy)}</color>";
         }
 
         // Bars use a square-root scale so cheap towers still show a visible bar next to the sniper.

@@ -1,0 +1,2271 @@
+{
+ "_readme": "UI text in every language. values follow the order of languages. A language with osFont uses the phone's system font (the game font has only Latin and Cyrillic).",
+ "languages": [
+  {
+   "code": "en",
+   "name": "English",
+   "osFont": false
+  },
+  {
+   "code": "ru",
+   "name": "Русский",
+   "osFont": false
+  },
+  {
+   "code": "hy",
+   "name": "Հայերեն",
+   "osFont": true
+  },
+  {
+   "code": "es",
+   "name": "Español",
+   "osFont": false
+  },
+  {
+   "code": "fr",
+   "name": "Français",
+   "osFont": false
+  },
+  {
+   "code": "de",
+   "name": "Deutsch",
+   "osFont": false
+  },
+  {
+   "code": "it",
+   "name": "Italiano",
+   "osFont": false
+  },
+  {
+   "code": "pt",
+   "name": "Português",
+   "osFont": false
+  },
+  {
+   "code": "pl",
+   "name": "Polski",
+   "osFont": false
+  },
+  {
+   "code": "uk",
+   "name": "Українська",
+   "osFont": false
+  },
+  {
+   "code": "nl",
+   "name": "Nederlands",
+   "osFont": false
+  },
+  {
+   "code": "sv",
+   "name": "Svenska",
+   "osFont": false
+  },
+  {
+   "code": "id",
+   "name": "Bahasa Indonesia",
+   "osFont": false
+  },
+  {
+   "code": "zh",
+   "name": "简体中文",
+   "osFont": true
+  },
+  {
+   "code": "ja",
+   "name": "日本語",
+   "osFont": true
+  },
+  {
+   "code": "ko",
+   "name": "한국어",
+   "osFont": true
+  }
+ ],
+ "entries": [
+  {
+   "key": "ui.play",
+   "values": [
+    "PLAY",
+    "ИГРАТЬ",
+    "ԽԱՂԱԼ",
+    "JUGAR",
+    "JOUER",
+    "SPIELEN",
+    "GIOCA",
+    "JOGAR",
+    "GRAJ",
+    "ГРАТИ",
+    "SPELEN",
+    "SPELA",
+    "MAIN",
+    "开始",
+    "プレイ",
+    "플레이"
+   ]
+  },
+  {
+   "key": "ui.endless",
+   "values": [
+    "ENDLESS",
+    "БЕСКОНЕЧНО",
+    "ԱՆՎԵՐՋ",
+    "INFINITO",
+    "INFINI",
+    "ENDLOS",
+    "INFINITO",
+    "INFINITO",
+    "BEZ KOŃCA",
+    "БЕЗКІНЕЧНО",
+    "EINDELOOS",
+    "ÄNDLÖST",
+    "TANPA AKHIR",
+    "无尽模式",
+    "エンドレス",
+    "무한 모드"
+   ]
+  },
+  {
+   "key": "ui.endless_sub",
+   "values": [
+    "Survive as long as you can",
+    "Продержись как можно дольше",
+    "Դիմացիր որքան հնարավոր է երկար",
+    "Resiste todo lo que puedas",
+    "Tiens le plus longtemps possible",
+    "Halte so lange wie möglich durch",
+    "Resisti il più a lungo possibile",
+    "Resista o máximo que puder",
+    "Wytrzymaj jak najdłużej",
+    "Протримайся якомога довше",
+    "Houd het zo lang mogelijk vol",
+    "Håll ut så länge du kan",
+    "Bertahan selama mungkin",
+    "坚持得越久越好",
+    "できるだけ長く耐えよう",
+    "최대한 오래 버티세요"
+   ]
+  },
+  {
+   "key": "ui.endless_best",
+   "values": [
+    "Best: wave {0}",
+    "Рекорд: волна {0}",
+    "Ռեկորդ՝ ալիք {0}",
+    "Récord: oleada {0}",
+    "Record : vague {0}",
+    "Rekord: Welle {0}",
+    "Record: ondata {0}",
+    "Recorde: onda {0}",
+    "Rekord: fala {0}",
+    "Рекорд: хвиля {0}",
+    "Record: golf {0}",
+    "Rekord: våg {0}",
+    "Rekor: gelombang {0}",
+    "纪录：第{0}波",
+    "記録：ウェーブ{0}",
+    "최고 기록: {0} 웨이브"
+   ]
+  },
+  {
+   "key": "ui.swipe",
+   "values": [
+    "Swipe the map, tap a mission",
+    "Листай карту, выбери миссию",
+    "Սահեցրու քարտեզը, ընտրիր առաքելություն",
+    "Desliza el mapa, toca una misión",
+    "Fais glisser la carte, touche une mission",
+    "Karte wischen, Mission antippen",
+    "Scorri la mappa, tocca una missione",
+    "Arraste o mapa, toque numa missão",
+    "Przesuń mapę, dotknij misji",
+    "Гортай мапу, обери місію",
+    "Veeg over de kaart, tik op een missie",
+    "Svep kartan, tryck på ett uppdrag",
+    "Geser peta, ketuk misi",
+    "滑动地图，点击任务",
+    "マップをスワイプしてミッションをタップ",
+    "지도를 넘기고 임무를 누르세요"
+   ]
+  },
+  {
+   "key": "ui.locked",
+   "values": [
+    "Win mission {0} first",
+    "Сначала пройди миссию {0}",
+    "Նախ անցիր {0}-րդ առաքելությունը",
+    "Primero gana la misión {0}",
+    "Gagne d'abord la mission {0}",
+    "Gewinne zuerst Mission {0}",
+    "Vinci prima la missione {0}",
+    "Vença a missão {0} primeiro",
+    "Najpierw wygraj misję {0}",
+    "Спершу пройди місію {0}",
+    "Win eerst missie {0}",
+    "Vinn uppdrag {0} först",
+    "Menangkan misi {0} dulu",
+    "请先赢得任务 {0}",
+    "先にミッション{0}をクリアしよう",
+    "먼저 임무 {0}을(를) 클리어하세요"
+   ]
+  },
+  {
+   "key": "ui.mission",
+   "values": [
+    "Mission {0}",
+    "Миссия {0}",
+    "Առաքելություն {0}",
+    "Misión {0}",
+    "Mission {0}",
+    "Mission {0}",
+    "Missione {0}",
+    "Missão {0}",
+    "Misja {0}",
+    "Місія {0}",
+    "Missie {0}",
+    "Uppdrag {0}",
+    "Misi {0}",
+    "任务 {0}",
+    "ミッション{0}",
+    "임무 {0}"
+   ]
+  },
+  {
+   "key": "ui.waves",
+   "values": [
+    "{0} waves",
+    "Волн: {0}",
+    "{0} ալիք",
+    "{0} oleadas",
+    "{0} vagues",
+    "{0} Wellen",
+    "{0} ondate",
+    "{0} ondas",
+    "Fale: {0}",
+    "Хвиль: {0}",
+    "{0} golven",
+    "{0} vågor",
+    "{0} gelombang",
+    "{0} 波",
+    "{0}ウェーブ",
+    "{0} 웨이브"
+   ]
+  },
+  {
+   "key": "ui.lives",
+   "values": [
+    "{0} lives",
+    "Жизней: {0}",
+    "{0} կյանք",
+    "{0} vidas",
+    "{0} vies",
+    "{0} Leben",
+    "{0} vite",
+    "{0} vidas",
+    "Życia: {0}",
+    "Життів: {0}",
+    "{0} levens",
+    "{0} liv",
+    "{0} nyawa",
+    "{0} 条命",
+    "ライフ{0}",
+    "생명 {0}"
+   ]
+  },
+  {
+   "key": "ui.coins_start",
+   "values": [
+    "{0} coins to start",
+    "Монет на старте: {0}",
+    "{0} մետաղադրամ սկզբում",
+    "{0} monedas iniciales",
+    "{0} pièces au départ",
+    "{0} Münzen zum Start",
+    "{0} monete iniziali",
+    "{0} moedas iniciais",
+    "Monety na start: {0}",
+    "Монет на старті: {0}",
+    "{0} munten om te beginnen",
+    "{0} mynt vid start",
+    "{0} koin awal",
+    "初始金币 {0}",
+    "初期コイン{0}",
+    "시작 코인 {0}"
+   ]
+  },
+  {
+   "key": "ui.enemies",
+   "values": [
+    "Enemies",
+    "Враги",
+    "Թշնամիներ",
+    "Enemigos",
+    "Ennemis",
+    "Gegner",
+    "Nemici",
+    "Inimigos",
+    "Wrogowie",
+    "Вороги",
+    "Vijanden",
+    "Fiender",
+    "Musuh",
+    "敌人",
+    "敵",
+    "적"
+   ]
+  },
+  {
+   "key": "ui.new_enemy",
+   "values": [
+    "NEW ENEMY!",
+    "НОВЫЙ ВРАГ!",
+    "ՆՈՐ ԹՇՆԱՄԻ!",
+    "¡NUEVO ENEMIGO!",
+    "NOUVEL ENNEMI !",
+    "NEUER GEGNER!",
+    "NUOVO NEMICO!",
+    "NOVO INIMIGO!",
+    "NOWY WRÓG!",
+    "НОВИЙ ВОРОГ!",
+    "NIEUWE VIJAND!",
+    "NY FIENDE!",
+    "MUSUH BARU!",
+    "新敌人！",
+    "新しい敵！",
+    "새로운 적!"
+   ]
+  },
+  {
+   "key": "ui.new_tower",
+   "values": [
+    "NEW TOWER!",
+    "НОВАЯ БАШНЯ!",
+    "ՆՈՐ ԱՇՏԱՐԱԿ!",
+    "¡NUEVA TORRE!",
+    "NOUVELLE TOUR !",
+    "NEUER TURM!",
+    "NUOVA TORRE!",
+    "NOVA TORRE!",
+    "NOWA WIEŻA!",
+    "НОВА ВЕЖА!",
+    "NIEUWE TOREN!",
+    "NYTT TORN!",
+    "MENARA BARU!",
+    "新炮塔！",
+    "新しいタワー！",
+    "새로운 타워!"
+   ]
+  },
+  {
+   "key": "ui.boss_incoming",
+   "values": [
+    "BOSS INCOMING!",
+    "ИДЁТ БОСС!",
+    "ԳԱԼԻՍ Է ԲՈՍԸ!",
+    "¡LLEGA EL JEFE!",
+    "LE BOSS ARRIVE !",
+    "BOSS KOMMT!",
+    "ARRIVA IL BOSS!",
+    "O CHEFE ESTÁ CHEGANDO!",
+    "NADCHODZI BOSS!",
+    "ЙДЕ БОС!",
+    "DE BAAS KOMT!",
+    "BOSSEN KOMMER!",
+    "BOS DATANG!",
+    "首领来袭！",
+    "ボス襲来！",
+    "보스 출현!"
+   ]
+  },
+  {
+   "key": "ui.new_enemy_line",
+   "values": [
+    "NEW ENEMY: {0}",
+    "НОВЫЙ ВРАГ: {0}",
+    "ՆՈՐ ԹՇՆԱՄԻ՝ {0}",
+    "NUEVO ENEMIGO: {0}",
+    "NOUVEL ENNEMI : {0}",
+    "NEUER GEGNER: {0}",
+    "NUOVO NEMICO: {0}",
+    "NOVO INIMIGO: {0}",
+    "NOWY WRÓG: {0}",
+    "НОВИЙ ВОРОГ: {0}",
+    "NIEUWE VIJAND: {0}",
+    "NY FIENDE: {0}",
+    "MUSUH BARU: {0}",
+    "新敌人：{0}",
+    "新しい敵：{0}",
+    "새로운 적: {0}"
+   ]
+  },
+  {
+   "key": "ui.new_tower_line",
+   "values": [
+    "NEW TOWER: {0}",
+    "НОВАЯ БАШНЯ: {0}",
+    "ՆՈՐ ԱՇՏԱՐԱԿ՝ {0}",
+    "NUEVA TORRE: {0}",
+    "NOUVELLE TOUR : {0}",
+    "NEUER TURM: {0}",
+    "NUOVA TORRE: {0}",
+    "NOVA TORRE: {0}",
+    "NOWA WIEŻA: {0}",
+    "НОВА ВЕЖА: {0}",
+    "NIEUWE TOREN: {0}",
+    "NYTT TORN: {0}",
+    "MENARA BARU: {0}",
+    "新炮塔：{0}",
+    "新しいタワー：{0}",
+    "새로운 타워: {0}"
+   ]
+  },
+  {
+   "key": "ui.boss_line",
+   "values": [
+    "BOSS: {0}",
+    "БОСС: {0}",
+    "ԲՈՍ՝ {0}",
+    "JEFE: {0}",
+    "BOSS : {0}",
+    "BOSS: {0}",
+    "BOSS: {0}",
+    "CHEFE: {0}",
+    "BOSS: {0}",
+    "БОС: {0}",
+    "BAAS: {0}",
+    "BOSS: {0}",
+    "BOS: {0}",
+    "首领：{0}",
+    "ボス：{0}",
+    "보스: {0}"
+   ]
+  },
+  {
+   "key": "ui.boss",
+   "values": [
+    "BOSS",
+    "БОСС",
+    "ԲՈՍ",
+    "JEFE",
+    "BOSS",
+    "BOSS",
+    "BOSS",
+    "CHEFE",
+    "BOSS",
+    "БОС",
+    "BAAS",
+    "BOSS",
+    "BOS",
+    "首领",
+    "ボス",
+    "보스"
+   ]
+  },
+  {
+   "key": "ui.got_it",
+   "values": [
+    "GOT IT",
+    "ПОНЯТНО",
+    "ՀԱՍԿԱՑԱ",
+    "ENTENDIDO",
+    "COMPRIS",
+    "VERSTANDEN",
+    "CAPITO",
+    "ENTENDI",
+    "ROZUMIEM",
+    "ЗРОЗУМІЛО",
+    "BEGREPEN",
+    "UPPFATTAT",
+    "MENGERTI",
+    "知道了",
+    "OK",
+    "확인"
+   ]
+  },
+  {
+   "key": "ui.start",
+   "values": [
+    "START  {0}",
+    "СТАРТ  {0}",
+    "ՍԿՍԵԼ  {0}",
+    "EMPEZAR  {0}",
+    "DÉBUT  {0}",
+    "START  {0}",
+    "VIA  {0}",
+    "INICIAR  {0}",
+    "START  {0}",
+    "СТАРТ  {0}",
+    "START  {0}",
+    "START  {0}",
+    "MULAI  {0}",
+    "开始  {0}",
+    "スタート  {0}",
+    "시작  {0}"
+   ]
+  },
+  {
+   "key": "ui.incoming",
+   "values": [
+    "Incoming...",
+    "Атака...",
+    "Հարձակում...",
+    "Atacan...",
+    "Attaque...",
+    "Angriff...",
+    "Attacco...",
+    "Atacando...",
+    "Atak...",
+    "Атака...",
+    "Aanval...",
+    "Anfall...",
+    "Menyerang...",
+    "来袭中...",
+    "襲来中...",
+    "공격 중..."
+   ]
+  },
+  {
+   "key": "ui.next_wave",
+   "values": [
+    "Next wave  {0}",
+    "Волна через {0}",
+    "Ալիքը՝ {0}",
+    "Oleada en {0}",
+    "Vague dans {0}",
+    "Welle in {0}",
+    "Ondata tra {0}",
+    "Onda em {0}",
+    "Fala za {0}",
+    "Хвиля через {0}",
+    "Golf over {0}",
+    "Våg om {0}",
+    "Gelombang dalam {0}",
+    "下一波 {0}",
+    "次のウェーブ {0}",
+    "다음 웨이브 {0}"
+   ]
+  },
+  {
+   "key": "ui.next",
+   "values": [
+    "NEXT",
+    "ДАЛЕЕ",
+    "ՀԱՋՈՐԴԸ",
+    "SIGUE",
+    "SUIVANT",
+    "NÄCHSTE",
+    "PROSSIMA",
+    "PRÓXIMA",
+    "DALEJ",
+    "ДАЛІ",
+    "VOLGENDE",
+    "NÄSTA",
+    "BERIKUTNYA",
+    "下一波",
+    "次",
+    "다음"
+   ]
+  },
+  {
+   "key": "ui.last_wave",
+   "values": [
+    "LAST\nWAVE",
+    "ПОСЛЕДНЯЯ\nВОЛНА",
+    "ՎԵՐՋԻՆ\nԱԼԻՔ",
+    "ÚLTIMA\nOLEADA",
+    "DERNIÈRE\nVAGUE",
+    "LETZTE\nWELLE",
+    "ULTIMA\nONDATA",
+    "ÚLTIMA\nONDA",
+    "OSTATNIA\nFALA",
+    "ОСТАННЯ\nХВИЛЯ",
+    "LAATSTE\nGOLF",
+    "SISTA\nVÅGEN",
+    "GELOMBANG\nTERAKHIR",
+    "最后\n一波",
+    "最終\nウェーブ",
+    "마지막\n웨이브"
+   ]
+  },
+  {
+   "key": "ui.damage",
+   "values": [
+    "Damage",
+    "Урон",
+    "Վնաս",
+    "Daño",
+    "Dégâts",
+    "Schaden",
+    "Danno",
+    "Dano",
+    "Obrażenia",
+    "Шкода",
+    "Schade",
+    "Skada",
+    "Kerusakan",
+    "伤害",
+    "ダメージ",
+    "피해"
+   ]
+  },
+  {
+   "key": "ui.rate",
+   "values": [
+    "Rate",
+    "Темп",
+    "Արագություն",
+    "Cadencia",
+    "Cadence",
+    "Feuerrate",
+    "Cadenza",
+    "Cadência",
+    "Szybkość",
+    "Темп",
+    "Vuursnelheid",
+    "Eldtakt",
+    "Laju",
+    "射速",
+    "連射",
+    "공격 속도"
+   ]
+  },
+  {
+   "key": "ui.range",
+   "values": [
+    "Range",
+    "Дальность",
+    "Հեռահարություն",
+    "Alcance",
+    "Portée",
+    "Reichweite",
+    "Gittata",
+    "Alcance",
+    "Zasięg",
+    "Дальність",
+    "Bereik",
+    "Räckvidd",
+    "Jangkauan",
+    "射程",
+    "射程",
+    "사거리"
+   ]
+  },
+  {
+   "key": "ui.upgrade",
+   "values": [
+    "Upgrade",
+    "Улучшить",
+    "Բարելավել",
+    "Mejorar",
+    "Améliorer",
+    "Verbessern",
+    "Migliora",
+    "Melhorar",
+    "Ulepsz",
+    "Покращити",
+    "Verbeteren",
+    "Uppgradera",
+    "Tingkatkan",
+    "升级",
+    "強化",
+    "강화"
+   ]
+  },
+  {
+   "key": "ui.max_level",
+   "values": [
+    "MAX LEVEL",
+    "МАКС. УРОВЕНЬ",
+    "ԱՌԱՎԵԼԱԳՈՒՅՆ",
+    "NIVEL MÁX.",
+    "NIVEAU MAX",
+    "MAX. STUFE",
+    "LIVELLO MAX",
+    "NÍVEL MÁX.",
+    "MAKS. POZIOM",
+    "МАКС. РІВЕНЬ",
+    "MAX. NIVEAU",
+    "MAX NIVÅ",
+    "LEVEL MAKS",
+    "已满级",
+    "最大レベル",
+    "최대 레벨"
+   ]
+  },
+  {
+   "key": "ui.sell",
+   "values": [
+    "Sell",
+    "Продать",
+    "Վաճառել",
+    "Vender",
+    "Vendre",
+    "Verkaufen",
+    "Vendi",
+    "Vender",
+    "Sprzedaj",
+    "Продати",
+    "Verkopen",
+    "Sälj",
+    "Jual",
+    "出售",
+    "売却",
+    "판매"
+   ]
+  },
+  {
+   "key": "ui.paused",
+   "values": [
+    "Paused",
+    "Пауза",
+    "Դադար",
+    "Pausa",
+    "Pause",
+    "Pause",
+    "Pausa",
+    "Pausa",
+    "Pauza",
+    "Пауза",
+    "Pauze",
+    "Paus",
+    "Jeda",
+    "已暂停",
+    "一時停止",
+    "일시정지"
+   ]
+  },
+  {
+   "key": "ui.resume",
+   "values": [
+    "Resume",
+    "Продолжить",
+    "Շարունակել",
+    "Continuar",
+    "Reprendre",
+    "Weiter",
+    "Riprendi",
+    "Continuar",
+    "Wznów",
+    "Продовжити",
+    "Doorgaan",
+    "Fortsätt",
+    "Lanjut",
+    "继续",
+    "再開",
+    "계속"
+   ]
+  },
+  {
+   "key": "ui.restart",
+   "values": [
+    "Restart",
+    "Заново",
+    "Նորից",
+    "Reiniciar",
+    "Recommencer",
+    "Neustart",
+    "Ricomincia",
+    "Reiniciar",
+    "Od nowa",
+    "Заново",
+    "Opnieuw",
+    "Börja om",
+    "Ulangi",
+    "重新开始",
+    "やり直す",
+    "다시 시작"
+   ]
+  },
+  {
+   "key": "ui.main_menu",
+   "values": [
+    "Main menu",
+    "Главное меню",
+    "Գլխավոր մենյու",
+    "Menú principal",
+    "Menu principal",
+    "Hauptmenü",
+    "Menu principale",
+    "Menu principal",
+    "Menu główne",
+    "Головне меню",
+    "Hoofdmenu",
+    "Huvudmeny",
+    "Menu utama",
+    "主菜单",
+    "メインメニュー",
+    "메인 메뉴"
+   ]
+  },
+  {
+   "key": "ui.next_level",
+   "values": [
+    "Next level",
+    "Следующая",
+    "Հաջորդը",
+    "Siguiente",
+    "Suivante",
+    "Nächste",
+    "Successiva",
+    "Próxima",
+    "Następna",
+    "Наступна",
+    "Volgende",
+    "Nästa",
+    "Berikutnya",
+    "下一关",
+    "次へ",
+    "다음 임무"
+   ]
+  },
+  {
+   "key": "ui.retry",
+   "values": [
+    "Retry",
+    "Ещё раз",
+    "Կրկին",
+    "Reintentar",
+    "Réessayer",
+    "Nochmal",
+    "Riprova",
+    "Tentar de novo",
+    "Ponów",
+    "Ще раз",
+    "Nog eens",
+    "Försök igen",
+    "Coba lagi",
+    "重试",
+    "リトライ",
+    "재도전"
+   ]
+  },
+  {
+   "key": "ui.victory",
+   "values": [
+    "Victory!",
+    "Победа!",
+    "Հաղթանակ!",
+    "¡Victoria!",
+    "Victoire !",
+    "Sieg!",
+    "Vittoria!",
+    "Vitória!",
+    "Zwycięstwo!",
+    "Перемога!",
+    "Overwinning!",
+    "Seger!",
+    "Menang!",
+    "胜利！",
+    "勝利！",
+    "승리!"
+   ]
+  },
+  {
+   "key": "ui.base_destroyed",
+   "values": [
+    "Base destroyed",
+    "База разрушена",
+    "Բազան ավերված է",
+    "Base destruida",
+    "Base détruite",
+    "Basis zerstört",
+    "Base distrutta",
+    "Base destruída",
+    "Baza zniszczona",
+    "Базу зруйновано",
+    "Basis verwoest",
+    "Basen förstörd",
+    "Markas hancur",
+    "基地被摧毁",
+    "基地が破壊された",
+    "기지 파괴됨"
+   ]
+  },
+  {
+   "key": "ui.campaign_complete",
+   "values": [
+    "Campaign complete!",
+    "Кампания пройдена!",
+    "Արշավն ավարտված է!",
+    "¡Campaña completada!",
+    "Campagne terminée !",
+    "Kampagne geschafft!",
+    "Campagna completata!",
+    "Campanha concluída!",
+    "Kampania ukończona!",
+    "Кампанію пройдено!",
+    "Campagne voltooid!",
+    "Kampanjen klar!",
+    "Kampanye selesai!",
+    "战役完成！",
+    "キャンペーンクリア！",
+    "캠페인 완료!"
+   ]
+  },
+  {
+   "key": "ui.result_stats",
+   "values": [
+    "Waves {0}/{1}   Kills {2}   Lives {3}",
+    "Волны {0}/{1}   Убито {2}   Жизни {3}",
+    "Ալիքներ {0}/{1}   Սպանված {2}   Կյանքեր {3}",
+    "Oleadas {0}/{1}   Bajas {2}   Vidas {3}",
+    "Vagues {0}/{1}   Éliminés {2}   Vies {3}",
+    "Wellen {0}/{1}   Abschüsse {2}   Leben {3}",
+    "Ondate {0}/{1}   Uccisioni {2}   Vite {3}",
+    "Ondas {0}/{1}   Abates {2}   Vidas {3}",
+    "Fale {0}/{1}   Zabici {2}   Życia {3}",
+    "Хвилі {0}/{1}   Знищено {2}   Життя {3}",
+    "Golven {0}/{1}   Gedood {2}   Levens {3}",
+    "Vågor {0}/{1}   Dödade {2}   Liv {3}",
+    "Gelombang {0}/{1}   Kill {2}   Nyawa {3}",
+    "波次 {0}/{1}   击杀 {2}   生命 {3}",
+    "ウェーブ {0}/{1}   撃破 {2}   ライフ {3}",
+    "웨이브 {0}/{1}   처치 {2}   생명 {3}"
+   ]
+  },
+  {
+   "key": "ui.endless_stats",
+   "values": [
+    "Waves survived {0}   Kills {1}\nBest: wave {2}",
+    "Пережито волн: {0}   Убито {1}\nРекорд: волна {2}",
+    "Դիմացած ալիքներ՝ {0}   Սպանված {1}\nՌեկորդ՝ ալիք {2}",
+    "Oleadas resistidas {0}   Bajas {1}\nRécord: oleada {2}",
+    "Vagues tenues {0}   Éliminés {1}\nRecord : vague {2}",
+    "Überstandene Wellen {0}   Abschüsse {1}\nRekord: Welle {2}",
+    "Ondate superate {0}   Uccisioni {1}\nRecord: ondata {2}",
+    "Ondas resistidas {0}   Abates {1}\nRecorde: onda {2}",
+    "Przetrwane fale {0}   Zabici {1}\nRekord: fala {2}",
+    "Пережито хвиль: {0}   Знищено {1}\nРекорд: хвиля {2}",
+    "Golven overleefd {0}   Gedood {1}\nRecord: golf {2}",
+    "Överlevda vågor {0}   Dödade {1}\nRekord: våg {2}",
+    "Gelombang bertahan {0}   Kill {1}\nRekor: gelombang {2}",
+    "坚持波数 {0}   击杀 {1}\n纪录：第{2}波",
+    "耐えたウェーブ {0}   撃破 {1}\n記録：ウェーブ{2}",
+    "버틴 웨이브 {0}   처치 {1}\n최고 기록: {2} 웨이브"
+   ]
+  },
+  {
+   "key": "ui.settings",
+   "values": [
+    "Settings",
+    "Настройки",
+    "Կարգավորումներ",
+    "Ajustes",
+    "Paramètres",
+    "Einstellungen",
+    "Impostazioni",
+    "Configurações",
+    "Ustawienia",
+    "Налаштування",
+    "Instellingen",
+    "Inställningar",
+    "Pengaturan",
+    "设置",
+    "設定",
+    "설정"
+   ]
+  },
+  {
+   "key": "ui.language",
+   "values": [
+    "Language",
+    "Язык",
+    "Լեզու",
+    "Idioma",
+    "Langue",
+    "Sprache",
+    "Lingua",
+    "Idioma",
+    "Język",
+    "Мова",
+    "Taal",
+    "Språk",
+    "Bahasa",
+    "语言",
+    "言語",
+    "언어"
+   ]
+  },
+  {
+   "key": "ui.sound",
+   "values": [
+    "Sound",
+    "Звук",
+    "Ձայն",
+    "Sonido",
+    "Son",
+    "Ton",
+    "Audio",
+    "Som",
+    "Dźwięk",
+    "Звук",
+    "Geluid",
+    "Ljud",
+    "Suara",
+    "声音",
+    "サウンド",
+    "소리"
+   ]
+  },
+  {
+   "key": "ui.on",
+   "values": [
+    "On",
+    "Вкл",
+    "Միաց.",
+    "Sí",
+    "Oui",
+    "An",
+    "Sì",
+    "Lig.",
+    "Wł.",
+    "Увімк.",
+    "Aan",
+    "På",
+    "Nyala",
+    "开",
+    "オン",
+    "켜기"
+   ]
+  },
+  {
+   "key": "ui.off",
+   "values": [
+    "Off",
+    "Выкл",
+    "Անջատ.",
+    "No",
+    "Non",
+    "Aus",
+    "No",
+    "Desl.",
+    "Wył.",
+    "Вимк.",
+    "Uit",
+    "Av",
+    "Mati",
+    "关",
+    "オフ",
+    "끄기"
+   ]
+  },
+  {
+   "key": "ui.reset",
+   "values": [
+    "Reset progress",
+    "Сбросить прогресс",
+    "Զրոյացնել առաջընթացը",
+    "Borrar progreso",
+    "Réinitialiser",
+    "Fortschritt löschen",
+    "Azzera progressi",
+    "Apagar progresso",
+    "Resetuj postęp",
+    "Скинути прогрес",
+    "Voortgang wissen",
+    "Nollställ framsteg",
+    "Atur ulang progres",
+    "重置进度",
+    "進行をリセット",
+    "진행 초기화"
+   ]
+  },
+  {
+   "key": "ui.reset_confirm",
+   "values": [
+    "Tap again to erase all progress",
+    "Нажми ещё раз, чтобы стереть весь прогресс",
+    "Սեղմիր կրկին՝ ամբողջ առաջընթացը ջնջելու համար",
+    "Toca otra vez para borrar todo el progreso",
+    "Touche encore pour tout effacer",
+    "Nochmal tippen, um alles zu löschen",
+    "Tocca di nuovo per cancellare tutto",
+    "Toque de novo para apagar tudo",
+    "Dotknij ponownie, aby usunąć cały postęp",
+    "Натисни ще раз, щоб стерти весь прогрес",
+    "Tik nog eens om alles te wissen",
+    "Tryck igen för att radera allt",
+    "Ketuk lagi untuk menghapus semua progres",
+    "再点一次清除全部进度",
+    "もう一度タップで全進行を消去",
+    "한 번 더 누르면 모든 진행이 삭제됩니다"
+   ]
+  },
+  {
+   "key": "ui.reset_done",
+   "values": [
+    "Progress erased",
+    "Прогресс стёрт",
+    "Առաջընթացը ջնջված է",
+    "Progreso borrado",
+    "Progression effacée",
+    "Fortschritt gelöscht",
+    "Progressi cancellati",
+    "Progresso apagado",
+    "Postęp usunięty",
+    "Прогрес стерто",
+    "Voortgang gewist",
+    "Framsteg raderade",
+    "Progres dihapus",
+    "进度已清除",
+    "進行を消去しました",
+    "진행이 삭제되었습니다"
+   ]
+  },
+  {
+   "key": "ui.back",
+   "values": [
+    "Back",
+    "Назад",
+    "Հետ",
+    "Atrás",
+    "Retour",
+    "Zurück",
+    "Indietro",
+    "Voltar",
+    "Wstecz",
+    "Назад",
+    "Terug",
+    "Tillbaka",
+    "Kembali",
+    "返回",
+    "戻る",
+    "뒤로"
+   ]
+  },
+  {
+   "key": "zone.grass",
+   "values": [
+    "Grasslands",
+    "Луга",
+    "Մարգագետիններ",
+    "Praderas",
+    "Prairies",
+    "Wiesen",
+    "Praterie",
+    "Campos",
+    "Łąki",
+    "Луки",
+    "Graslanden",
+    "Ängar",
+    "Padang rumput",
+    "草原",
+    "草原",
+    "초원"
+   ]
+  },
+  {
+   "key": "zone.desert",
+   "values": [
+    "Desert",
+    "Пустыня",
+    "Անապատ",
+    "Desierto",
+    "Désert",
+    "Wüste",
+    "Deserto",
+    "Deserto",
+    "Pustynia",
+    "Пустеля",
+    "Woestijn",
+    "Öken",
+    "Gurun",
+    "沙漠",
+    "砂漠",
+    "사막"
+   ]
+  },
+  {
+   "key": "zone.snow",
+   "values": [
+    "Snowfields",
+    "Снега",
+    "Ձյունե դաշտեր",
+    "Nieves",
+    "Neiges",
+    "Schneefelder",
+    "Nevi",
+    "Neve",
+    "Śniegi",
+    "Сніги",
+    "Sneeuwvelden",
+    "Snöfält",
+    "Padang salju",
+    "雪原",
+    "雪原",
+    "설원"
+   ]
+  },
+  {
+   "key": "zone.autumn",
+   "values": [
+    "Autumn woods",
+    "Осенний лес",
+    "Աշնանային անտառ",
+    "Bosque otoñal",
+    "Forêt d'automne",
+    "Herbstwald",
+    "Bosco d'autunno",
+    "Floresta de outono",
+    "Jesienny las",
+    "Осінній ліс",
+    "Herfstbos",
+    "Höstskog",
+    "Hutan musim gugur",
+    "秋林",
+    "秋の森",
+    "가을 숲"
+   ]
+  },
+  {
+   "key": "tower.mg",
+   "values": [
+    "Machine gun",
+    "Пулемёт",
+    "Գնդացիր",
+    "Ametralladora",
+    "Mitrailleuse",
+    "Maschinengewehr",
+    "Mitragliatrice",
+    "Metralhadora",
+    "Karabin",
+    "Кулемет",
+    "Machinegeweer",
+    "Kulspruta",
+    "Senapan mesin",
+    "机枪",
+    "機関銃",
+    "기관총"
+   ]
+  },
+  {
+   "key": "tower.mg.role",
+   "values": [
+    "Ground + air",
+    "Земля + воздух",
+    "Ցամաք + օդ",
+    "Tierra + aire",
+    "Sol + air",
+    "Boden + Luft",
+    "Terra + aria",
+    "Terra + ar",
+    "Ziemia + powietrze",
+    "Земля + повітря",
+    "Grond + lucht",
+    "Mark + luft",
+    "Darat + udara",
+    "对地 + 对空",
+    "地上 + 空中",
+    "지상 + 공중"
+   ]
+  },
+  {
+   "key": "tower.cannon",
+   "values": [
+    "Cannon",
+    "Пушка",
+    "Թնդանոթ",
+    "Cañón",
+    "Canon",
+    "Kanone",
+    "Cannone",
+    "Canhão",
+    "Działo",
+    "Гармата",
+    "Kanon",
+    "Kanon",
+    "Meriam",
+    "加农炮",
+    "大砲",
+    "대포"
+   ]
+  },
+  {
+   "key": "tower.cannon.role",
+   "values": [
+    "Splash, ground",
+    "По площади, земля",
+    "Տարածքով, ցամաք",
+    "Área, tierra",
+    "Zone, sol",
+    "Fläche, Boden",
+    "Area, terra",
+    "Área, terra",
+    "Obszar, ziemia",
+    "По площі, земля",
+    "Gebied, grond",
+    "Område, mark",
+    "Area, darat",
+    "范围，对地",
+    "範囲、地上",
+    "범위, 지상"
+   ]
+  },
+  {
+   "key": "tower.aa",
+   "values": [
+    "Missiles",
+    "Ракеты",
+    "Հրթիռներ",
+    "Misiles",
+    "Missiles",
+    "Raketen",
+    "Missili",
+    "Mísseis",
+    "Rakiety",
+    "Ракети",
+    "Raketten",
+    "Robotar",
+    "Rudal",
+    "导弹",
+    "ミサイル",
+    "미사일"
+   ]
+  },
+  {
+   "key": "tower.aa.role",
+   "values": [
+    "Air only",
+    "Только воздух",
+    "Միայն օդ",
+    "Solo aire",
+    "Air seulement",
+    "Nur Luft",
+    "Solo aria",
+    "Só ar",
+    "Tylko powietrze",
+    "Лише повітря",
+    "Alleen lucht",
+    "Bara luft",
+    "Hanya udara",
+    "仅对空",
+    "空中のみ",
+    "공중 전용"
+   ]
+  },
+  {
+   "key": "tower.flame",
+   "values": [
+    "Flamer",
+    "Огнемёт",
+    "Հրանետ",
+    "Lanzallamas",
+    "Lance-flammes",
+    "Flammenwerfer",
+    "Lanciafiamme",
+    "Lança-chamas",
+    "Miotacz ognia",
+    "Вогнемет",
+    "Vlammenwerper",
+    "Eldkastare",
+    "Penyembur api",
+    "火焰喷射器",
+    "火炎放射器",
+    "화염방사기"
+   ]
+  },
+  {
+   "key": "tower.flame.role",
+   "values": [
+    "Burns groups",
+    "Поджигает группы",
+    "Այրում է խմբերին",
+    "Quema grupos",
+    "Brûle les groupes",
+    "Verbrennt Gruppen",
+    "Brucia i gruppi",
+    "Queima grupos",
+    "Podpala grupy",
+    "Підпалює групи",
+    "Verbrandt groepen",
+    "Bränner grupper",
+    "Membakar kelompok",
+    "灼烧群敌",
+    "群れを焼く",
+    "무리를 태움"
+   ]
+  },
+  {
+   "key": "tower.tesla",
+   "values": [
+    "Tesla",
+    "Тесла",
+    "Տեսլա",
+    "Tesla",
+    "Tesla",
+    "Tesla",
+    "Tesla",
+    "Tesla",
+    "Tesla",
+    "Тесла",
+    "Tesla",
+    "Tesla",
+    "Tesla",
+    "特斯拉",
+    "テスラ",
+    "테슬라"
+   ]
+  },
+  {
+   "key": "tower.tesla.role",
+   "values": [
+    "Chain lightning",
+    "Цепная молния",
+    "Շղթայական կայծակ",
+    "Rayo en cadena",
+    "Éclair en chaîne",
+    "Kettenblitz",
+    "Fulmine a catena",
+    "Raio em cadeia",
+    "Łańcuch piorunów",
+    "Ланцюгова блискавка",
+    "Kettingbliksem",
+    "Kedjeblixt",
+    "Petir berantai",
+    "连锁闪电",
+    "連鎖する雷",
+    "연쇄 번개"
+   ]
+  },
+  {
+   "key": "tower.mortar",
+   "values": [
+    "Mortar",
+    "Миномёт",
+    "Ականանետ",
+    "Mortero",
+    "Mortier",
+    "Mörser",
+    "Mortaio",
+    "Morteiro",
+    "Moździerz",
+    "Міномет",
+    "Mortier",
+    "Granatkastare",
+    "Mortir",
+    "迫击炮",
+    "迫撃砲",
+    "박격포"
+   ]
+  },
+  {
+   "key": "tower.mortar.role",
+   "values": [
+    "Long, splash",
+    "Далеко, по площади",
+    "Հեռու, տարածքով",
+    "Lejos, área",
+    "Loin, zone",
+    "Weit, Fläche",
+    "Lontano, area",
+    "Longe, área",
+    "Daleko, obszar",
+    "Далеко, по площі",
+    "Ver, gebied",
+    "Långt, område",
+    "Jauh, area",
+    "远程，范围",
+    "遠距離、範囲",
+    "원거리, 범위"
+   ]
+  },
+  {
+   "key": "tower.sniper",
+   "values": [
+    "Sniper",
+    "Снайпер",
+    "Դիպուկահար",
+    "Francotirador",
+    "Sniper",
+    "Scharfschütze",
+    "Cecchino",
+    "Atirador",
+    "Snajper",
+    "Снайпер",
+    "Sluipschutter",
+    "Prickskytt",
+    "Penembak jitu",
+    "狙击手",
+    "スナイパー",
+    "저격수"
+   ]
+  },
+  {
+   "key": "tower.sniper.role",
+   "values": [
+    "Hits strongest",
+    "Бьёт сильнейших",
+    "Խփում է ուժեղագույնին",
+    "Al más fuerte",
+    "Vise le plus fort",
+    "Trifft den Stärksten",
+    "Colpisce il più forte",
+    "Acerta o mais forte",
+    "Trafia najsilniejszego",
+    "Б'є найсильніших",
+    "Raakt de sterkste",
+    "Träffar den starkaste",
+    "Menembak yang terkuat",
+    "攻击最强者",
+    "最強の敵を狙う",
+    "가장 강한 적 공격"
+   ]
+  },
+  {
+   "key": "tower.cryo",
+   "values": [
+    "Cryo",
+    "Крио",
+    "Կրիո",
+    "Crio",
+    "Cryo",
+    "Kryo",
+    "Crio",
+    "Crio",
+    "Krio",
+    "Кріо",
+    "Cryo",
+    "Kryo",
+    "Krio",
+    "冰冻",
+    "クライオ",
+    "크라이오"
+   ]
+  },
+  {
+   "key": "tower.cryo.role",
+   "values": [
+    "Slows all",
+    "Замедляет всех",
+    "Դանդաղեցնում է բոլորին",
+    "Ralentiza a todos",
+    "Ralentit tout",
+    "Verlangsamt alle",
+    "Rallenta tutti",
+    "Desacelera todos",
+    "Spowalnia wszystkich",
+    "Сповільнює всіх",
+    "Vertraagt iedereen",
+    "Saktar ner alla",
+    "Memperlambat semua",
+    "减速所有敌人",
+    "全員を減速",
+    "모두 감속"
+   ]
+  },
+  {
+   "key": "enemy.soldier",
+   "values": [
+    "Soldier",
+    "Солдат",
+    "Զինվոր",
+    "Soldado",
+    "Soldat",
+    "Soldat",
+    "Soldato",
+    "Soldado",
+    "Żołnierz",
+    "Солдат",
+    "Soldaat",
+    "Soldat",
+    "Prajurit",
+    "士兵",
+    "兵士",
+    "병사"
+   ]
+  },
+  {
+   "key": "enemy.soldier.info",
+   "values": [
+    "Basic infantry. Cheap and many.",
+    "Обычная пехота. Дешёвая и многочисленная.",
+    "Սովորական հետևակ։ Էժան է և շատ։",
+    "Infantería básica. Barata y numerosa.",
+    "Infanterie de base. Bon marché et nombreuse.",
+    "Einfache Infanterie. Billig und zahlreich.",
+    "Fanteria base. Economica e numerosa.",
+    "Infantaria básica. Barata e numerosa.",
+    "Zwykła piechota. Tania i liczna.",
+    "Звичайна піхота. Дешева й численна.",
+    "Gewone infanterie. Goedkoop en talrijk.",
+    "Vanligt infanteri. Billigt och talrikt.",
+    "Infanteri biasa. Murah dan banyak.",
+    "普通步兵。便宜又多。",
+    "基本の歩兵。安くて数が多い。",
+    "기본 보병. 싸고 많다."
+   ]
+  },
+  {
+   "key": "enemy.jeep",
+   "values": [
+    "Jeep",
+    "Джип",
+    "Ջիպ",
+    "Jeep",
+    "Jeep",
+    "Jeep",
+    "Jeep",
+    "Jipe",
+    "Jeep",
+    "Джип",
+    "Jeep",
+    "Jeep",
+    "Jip",
+    "吉普车",
+    "ジープ",
+    "지프"
+   ]
+  },
+  {
+   "key": "enemy.jeep.info",
+   "values": [
+    "Fast scout car. Hard to catch.",
+    "Быстрая разведка. Трудно догнать.",
+    "Արագ հետախույզ։ Դժվար է հասնել։",
+    "Explorador rápido. Difícil de alcanzar.",
+    "Éclaireur rapide. Difficile à rattraper.",
+    "Schneller Späher. Schwer zu erwischen.",
+    "Esploratore veloce. Difficile da prendere.",
+    "Batedor rápido. Difícil de alcançar.",
+    "Szybki zwiadowca. Trudno go dogonić.",
+    "Швидкий розвідник. Важко наздогнати.",
+    "Snelle verkenner. Moeilijk te raken.",
+    "Snabb spanare. Svår att hinna ikapp.",
+    "Pengintai cepat. Sulit dikejar.",
+    "快速侦察车。很难追上。",
+    "素早い偵察車。追いつきにくい。",
+    "빠른 정찰차. 따라잡기 어렵다."
+   ]
+  },
+  {
+   "key": "enemy.drone",
+   "values": [
+    "Drone",
+    "Дрон",
+    "Դրոն",
+    "Dron",
+    "Drone",
+    "Drohne",
+    "Drone",
+    "Drone",
+    "Dron",
+    "Дрон",
+    "Drone",
+    "Drönare",
+    "Drone",
+    "无人机",
+    "ドローン",
+    "드론"
+   ]
+  },
+  {
+   "key": "enemy.drone.info",
+   "values": [
+    "Flies over everything. Needs anti-air.",
+    "Летает над всем. Нужна ПВО.",
+    "Թռչում է ամեն ինչի վրայով։ Պետք է ՀՕՊ։",
+    "Vuela sobre todo. Necesitas antiaéreo.",
+    "Survole tout. Il faut de la DCA.",
+    "Fliegt über alles. Braucht Flugabwehr.",
+    "Vola sopra tutto. Serve la contraerea.",
+    "Voa sobre tudo. Precisa de antiaérea.",
+    "Lata nad wszystkim. Potrzebna obrona plot.",
+    "Літає над усім. Потрібна ППО.",
+    "Vliegt over alles. Luchtafweer nodig.",
+    "Flyger över allt. Kräver luftvärn.",
+    "Terbang di atas segalanya. Perlu antiudara.",
+    "飞越一切。需要防空。",
+    "何でも飛び越える。対空が必要。",
+    "모든 것 위로 날아간다. 대공이 필요하다."
+   ]
+  },
+  {
+   "key": "enemy.tank",
+   "values": [
+    "Tank",
+    "Танк",
+    "Տանկ",
+    "Tanque",
+    "Char",
+    "Panzer",
+    "Carro armato",
+    "Tanque",
+    "Czołg",
+    "Танк",
+    "Tank",
+    "Stridsvagn",
+    "Tank",
+    "坦克",
+    "戦車",
+    "전차"
+   ]
+  },
+  {
+   "key": "enemy.tank.info",
+   "values": [
+    "Slow and tough.",
+    "Медленный и крепкий.",
+    "Դանդաղ և ամուր։",
+    "Lento y resistente.",
+    "Lent et robuste.",
+    "Langsam und zäh.",
+    "Lento e resistente.",
+    "Lento e resistente.",
+    "Wolny i wytrzymały.",
+    "Повільний і міцний.",
+    "Traag en taai.",
+    "Långsam och seg.",
+    "Lambat dan tangguh.",
+    "缓慢而坚固。",
+    "遅くて頑丈。",
+    "느리고 튼튼하다."
+   ]
+  },
+  {
+   "key": "enemy.apc",
+   "values": [
+    "APC",
+    "БТР",
+    "Զրահափոխադրիչ",
+    "Blindado",
+    "Blindé",
+    "Schützenpanzer",
+    "Blindato",
+    "Blindado",
+    "Transporter",
+    "БТР",
+    "Pantserwagen",
+    "Pansarbil",
+    "Panser",
+    "装甲运兵车",
+    "装甲車",
+    "장갑차"
+   ]
+  },
+  {
+   "key": "enemy.apc.info",
+   "values": [
+    "Drops three soldiers when destroyed.",
+    "При уничтожении высаживает трёх солдат.",
+    "Ոչնչացվելիս իջեցնում է երեք զինվոր։",
+    "Suelta tres soldados al ser destruido.",
+    "Lâche trois soldats une fois détruit.",
+    "Setzt beim Zerstören drei Soldaten ab.",
+    "Sbarca tre soldati quando viene distrutto.",
+    "Solta três soldados ao ser destruído.",
+    "Po zniszczeniu wysadza trzech żołnierzy.",
+    "Після знищення висаджує трьох солдатів.",
+    "Laat drie soldaten achter als hij sneuvelt.",
+    "Släpper av tre soldater när den förstörs.",
+    "Menurunkan tiga prajurit saat hancur.",
+    "被摧毁时放出三名士兵。",
+    "破壊されると兵士を3人降ろす。",
+    "파괴되면 병사 3명을 내린다."
+   ]
+  },
+  {
+   "key": "enemy.heli",
+   "values": [
+    "Helicopter",
+    "Вертолёт",
+    "Ուղղաթիռ",
+    "Helicóptero",
+    "Hélicoptère",
+    "Hubschrauber",
+    "Elicottero",
+    "Helicóptero",
+    "Śmigłowiec",
+    "Гелікоптер",
+    "Helikopter",
+    "Helikopter",
+    "Helikopter",
+    "直升机",
+    "ヘリ",
+    "헬기"
+   ]
+  },
+  {
+   "key": "enemy.heli.info",
+   "values": [
+    "Armoured helicopter. Use missiles.",
+    "Бронированный вертолёт. Нужны ракеты.",
+    "Զրահապատ ուղղաթիռ։ Օգտագործիր հրթիռներ։",
+    "Helicóptero blindado. Usa misiles.",
+    "Hélicoptère blindé. Utilise des missiles.",
+    "Gepanzerter Hubschrauber. Nimm Raketen.",
+    "Elicottero corazzato. Usa i missili.",
+    "Helicóptero blindado. Use mísseis.",
+    "Opancerzony śmigłowiec. Użyj rakiet.",
+    "Броньований гелікоптер. Використай ракети.",
+    "Gepantserde helikopter. Gebruik raketten.",
+    "Pansrad helikopter. Använd robotar.",
+    "Helikopter lapis baja. Gunakan rudal.",
+    "装甲直升机。用导弹对付。",
+    "装甲ヘリ。ミサイルで撃て。",
+    "장갑 헬기. 미사일을 쓰세요."
+   ]
+  },
+  {
+   "key": "enemy.boss",
+   "values": [
+    "Juggernaut",
+    "Джаггернаут",
+    "Ջագերնաուտ",
+    "Juggernaut",
+    "Juggernaut",
+    "Juggernaut",
+    "Juggernaut",
+    "Juggernaut",
+    "Juggernaut",
+    "Джаггернаут",
+    "Juggernaut",
+    "Juggernaut",
+    "Juggernaut",
+    "巨兽坦克",
+    "ジャガーノート",
+    "저거너트"
+   ]
+  },
+  {
+   "key": "enemy.boss.info",
+   "values": [
+    "A massive tank.",
+    "Огромный тяжёлый танк.",
+    "Հսկա տանկ։",
+    "Un tanque enorme.",
+    "Un char énorme.",
+    "Ein riesiger Panzer.",
+    "Un carro enorme.",
+    "Um tanque enorme.",
+    "Ogromny czołg.",
+    "Величезний танк.",
+    "Een gigantische tank.",
+    "En enorm stridsvagn.",
+    "Tank raksasa.",
+    "一辆巨大的坦克。",
+    "巨大な戦車。",
+    "거대한 전차."
+   ]
+  },
+  {
+   "key": "enemy.gunship",
+   "values": [
+    "Sky Fortress",
+    "Летающая крепость",
+    "Երկնային ամրոց",
+    "Fortaleza aérea",
+    "Forteresse volante",
+    "Himmelsfestung",
+    "Fortezza volante",
+    "Fortaleza aérea",
+    "Podniebna forteca",
+    "Летюча фортеця",
+    "Luchtvesting",
+    "Himlafästning",
+    "Benteng langit",
+    "空中堡垒",
+    "空中要塞",
+    "하늘 요새"
+   ]
+  },
+  {
+   "key": "enemy.gunship.info",
+   "values": [
+    "Drops drones when shot down.",
+    "Сбитая, выпускает дронов.",
+    "Խոցվելիս բաց է թողնում դրոններ։",
+    "Suelta drones al ser derribada.",
+    "Lâche des drones quand elle tombe.",
+    "Lässt Drohnen frei, wenn sie abstürzt.",
+    "Rilascia droni quando cade.",
+    "Solta drones ao ser derrubada.",
+    "Po zestrzeleniu wypuszcza drony.",
+    "Збита, випускає дронів.",
+    "Laat drones vrij als hij neerstort.",
+    "Släpper drönare när den skjuts ner.",
+    "Melepas drone saat ditembak jatuh.",
+    "被击落时放出无人机。",
+    "撃墜されるとドローンを放つ。",
+    "격추되면 드론을 풀어놓는다."
+   ]
+  },
+  {
+   "key": "enemy.titan",
+   "values": [
+    "Titan",
+    "Титан",
+    "Տիտան",
+    "Titán",
+    "Titan",
+    "Titan",
+    "Titano",
+    "Titã",
+    "Tytan",
+    "Титан",
+    "Titan",
+    "Titan",
+    "Titan",
+    "泰坦",
+    "タイタン",
+    "타이탄"
+   ]
+  },
+  {
+   "key": "enemy.titan.info",
+   "values": [
+    "Three turrets; drops tanks when destroyed.",
+    "Три башни; при гибели высаживает танки.",
+    "Երեք աշտարակ. ոչնչանալիս իջեցնում է տանկեր։",
+    "Tres torretas; suelta tanques al ser destruido.",
+    "Trois tourelles ; lâche des chars une fois détruit.",
+    "Drei Türme; setzt beim Zerstören Panzer ab.",
+    "Tre torrette; sbarca carri quando viene distrutto.",
+    "Três torres; solta tanques ao ser destruído.",
+    "Trzy wieże; po zniszczeniu wysadza czołgi.",
+    "Три вежі; після знищення висаджує танки.",
+    "Drie torens; laat tanks achter als hij sneuvelt.",
+    "Tre torn; släpper stridsvagnar när den förstörs.",
+    "Tiga menara; menurunkan tank saat hancur.",
+    "三座炮塔；被摧毁时放出坦克。",
+    "砲塔3基。破壊されると戦車を降ろす。",
+    "포탑 3개. 파괴되면 전차를 내린다."
+   ]
+  },
+  {
+   "key": "enemy.biker",
+   "values": [
+    "Biker",
+    "Байкер",
+    "Մոտոցիկլավար",
+    "Motorista",
+    "Motard",
+    "Biker",
+    "Motociclista",
+    "Motoqueiro",
+    "Motocyklista",
+    "Байкер",
+    "Motorrijder",
+    "Motorcyklist",
+    "Pengendara motor",
+    "摩托兵",
+    "バイク兵",
+    "오토바이병"
+   ]
+  },
+  {
+   "key": "enemy.biker.info",
+   "values": [
+    "Very fast and fragile. Comes in swarms.",
+    "Очень быстрый и хрупкий. Приходит толпами.",
+    "Շատ արագ և փխրուն։ Գալիս են խմբերով։",
+    "Muy rápido y frágil. Llega en enjambres.",
+    "Très rapide et fragile. Arrive en essaims.",
+    "Sehr schnell und zerbrechlich. Kommt in Schwärmen.",
+    "Velocissimo e fragile. Arriva a sciami.",
+    "Muito rápido e frágil. Vem em enxames.",
+    "Bardzo szybki i kruchy. Przybywa rojami.",
+    "Дуже швидкий і крихкий. Приходить зграями.",
+    "Erg snel en breekbaar. Komt in zwermen.",
+    "Mycket snabb och skör. Kommer i svärmar.",
+    "Sangat cepat dan rapuh. Datang bergerombol.",
+    "极快而脆弱。成群出现。",
+    "とても速くてもろい。群れで来る。",
+    "매우 빠르고 약하다. 떼로 온다."
+   ]
+  },
+  {
+   "key": "enemy.medic",
+   "values": [
+    "Medic",
+    "Медик",
+    "Բժիշկ",
+    "Médico",
+    "Médecin",
+    "Sanitäter",
+    "Medico",
+    "Médico",
+    "Medyk",
+    "Медик",
+    "Hospik",
+    "Sjukvårdare",
+    "Medis",
+    "医疗车",
+    "衛生車",
+    "의무차"
+   ]
+  },
+  {
+   "key": "enemy.medic.info",
+   "values": [
+    "Heals every enemy around it. Kill it first!",
+    "Лечит всех врагов рядом. Убей его первым!",
+    "Բուժում է մոտակա թշնամիներին։ Սպանիր նրան առաջինը։",
+    "Cura a los enemigos cercanos. ¡Elimínalo primero!",
+    "Soigne les ennemis proches. Abats-le d'abord !",
+    "Heilt Gegner in der Nähe. Zuerst ausschalten!",
+    "Cura i nemici vicini. Eliminalo per primo!",
+    "Cura inimigos próximos. Elimine-o primeiro!",
+    "Leczy pobliskich wrogów. Zabij go pierwszego!",
+    "Лікує ворогів поруч. Знищ його першим!",
+    "Geneest vijanden in de buurt. Schakel hem eerst uit!",
+    "Helar fiender i närheten. Döda honom först!",
+    "Menyembuhkan musuh di dekatnya. Habisi duluan!",
+    "治疗附近的敌人。先干掉它！",
+    "周りの敵を回復する。最初に倒せ！",
+    "주변 적을 치료한다. 먼저 처치하세요!"
+   ]
+  },
+  {
+   "key": "enemy.heavy",
+   "values": [
+    "Heavy tank",
+    "Тяжёлый танк",
+    "Ծանր տանկ",
+    "Tanque pesado",
+    "Char lourd",
+    "Schwerer Panzer",
+    "Carro pesante",
+    "Tanque pesado",
+    "Ciężki czołg",
+    "Важкий танк",
+    "Zware tank",
+    "Tung stridsvagn",
+    "Tank berat",
+    "重型坦克",
+    "重戦車",
+    "중전차"
+   ]
+  },
+  {
+   "key": "enemy.heavy.info",
+   "values": [
+    "Thick armour: weak shots barely scratch it.",
+    "Толстая броня: слабые выстрелы почти не берут.",
+    "Հաստ զրահ. թույլ կրակոցները գրեթե չեն վնասում։",
+    "Blindaje grueso: los disparos débiles apenas le hacen daño.",
+    "Blindage épais : les tirs faibles l'égratignent à peine.",
+    "Dicke Panzerung: Schwache Schüsse kratzen kaum.",
+    "Corazza spessa: i colpi deboli lo graffiano appena.",
+    "Blindagem grossa: tiros fracos mal arranham.",
+    "Gruby pancerz: słabe strzały ledwo go drapią.",
+    "Товста броня: слабкі постріли майже не беруть.",
+    "Dik pantser: zwakke schoten krassen nauwelijks.",
+    "Tjockt pansar: svaga skott biter knappt.",
+    "Lapis baja tebal: tembakan lemah nyaris tak berpengaruh.",
+    "厚重装甲：弱攻击几乎无效。",
+    "分厚い装甲：弱い攻撃はほぼ効かない。",
+    "두꺼운 장갑: 약한 공격은 거의 통하지 않는다."
+   ]
+  },
+  {
+   "key": "enemy.hover",
+   "values": [
+    "Hovercraft",
+    "Ховеркрафт",
+    "Օդաբարձիկ",
+    "Aerodeslizador",
+    "Aéroglisseur",
+    "Luftkissenboot",
+    "Hovercraft",
+    "Hovercraft",
+    "Poduszkowiec",
+    "Ховеркрафт",
+    "Hovercraft",
+    "Svävare",
+    "Hovercraft",
+    "气垫船",
+    "ホバークラフト",
+    "호버크래프트"
+   ]
+  },
+  {
+   "key": "enemy.hover.info",
+   "values": [
+    "Fast and sturdy.",
+    "Быстрый и крепкий.",
+    "Արագ և ամուր։",
+    "Rápido y resistente.",
+    "Rapide et robuste.",
+    "Schnell und robust.",
+    "Veloce e resistente.",
+    "Rápido e resistente.",
+    "Szybki i wytrzymały.",
+    "Швидкий і міцний.",
+    "Snel en stevig.",
+    "Snabb och tålig.",
+    "Cepat dan kokoh.",
+    "快速而坚固。",
+    "速くて頑丈。",
+    "빠르고 튼튼하다."
+   ]
+  },
+  {
+   "key": "enemy.jet",
+   "values": [
+    "Strike jet",
+    "Штурмовик",
+    "Գրոհային ինքնաթիռ",
+    "Caza",
+    "Chasseur",
+    "Kampfjet",
+    "Caccia",
+    "Caça",
+    "Odrzutowiec",
+    "Штурмовик",
+    "Straaljager",
+    "Jaktplan",
+    "Jet tempur",
+    "战斗机",
+    "ジェット機",
+    "전투기"
+   ]
+  },
+  {
+   "key": "enemy.jet.info",
+   "values": [
+    "Blazing fast air target.",
+    "Очень быстрая воздушная цель.",
+    "Շատ արագ օդային թիրախ։",
+    "Objetivo aéreo rapidísimo.",
+    "Cible aérienne ultra-rapide.",
+    "Blitzschnelles Luftziel.",
+    "Bersaglio aereo velocissimo.",
+    "Alvo aéreo rapidíssimo.",
+    "Błyskawicznie szybki cel powietrzny.",
+    "Дуже швидка повітряна ціль.",
+    "Razendsnel luchtdoel.",
+    "Blixtsnabbt luftmål.",
+    "Sasaran udara super cepat.",
+    "极快的空中目标。",
+    "超高速の空中目標。",
+    "초고속 공중 목표."
+   ]
+  },
+  {
+   "key": "enemy.mech",
+   "values": [
+    "Mech",
+    "Мех",
+    "Մեխ",
+    "Mech",
+    "Mécha",
+    "Mech",
+    "Mech",
+    "Mech",
+    "Mech",
+    "Мех",
+    "Mech",
+    "Mech",
+    "Mech",
+    "机甲",
+    "メカ",
+    "메카"
+   ]
+  },
+  {
+   "key": "enemy.mech.info",
+   "values": [
+    "Armoured walker.",
+    "Бронированный шагоход.",
+    "Զրահապատ քայլող մեքենա։",
+    "Caminante blindado.",
+    "Marcheur blindé.",
+    "Gepanzerter Läufer.",
+    "Camminatore corazzato.",
+    "Andador blindado.",
+    "Opancerzony kroczący robot.",
+    "Броньований крокохід.",
+    "Gepantserde loper.",
+    "Pansrad gångare.",
+    "Robot berjalan lapis baja.",
+    "装甲步行机。",
+    "装甲歩行兵器。",
+    "장갑 보행 병기."
+   ]
+  },
+  {
+   "key": "enemy.colossus",
+   "values": [
+    "Colossus",
+    "Колосс",
+    "Կոլոս",
+    "Coloso",
+    "Colosse",
+    "Koloss",
+    "Colosso",
+    "Colosso",
+    "Kolos",
+    "Колос",
+    "Kolos",
+    "Koloss",
+    "Kolosus",
+    "巨像",
+    "コロッサス",
+    "콜로서스"
+   ]
+  },
+  {
+   "key": "enemy.colossus.info",
+   "values": [
+    "A giant walker; drops mechs when destroyed.",
+    "Гигантский шагоход; при гибели высаживает мехов.",
+    "Հսկա քայլող մեքենա. ոչնչանալիս իջեցնում է մեխեր։",
+    "Caminante gigante; suelta mechs al ser destruido.",
+    "Marcheur géant ; lâche des méchas une fois détruit.",
+    "Riesiger Läufer; setzt beim Zerstören Mechs ab.",
+    "Camminatore gigante; sbarca mech quando viene distrutto.",
+    "Andador gigante; solta mechs ao ser destruído.",
+    "Gigantyczny robot; po zniszczeniu wysadza mechy.",
+    "Гігантський крокохід; після знищення висаджує мехів.",
+    "Reusachtige loper; laat mechs achter als hij sneuvelt.",
+    "Gigantisk gångare; släpper mechs när den förstörs.",
+    "Robot raksasa; menurunkan mech saat hancur.",
+    "巨型步行机；被摧毁时放出机甲。",
+    "巨大歩行兵器。破壊されるとメカを降ろす。",
+    "거대 보행 병기. 파괴되면 메카를 내린다."
+   ]
+  },
+  {
+   "key": "enemy.carrier",
+   "values": [
+    "Carrier",
+    "Авианосец",
+    "Ավիակիր",
+    "Portaaviones",
+    "Porte-avions",
+    "Träger",
+    "Portaerei",
+    "Porta-aviões",
+    "Lotniskowiec",
+    "Авіаносець",
+    "Vliegdekschip",
+    "Hangarfartyg",
+    "Kapal induk",
+    "航母",
+    "空母",
+    "항공모함"
+   ]
+  },
+  {
+   "key": "enemy.carrier.info",
+   "values": [
+    "Launches drones while it flies.",
+    "В полёте выпускает дронов.",
+    "Թռիչքի ժամանակ բաց է թողնում դրոններ։",
+    "Lanza drones mientras vuela.",
+    "Lance des drones en vol.",
+    "Startet im Flug Drohnen.",
+    "Lancia droni mentre vola.",
+    "Lança drones enquanto voa.",
+    "W locie wypuszcza drony.",
+    "У польоті випускає дронів.",
+    "Lanceert drones tijdens de vlucht.",
+    "Skickar ut drönare under flygning.",
+    "Meluncurkan drone saat terbang.",
+    "飞行中不断放出无人机。",
+    "飛びながらドローンを発進させる。",
+    "비행하며 드론을 출격시킨다."
+   ]
+  }
+ ]
+}
