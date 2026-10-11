@@ -53,7 +53,7 @@ namespace Corehold
 
             // Towers on pedestals.
             var spots = new[] { new Vector3(-0.6f, 0f, 2.6f), new Vector3(6.6f, 0f, 2.4f), new Vector3(6.2f, 0f, -1.2f) };
-            var turretMeshes = new[] { Models.MgTurret, Models.CannonTurret, Models.AaTurret };
+            var turretMeshes = new[] { Models.Turret("mg", 3), Models.Turret("cannon", 3), Models.Turret("aa", 3) };
             turrets = new Transform[spots.Length + 1];
             for (int i = 0; i < spots.Length; i++)
             {
@@ -61,7 +61,7 @@ namespace Corehold
                 ped.Cylinder(Vector3.zero, 0.75f, 0.3f, 8, Art.Hex("444B55"), Art.Hex("525A65"));
                 ped.Cylinder(new Vector3(0f, 0.3f, 0f), 0.68f, 0.015f, 8, Glow(Yellow, 0.3f));
                 var pedestal = Part("Pedestal", ped.ToMesh("Pedestal"), transform, spots[i], 1f);
-                var tower = Part("Tower", Models.TowerBase, pedestal, new Vector3(0f, 0.31f, 0f), 1.4f);
+                var tower = Part("Tower", Models.TowerBase(3), pedestal, new Vector3(0f, 0.31f, 0f), 1.4f);
                 turrets[i] = Part("Turret", turretMeshes[i], tower, new Vector3(0f, 0.32f, 0f), 1f);
             }
             turrets[spots.Length] = tankTurret;

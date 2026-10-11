@@ -56,7 +56,9 @@ namespace Corehold
         public int level;
         public int spent;
         public float cooldown, angle, recoil;
+        public float bounce;                // 1 right after building or upgrading, fades to 0
         public GameObject root;
+        public MeshFilter baseFilter, turretFilter;
         public Transform turret;
         public GameObject[] pips;
         public Enemy target;

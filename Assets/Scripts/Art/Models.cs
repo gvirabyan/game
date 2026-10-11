@@ -11,7 +11,10 @@ namespace Corehold
 
         public static Mesh Soldier, SoldierLeg, Tank, TankTurret, Drone, DroneRotor;
         public static Mesh AlliedTank, AlliedTankTurret, AlliedDrone;     // player-side vehicles for the garage menu
-        public static Mesh TowerBase, MgTurret, CannonTurret, AaTurret, Pip;
+        public const int TowerLevels = 4;
+        public static Mesh Pip;
+        static readonly Mesh[] towerBases = new Mesh[TowerLevels];
+        static readonly Mesh[,] turrets = new Mesh[3, TowerLevels];
         public static Mesh Bullet, Shell, Missile;
 
         // Colours. Alpha below 1 makes a part glow (see LowPoly.shader).
@@ -41,15 +44,24 @@ namespace Corehold
             AlliedTank = Make("AlliedTank", b => BuildTankHull(b, Allied));
             AlliedTankTurret = Make("AlliedTankTurret", b => BuildTankTurret(b, Allied));
             AlliedDrone = Make("AlliedDrone", b => BuildDrone(b, Allied.Main, Allied.Light, Allied.Dark));
-            TowerBase = Make("TowerBase", BuildTowerBase);
-            MgTurret = Make("MgTurret", BuildMgTurret);
-            CannonTurret = Make("CannonTurret", BuildCannonTurret);
-            AaTurret = Make("AaTurret", BuildAaTurret);
+            for (int level = 0; level < TowerLevels; level++)
+            {
+                int l = level;
+                towerBases[l] = Make("TowerBase" + l, b => BuildTowerBase(b, l));
+                turrets[0, l] = Make("MgTurret" + l, b => BuildMgTurret(b, l));
+                turrets[1, l] = Make("CannonTurret" + l, b => BuildCannonTurret(b, l));
+                turrets[2, l] = Make("AaTurret" + l, b => BuildAaTurret(b, l));
+            }
             Pip = Make("Pip", b => b.Box(new Vector3(0f, 0.03f, 0f), new Vector3(0.09f, 0.06f, 0.09f), Glow(Art.Palette.Gold, 0.7f)));
             Bullet = Make("Bullet", b => b.Box(Vector3.zero, new Vector3(0.32f, 0.05f, 0.05f), Glow(Art.Hex("FFE27A"))));
             Shell = Make("Shell", b => b.Sphere(Vector3.zero, Vector3.one * 0.09f, Art.Hex("2E2E2E"), 3, 6));
             Missile = Make("Missile", BuildMissile);
         }
+
+        public static Mesh TowerBase(int level) => towerBases[Mathf.Clamp(level, 0, TowerLevels - 1)];
+
+        public static Mesh Turret(string towerId, int level) =>
+            turrets[towerId == "cannon" ? 1 : towerId == "aa" ? 2 : 0, Mathf.Clamp(level, 0, TowerLevels - 1)];
 
         static Mesh Make(string name, System.Action<MeshBuilder> build)
         {
@@ -150,39 +162,87 @@ namespace Corehold
 
         // ---------------- Player towers (steel blue) ----------------
 
-        static void BuildTowerBase(MeshBuilder b)
+        // Towers grow with every upgrade: armour skirt (1), corner lights and plating (2), gold trim and antenna (3);
+        // turrets gain barrels, tubes, armour and a radar.
+        static readonly Color Gold = Art.Hex("E8B84A");
+
+        static void BuildTowerBase(MeshBuilder b, int level)
         {
             b.Cylinder(Vector3.zero, 0.47f, 0.22f, 8, SteelDark, Art.Hex("47586E"));
             b.Cylinder(new Vector3(0f, 0.22f, 0f), 0.4f, 0.1f, 8, Art.Hex("4F6178"), Art.Hex("5C6F88"));
+            if (level >= 1)
+                b.Cylinder(Vector3.zero, 0.52f, 0.12f, 8, Art.Hex("34404F"), Art.Hex("56677D"));
+            if (level >= 2)
+                for (int i = 0; i < 4; i++)
+                {
+                    float a = (45f + i * 90f) * Mathf.Deg2Rad;
+                    var p = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 0.42f;
+                    b.Box(p + new Vector3(0f, 0.17f, 0f), new Vector3(0.12f, 0.34f, 0.12f), SteelLight, -a * Mathf.Rad2Deg);
+                    b.Box(p + new Vector3(0f, 0.35f, 0f), new Vector3(0.07f, 0.04f, 0.07f), Glow(Art.Hex("6FD3FF"), 0.8f), -a * Mathf.Rad2Deg);
+                }
+            if (level >= 3)
+            {
+                b.Cylinder(new Vector3(0f, 0.3f, 0f), 0.42f, 0.03f, 8, Gold, Art.Hex("F5D27A"));
+                b.Cylinder(new Vector3(-0.3f, 0.22f, -0.2f), 0.015f, 0.55f, 4, Gun);
+                b.Sphere(new Vector3(-0.3f, 0.79f, -0.2f), Vector3.one * 0.04f, Glow(Red), 2, 5);
+            }
         }
 
-        static void BuildMgTurret(MeshBuilder b)
+        static void BuildMgTurret(MeshBuilder b, int level)
         {
-            b.Cylinder(Vector3.zero, 0.24f, 0.2f, 8, Steel, SteelLight);
-            b.Box(new Vector3(0.16f, 0.12f, 0f), new Vector3(0.14f, 0.14f, 0.24f), SteelDark);
-            b.Barrel(new Vector3(0.2f, 0.13f, 0.065f), 0.48f, 0.03f, 6, Gun);
-            b.Barrel(new Vector3(0.2f, 0.13f, -0.065f), 0.48f, 0.03f, 6, Gun);
+            float r = 0.24f + 0.02f * level;
+            b.Cylinder(Vector3.zero, r, 0.2f, 8, Steel, level >= 3 ? Gold : SteelLight);
+            b.Box(new Vector3(0.16f, 0.12f, 0f), new Vector3(0.14f, 0.14f, 0.24f + 0.04f * level), SteelDark);
+            float length = 0.48f + 0.06f * level;
+            int rows = level >= 2 ? 2 : 1;
+            for (int row = 0; row < rows; row++)
+                for (int side = -1; side <= 1; side += 2)
+                    b.Barrel(new Vector3(0.2f, 0.11f + row * 0.08f + (rows == 1 ? 0.02f : 0f), 0.065f * side), length, 0.03f, 6, Gun);
             b.Box(new Vector3(-0.12f, 0.24f, 0f), new Vector3(0.12f, 0.08f, 0.16f), Art.Hex("2D3A4A"));
+            if (level >= 1)
+            {
+                // Gun shield and an ammo box.
+                b.Box(new Vector3(0.26f, 0.16f, 0f), new Vector3(0.04f, 0.2f, 0.36f), SteelLight);
+                b.Box(new Vector3(-0.05f, 0.12f, -0.26f), new Vector3(0.18f, 0.12f, 0.1f), Art.Hex("4F6B3A"));
+            }
         }
 
-        static void BuildCannonTurret(MeshBuilder b)
+        static void BuildCannonTurret(MeshBuilder b, int level)
         {
-            b.Box(new Vector3(-0.04f, 0.12f, 0f), new Vector3(0.46f, 0.24f, 0.4f), Steel, 0f, false, SteelLight);
+            float w = 0.46f + 0.04f * level;
+            b.Box(new Vector3(-0.04f, 0.12f, 0f), new Vector3(w, 0.24f, 0.4f + 0.04f * level), Steel, 0f, false, level >= 3 ? Gold : SteelLight);
             b.Box(new Vector3(-0.1f, 0.27f, 0f), new Vector3(0.24f, 0.07f, 0.26f), SteelDark);
-            b.Barrel(new Vector3(0.18f, 0.14f, 0f), 0.55f, 0.07f, 8, Gun);
-            b.Barrel(new Vector3(0.68f, 0.14f, 0f), 0.1f, 0.095f, 8, Art.Hex("161A1F"));
+            float length = 0.55f + 0.08f * level, radius = 0.07f + 0.008f * level;
+            var barrels = level >= 3 ? new[] { -0.09f, 0.09f } : new[] { 0f };
+            foreach (var z in barrels)
+            {
+                b.Barrel(new Vector3(0.18f, 0.14f, z), length, radius, 8, Gun);
+                b.Barrel(new Vector3(0.18f + length - 0.05f, 0.14f, z), 0.1f + (level >= 1 ? 0.04f : 0f), radius + 0.025f, 8, Art.Hex("161A1F"));
+            }
+            if (level >= 2)
+                for (int side = -1; side <= 1; side += 2)
+                    b.Box(new Vector3(-0.02f, 0.13f, side * (0.24f + 0.02f * level)), new Vector3(w * 0.9f, 0.2f, 0.05f), SteelLight);
         }
 
-        static void BuildAaTurret(MeshBuilder b)
+        static void BuildAaTurret(MeshBuilder b, int level)
         {
             b.Cylinder(Vector3.zero, 0.22f, 0.12f, 8, SteelDark);
-            b.Box(new Vector3(0f, 0.27f, 0f), new Vector3(0.4f, 0.24f, 0.44f), Steel, 0f, false, SteelLight);
-            for (int row = 0; row < 2; row++)
+            int rows = level >= 3 ? 4 : level >= 1 ? 3 : 2;
+            float h = 0.12f * rows;
+            b.Box(new Vector3(0f, 0.15f + h * 0.5f, 0f), new Vector3(0.4f, h + 0.06f, 0.44f), Steel, 0f, false, level >= 3 ? Gold : SteelLight);
+            for (int row = 0; row < rows; row++)
             for (int col = -1; col <= 1; col += 2)
             {
                 var start = new Vector3(0.2f, 0.21f + row * 0.12f, 0.1f * col);
                 b.Barrel(start, 0.12f, 0.045f, 6, White);
                 b.Barrel(start + new Vector3(0.12f, 0f, 0f), 0.05f, 0.047f, 6, Glow(Red, 0.4f));
+            }
+            if (level >= 2)
+            {
+                // Search radar on a mast.
+                float top = 0.18f + h;
+                b.Cylinder(new Vector3(-0.12f, top, 0f), 0.025f, 0.18f, 5, Gun);
+                b.Box(new Vector3(-0.12f, top + 0.2f, 0f), new Vector3(0.05f, 0.12f, 0.3f), Art.Hex("D9DEE2"));
             }
         }
 

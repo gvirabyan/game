@@ -25,7 +25,10 @@ namespace Corehold
         const float UnitScale = 1.3f;
         const float TurretScanSpeed = 20f;     // idle turrets slowly sweep
         const float RecoilDistance = 0.07f, RecoilRecovery = 7f;
-        const int Soldier = 0, Tank = 1, Drone = 2;          // models are drawn larger than their logic size for readability
+        const int Soldier = 0, Tank = 1, Drone = 2;
+        const float MaxZoom = 2.2f;
+        const float DragThreshold = 0.025f;    // fraction of screen height a press may move and still count as a tap
+        const float BounceTime = 0.45f;          // models are drawn larger than their logic size for readability
         const float FlashFade = 8f;            // enemy hit flash fades in 1/8 s
         static readonly Color SmokeColor = new Color(0.42f, 0.42f, 0.4f, 0.55f);
         static readonly Color MuzzleColor = Art.Hex("FFE9A8"), SparkColor = Art.Hex("FFD27A"), FireCoreColor = Art.Hex("FFF4D6");
@@ -49,6 +52,7 @@ namespace Corehold
         public IReadOnlyList<BuildSpot> Spots => spots;
 
         public int EnemyCount => enemies.Active.Count;
+        public float Zoom { get => zoom; set => zoom = Mathf.Clamp(value, 1f, MaxZoom); }
         public int ProjectileCount => projectiles.Active.Count;
         public int PoolGrowth => enemies.Created + projectiles.Created + effects.Created;
         public bool CanStartNextWave => State == GameState.Playing && !Spawning && WavesStarted < WaveCount;
@@ -59,6 +63,12 @@ namespace Corehold
         Camera cam;
         Vector3 camHome;
         float shake;
+        // Pinch zoom and drag pan on top of the fitted camera.
+        float zoom = 1f, groundDistance, pinchStartDistance, pinchStartZoom;
+        Vector3 pan;
+        Vector2 visibleSize;                   // world size of the ground seen at zoom 1 (x, z)
+        Vector2 pressPosition, lastPointer;
+        bool pressing, dragged, pinching;
         MaterialPropertyBlock flashBlock;
         Quaternion billboard;
         LevelPath path;
@@ -151,7 +161,13 @@ namespace Corehold
             CameraRig.Fit(cam);
             camHome = cam.transform.position;
             shake = 0f;
-            return CameraRig.VisibleMap(cam);
+            zoom = 1f;
+            pan = Vector3.zero;
+            var forward = cam.transform.forward;
+            groundDistance = -camHome.y / forward.y;
+            var view = CameraRig.VisibleMap(cam);
+            visibleSize = new Vector2(view.width, view.height * View.ZStretch);
+            return view;
         }
 
         // Enemies should walk in from beyond the screen edge on every aspect ratio.
@@ -446,9 +462,10 @@ namespace Corehold
             tower.root = new GameObject("Tower_" + type.id);
             tower.root.transform.SetParent(levelRoot, false);
             tower.root.transform.localPosition = View.World(spot.position, 0.1f);
-            MeshObject("Base", Models.TowerBase, tower.root.transform);
-            var turretMesh = type.id == "cannon" ? Models.CannonTurret : type.id == "aa" ? Models.AaTurret : Models.MgTurret;
-            tower.turret = MeshObject("Turret", turretMesh, tower.root.transform);
+            tower.baseFilter = MeshObject("Base", Models.TowerBase(0), tower.root.transform).GetComponent<MeshFilter>();
+            tower.turret = MeshObject("Turret", Models.Turret(type.id, 0), tower.root.transform);
+            tower.turretFilter = tower.turret.GetComponent<MeshFilter>();
+            tower.bounce = 1f;
             tower.turret.localPosition = new Vector3(0f, TowerTop, 0f);
             tower.turret.localRotation = View.Yaw(tower.angle);
             tower.pips = new GameObject[type.maxLevel];
@@ -482,6 +499,11 @@ namespace Corehold
             t.spent += cost;
             t.pips[t.level].SetActive(true);
             t.level++;
+            // The tower visibly grows: new base and turret models, and a little pop.
+            t.baseFilter.sharedMesh = Models.TowerBase(t.level);
+            t.turretFilter.sharedMesh = Models.Turret(t.type.id, t.level);
+            t.bounce = 1f;
+            Smoke(Selected.position, 0.1f, 3, 0.7f);
             Flash(Selected.position, 0.6f, 1.3f, Art.Palette.Gold);
             Select(Selected);
             return true;
@@ -514,6 +536,12 @@ namespace Corehold
                 }
 
                 t.cooldown -= dt;
+                if (t.bounce > 0f)
+                {
+                    t.bounce = Mathf.Max(0f, t.bounce - dt / BounceTime);
+                    float k = 1f - t.bounce;
+                    t.root.transform.localScale = Vector3.one * (1f + Mathf.Sin(k * Mathf.PI * 2.5f) * 0.18f * t.bounce);
+                }
                 if (t.recoil > 0f)
                 {
                     t.recoil = Mathf.Max(0f, t.recoil - RecoilRecovery * dt);
@@ -696,12 +724,22 @@ namespace Corehold
             }
         }
 
-        // Short camera shake for big hits; decays quickly.
-        void UpdateShake(float dt)
+        // Zoomed and panned camera plus a short shake for big hits.
+        void UpdateCamera(float dt)
         {
-            if (shake <= 0f) return;
             shake = Mathf.Max(0f, shake - dt * 0.6f);
-            cam.transform.position = camHome + (Vector3)(UnityEngine.Random.insideUnitCircle * shake);
+            ClampPan();
+            var position = camHome + cam.transform.forward * (groundDistance * (1f - 1f / zoom)) + pan;
+            if (shake > 0f) position += (Vector3)(UnityEngine.Random.insideUnitCircle * shake);
+            cam.transform.position = position;
+        }
+
+        // Keep the zoomed view over the battlefield: the further in, the further it may pan.
+        void ClampPan()
+        {
+            float free = 1f - 1f / zoom;
+            float maxX = visibleSize.x * free * 0.5f, maxZ = visibleSize.y * free * 0.5f;
+            pan = new Vector3(Mathf.Clamp(pan.x, -maxX, maxX), 0f, Mathf.Clamp(pan.z, -maxZ, maxZ));
         }
 
         // ---------------- Frame loop ----------------
@@ -711,13 +749,13 @@ namespace Corehold
             if (State != GameState.Playing) return;
             float dt = Time.deltaTime;
 
-            HandleTap();
+            HandleInput();
             UpdateWaves(dt);
             UpdateEnemies(dt);
             UpdateTowers(dt);
             UpdateProjectiles(dt);
             UpdateEffects(dt);
-            UpdateShake(Time.unscaledDeltaTime);
+            UpdateCamera(Time.unscaledDeltaTime);
 
             if (Lives <= 0)
                 Finish(GameState.Lost);
@@ -728,17 +766,64 @@ namespace Corehold
         void Finish(GameState result)
         {
             Deselect();
-            cam.transform.position = camHome;
             shake = 0f;
             State = result;
             Time.timeScale = 1f;
             StateChanged?.Invoke();
         }
 
-        void HandleTap()
+        // Two fingers pinch to zoom; one finger drags to pan when zoomed in; a short press without moving is a tap.
+        void HandleInput()
         {
-            if (!Input.GetMouseButtonDown(0) || PointerOverUI()) return;
-            var ray = cam.ScreenPointToRay(Input.mousePosition);
+            float wheel = Input.mouseScrollDelta.y;
+            if (wheel != 0f) zoom = Mathf.Clamp(zoom * (1f + wheel * 0.1f), 1f, MaxZoom);
+
+            if (Input.touchCount >= 2)
+            {
+                var a = Input.GetTouch(0).position;
+                var b = Input.GetTouch(1).position;
+                float d = Mathf.Max((a - b).magnitude, 1f);
+                if (!pinching)
+                {
+                    pinching = true;
+                    pinchStartDistance = d;
+                    pinchStartZoom = zoom;
+                }
+                zoom = Mathf.Clamp(pinchStartZoom * d / pinchStartDistance, 1f, MaxZoom);
+                dragged = true;         // the gesture never ends in a tap
+                return;
+            }
+            pinching = false;
+
+            Vector2 pointer = Input.mousePosition;
+            if (Input.GetMouseButtonDown(0))
+            {
+                pressing = !PointerOverUI();
+                dragged = false;
+                pressPosition = lastPointer = pointer;
+            }
+            else if (pressing && Input.GetMouseButton(0))
+            {
+                if ((pointer - pressPosition).magnitude > DragThreshold * Screen.height) dragged = true;
+                if (dragged && zoom > 1.01f)
+                {
+                    // Move the world with the finger.
+                    var delta = pointer - lastPointer;
+                    pan.x -= delta.x * visibleSize.x / zoom / Screen.width;
+                    pan.z -= delta.y * visibleSize.y / zoom / Screen.height;
+                }
+                lastPointer = pointer;
+            }
+            else if (pressing && Input.GetMouseButtonUp(0))
+            {
+                pressing = false;
+                if (!dragged) Tap(pointer);
+            }
+        }
+
+        void Tap(Vector2 screenPoint)
+        {
+            var ray = cam.ScreenPointToRay(screenPoint);
             if (!new Plane(Vector3.up, Vector3.zero).Raycast(ray, out float enter)) return;
             var hit = ray.GetPoint(enter);
             var p = new Vector2(hit.x, hit.z / View.ZStretch);

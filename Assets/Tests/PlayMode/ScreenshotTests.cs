@@ -37,6 +37,7 @@ namespace Corehold.Tests
                 {
                     game.Select(i);
                     game.TryBuild(i % 3 == 0 ? "mg" : i % 3 == 1 ? "cannon" : "aa");
+                    for (int u = 0; u < (i / 2) % 4; u++) game.TryUpgrade();
                 }
                 game.Select(0);
                 game.StartNextWave();
@@ -44,6 +45,14 @@ namespace Corehold.Tests
                 for (int f = 0; f < 120; f++) yield return null;
                 Time.timeScale = 1f;
                 Capture("level" + (level + 1));
+                if (level == 0)
+                {
+                    game.Deselect();
+                    game.Zoom = 2f;
+                    yield return null;
+                    yield return null;
+                    Capture("level1_zoom");
+                }
             }
         }
 

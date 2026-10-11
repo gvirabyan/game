@@ -93,5 +93,8 @@ adb shell am start -n com.virabyan.corehold/com.unity3d.player.UnityPlayerGameAc
   extended off-screen automatically; the last one is the HQ.
 - Units are animated from parts (soldier legs, tank turret, drone rotors) set up by `Game.SetupParts`; pooled enemies
   keep their part objects and only swap meshes. The first wave starts by itself after `economy.firstWaveDelay`.
+- Towers change look per level: `Models.TowerBase(level)` / `Models.Turret(id, level)`, swapped on upgrade.
+- Camera: pinch (or mouse wheel) zooms up to `Game.MaxZoom`, one-finger drag pans when zoomed; a tap is a press
+  that ends without moving. `Game.Zoom` is exposed for screenshots.
 - Stress mode keeps exactly `Game.StressEnemyCount` enemies walking (leaks loop back to the start, no lives lost).
 - Commit at every working milestone with a descriptive message.
