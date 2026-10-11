@@ -9,7 +9,8 @@ namespace Corehold
     {
         public static Material Material { get; private set; }
 
-        public static Mesh Soldier, Tank, Drone;
+        public static Mesh Soldier, SoldierLeg, Tank, TankTurret, Drone, DroneRotor;
+        public static Mesh AlliedTank, AlliedTankTurret, AlliedDrone;     // player-side vehicles for the garage menu
         public static Mesh TowerBase, MgTurret, CannonTurret, AaTurret, Pip;
         public static Mesh Bullet, Shell, Missile;
 
@@ -31,9 +32,15 @@ namespace Corehold
             if (shader == null) throw new System.InvalidOperationException("Shader Corehold/LowPoly missing from Resources/Shaders");
             Material = new Material(shader) { name = "LowPoly", enableInstancing = true };
 
-            Soldier = Make("Soldier", BuildSoldier);
+            Soldier = Make("Soldier", BuildSoldierBody);
+            SoldierLeg = Make("SoldierLeg", BuildSoldierLeg);
             Tank = Make("Tank", BuildTank);
+            TankTurret = Make("TankTurret", BuildTankTurret);
             Drone = Make("Drone", BuildDrone);
+            DroneRotor = Make("DroneRotor", BuildDroneRotor);
+            AlliedTank = Make("AlliedTank", b => BuildTankHull(b, Allied));
+            AlliedTankTurret = Make("AlliedTankTurret", b => BuildTankTurret(b, Allied));
+            AlliedDrone = Make("AlliedDrone", b => BuildDrone(b, Allied.Main, Allied.Light, Allied.Dark));
             TowerBase = Make("TowerBase", BuildTowerBase);
             MgTurret = Make("MgTurret", BuildMgTurret);
             CannonTurret = Make("CannonTurret", BuildCannonTurret);
@@ -53,11 +60,20 @@ namespace Corehold
 
         // ---------------- Enemies (desert faction) ----------------
 
-        static void BuildSoldier(MeshBuilder b)
+        // Animated units are split into parts: a body plus limbs, turret or rotors that Game moves every frame.
+        // Part meshes have their pivot at the joint; UnitParts says where each part attaches to the body.
+        public const float SoldierHip = 0.5f, SoldierLegOffset = 0.14f;
+        public static readonly Vector3 TankTurretPivot = new Vector3(-0.06f, 0.45f, 0f);
+        public static readonly float DroneRotorReach = 0.4f, DroneRotorHeight = 0.09f;
+
+        static void BuildSoldierLeg(MeshBuilder b)
         {
-            var pants = SandDark;
-            b.Box(new Vector3(0f, 0.25f, 0.14f), new Vector3(0.24f, 0.5f, 0.18f), pants);
-            b.Box(new Vector3(0f, 0.25f, -0.14f), new Vector3(0.24f, 0.5f, 0.18f), pants);
+            b.Box(new Vector3(0f, -0.25f, 0f), new Vector3(0.24f, 0.5f, 0.18f), SandDark);
+            b.Box(new Vector3(0.04f, -0.47f, 0f), new Vector3(0.3f, 0.07f, 0.19f), Art.Hex("4A3B22"));     // boot
+        }
+
+        static void BuildSoldierBody(MeshBuilder b)
+        {
             b.Box(new Vector3(0f, 0.78f, 0f), new Vector3(0.34f, 0.56f, 0.6f), Sand, 0f, false, SandLight);
             b.Box(new Vector3(-0.26f, 0.82f, 0f), new Vector3(0.2f, 0.42f, 0.44f), Art.Hex("6E5B36"));
             b.Box(new Vector3(0.16f, 0.82f, 0.34f), new Vector3(0.42f, 0.15f, 0.15f), Sand);
@@ -67,7 +83,22 @@ namespace Corehold
             b.Sphere(new Vector3(0f, 1.24f, 0f), new Vector3(0.25f, 0.15f, 0.25f), Art.Hex("6F5D38"), 3, 7);
         }
 
-        static void BuildTank(MeshBuilder b)
+        // Camouflage colours of a vehicle: main, light (top faces), dark (details), barrel.
+        readonly struct Camo
+        {
+            public readonly Color Main, Light, Dark, Barrel;
+            public Camo(string main, string light, string dark, string barrel)
+            {
+                Main = Art.Hex(main); Light = Art.Hex(light); Dark = Art.Hex(dark); Barrel = Art.Hex(barrel);
+            }
+        }
+
+        static readonly Camo Desert = new Camo("A68F5E", "BFA673", "7A6640", "4A3E28");
+        static readonly Camo Allied = new Camo("5F7D9C", "7FA0C2", "3B4C61", "2A2F35");
+
+        static void BuildTank(MeshBuilder b) => BuildTankHull(b, Desert);
+
+        static void BuildTankHull(MeshBuilder b, Camo camo)
         {
             for (int side = -1; side <= 1; side += 2)
             {
@@ -75,27 +106,45 @@ namespace Corehold
                 for (int i = -2; i <= 2; i++)
                     b.Box(new Vector3(i * 0.2f, 0.12f, 0.475f * side), new Vector3(0.14f, 0.14f, 0.01f), Art.Hex("4A4A4A"));
             }
-            b.Box(new Vector3(0f, 0.34f, 0f), new Vector3(0.92f, 0.22f, 0.6f), Sand, 0f, false, SandLight);
-            b.Box(new Vector3(0.42f, 0.3f, 0f), new Vector3(0.12f, 0.16f, 0.56f), SandDark);
-            b.Cylinder(new Vector3(-0.06f, 0.45f, 0f), 0.26f, 0.17f, 8, Art.Hex("8E7A4E"), Art.Hex("A38D5D"));
-            b.Barrel(new Vector3(0.14f, 0.54f, 0f), 0.62f, 0.045f, 6, Art.Hex("4A3E28"));
-            b.Barrel(new Vector3(0.7f, 0.54f, 0f), 0.08f, 0.065f, 6, Art.Hex("3A3020"));
-            b.Cylinder(new Vector3(-0.14f, 0.62f, 0.1f), 0.08f, 0.04f, 6, SandDark);
+            b.Box(new Vector3(0f, 0.34f, 0f), new Vector3(0.92f, 0.22f, 0.6f), camo.Main, 0f, false, camo.Light);
+            b.Box(new Vector3(0.42f, 0.3f, 0f), new Vector3(0.12f, 0.16f, 0.56f), camo.Dark);
+            b.Box(new Vector3(-0.4f, 0.47f, 0.18f), new Vector3(0.1f, 0.06f, 0.14f), camo.Barrel);      // exhaust
         }
 
-        static void BuildDrone(MeshBuilder b)
+        // Pivot at the turret ring (TankTurretPivot on the hull).
+        static void BuildTankTurret(MeshBuilder b) => BuildTankTurret(b, Desert);
+
+        static void BuildTankTurret(MeshBuilder b, Camo camo)
+        {
+            b.Cylinder(Vector3.zero, 0.26f, 0.17f, 8, MeshBuilder.Shade(camo.Main, 0.9f), camo.Main);
+            b.Barrel(new Vector3(0.2f, 0.09f, 0f), 0.62f, 0.045f, 6, camo.Barrel);
+            b.Barrel(new Vector3(0.76f, 0.09f, 0f), 0.08f, 0.065f, 6, MeshBuilder.Shade(camo.Barrel, 0.8f));
+            b.Cylinder(new Vector3(-0.08f, 0.17f, 0.1f), 0.08f, 0.04f, 6, camo.Dark);
+        }
+
+        static void BuildDroneRotor(MeshBuilder b)
+        {
+            b.Box(Vector3.zero, new Vector3(0.46f, 0.012f, 0.06f), Art.Hex("C9D3DC"));
+            b.Box(Vector3.zero, new Vector3(0.06f, 0.012f, 0.46f), Art.Hex("C9D3DC"));
+            b.Cylinder(new Vector3(0f, -0.01f, 0f), 0.03f, 0.03f, 6, Gun);
+        }
+
+        static void BuildDrone(MeshBuilder b) => BuildDrone(b, Red, Art.Hex("E25A4F"), Art.Hex("8E2F24"));
+
+        static void BuildDrone(MeshBuilder b, Color body, Color top, Color dark)
         {
             b.Box(Vector3.zero, new Vector3(1.15f, 0.05f, 0.07f), Gun, 45f);
             b.Box(Vector3.zero, new Vector3(1.15f, 0.05f, 0.07f), Gun, -45f);
             for (int sx = -1; sx <= 1; sx += 2)
             for (int sz = -1; sz <= 1; sz += 2)
             {
-                var c = new Vector3(0.4f * sx, 0.03f, 0.4f * sz);
+                var c = new Vector3(DroneRotorReach * sx, 0.03f, DroneRotorReach * sz);
                 b.Cylinder(c, 0.05f, 0.06f, 6, Gun);
-                b.Cylinder(c + new Vector3(0f, 0.06f, 0f), 0.24f, 0.015f, 10, Art.Hex("C9D3DC"));
+                // Faint disc of the spinning blades.
+                b.Cylinder(c + new Vector3(0f, 0.055f, 0f), 0.23f, 0.004f, 10, Glow(Art.Hex("DCE4EA"), 0.15f));
             }
-            b.Box(new Vector3(0f, 0.02f, 0f), new Vector3(0.42f, 0.16f, 0.3f), Red, 0f, false, Art.Hex("E25A4F"));
-            b.Box(new Vector3(-0.05f, 0.12f, 0f), new Vector3(0.2f, 0.05f, 0.18f), Art.Hex("8E2F24"));
+            b.Box(new Vector3(0f, 0.02f, 0f), new Vector3(0.42f, 0.16f, 0.3f), body, 0f, false, top);
+            b.Box(new Vector3(-0.05f, 0.12f, 0f), new Vector3(0.2f, 0.05f, 0.18f), dark);
             b.Sphere(new Vector3(0.22f, -0.02f, 0f), Vector3.one * 0.06f, Glow(Art.Hex("7FDBFF"), 0.8f), 3, 6);
         }
 

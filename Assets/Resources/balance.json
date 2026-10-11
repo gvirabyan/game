@@ -5,6 +5,7 @@
   "economy": {
     "sellRefund": 0.6,
     "timeBetweenWaves": 8.0,
+    "firstWaveDelay": 7.0,
     "roadWidth": 1.0
   },
 

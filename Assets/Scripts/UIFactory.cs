@@ -14,9 +14,10 @@ namespace Corehold
 
         public static readonly Color TextMain = Color.white;
         public static readonly Color TextDim = new Color(0.62f, 0.67f, 0.73f);
-        public static readonly Color PanelColor = new Color(0.07f, 0.09f, 0.14f, 0.88f);
-        public static readonly Color CardColor = new Color(0.16f, 0.2f, 0.27f, 1f);
-        public static readonly Color DisabledColor = new Color(0.26f, 0.28f, 0.33f, 1f);
+        public static readonly Color PanelColor = new Color(0.11f, 0.15f, 0.23f, 0.94f);
+        public static readonly Color CardColor = new Color(0.25f, 0.31f, 0.43f, 1f);
+        public static readonly Color DisabledColor = new Color(0.38f, 0.4f, 0.46f, 1f);
+        public static readonly Color Primary = Art.Hex("3D9BFF"), Go = Art.Hex("3CC468"), Warn = Art.Hex("FF9F2E"), Bad = Art.Hex("E5484D");
 
         public static Canvas CreateCanvas(string name, int sortingOrder)
         {
@@ -107,6 +108,13 @@ namespace Corehold
             t.raycastTarget = false;
             t.horizontalOverflow = HorizontalWrapMode.Overflow;
             t.verticalOverflow = VerticalWrapMode.Overflow;
+            // Big text gets a soft drop shadow so it reads on any background.
+            if (size >= 30)
+            {
+                var shadow = t.gameObject.AddComponent<UnityEngine.UI.Shadow>();
+                shadow.effectColor = new Color(0f, 0f, 0f, 0.45f);
+                shadow.effectDistance = new Vector2(0f, -3f);
+            }
             return t;
         }
 
@@ -148,7 +156,7 @@ namespace Corehold
             colors.fadeDuration = 0.05f;
             button.colors = colors;
             label = Text(Fill("Label", rt), text, size, TextAnchor.MiddleCenter, TextMain, true);
-            label.rectTransform.offsetMin = new Vector2(0f, 6f);     // sit above the button's bottom lip
+            label.rectTransform.offsetMin = new Vector2(0f, 8f);     // sit above the button's bottom lip
             return button;
         }
     }

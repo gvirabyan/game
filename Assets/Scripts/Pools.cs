@@ -8,9 +8,13 @@ namespace Corehold
 
     public sealed class Enemy
     {
-        public Transform root;              // 3D model under the world root
-        public MeshFilter filter;
-        public MeshRenderer renderer;
+        public const int PartCount = 4;
+        public Transform root;              // positioned, rotated and scaled; holds the body and the parts
+        public MeshFilter body;
+        public readonly Transform[] parts = new Transform[PartCount];     // legs, turret or rotors
+        public readonly MeshFilter[] partFilters = new MeshFilter[PartCount];
+        public readonly MeshRenderer[] renderers = new MeshRenderer[PartCount + 1];    // body first
+        public int kind = -1;               // which unit the parts are set up for (UnitKind)
         public float flash;                 // hit flash, 1 right after a hit, fades to 0
         public Transform hpRoot, hpFill;    // billboard under the overlay root
         public SpriteRenderer hpBackRenderer, hpFillRenderer;
@@ -51,7 +55,7 @@ namespace Corehold
         public TowerConfig type;
         public int level;
         public int spent;
-        public float cooldown, angle;
+        public float cooldown, angle, recoil;
         public GameObject root;
         public Transform turret;
         public GameObject[] pips;

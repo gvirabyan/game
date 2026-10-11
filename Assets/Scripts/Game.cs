@@ -22,7 +22,10 @@ namespace Corehold
         const float DroneHeight = 1.3f;
         const float TowerTop = 0.32f;          // turret mount height on the tower base
         const float MuzzleHeight = 0.45f;
-        const float UnitScale = 1.3f;          // models are drawn larger than their logic size for readability
+        const float UnitScale = 1.3f;
+        const float TurretScanSpeed = 20f;     // idle turrets slowly sweep
+        const float RecoilDistance = 0.07f, RecoilRecovery = 7f;
+        const int Soldier = 0, Tank = 1, Drone = 2;          // models are drawn larger than their logic size for readability
         const float FlashFade = 8f;            // enemy hit flash fades in 1/8 s
         static readonly Color SmokeColor = new Color(0.42f, 0.42f, 0.4f, 0.55f);
         static readonly Color MuzzleColor = Art.Hex("FFE9A8"), SparkColor = Art.Hex("FFD27A"), FireCoreColor = Art.Hex("FFF4D6");
@@ -95,15 +98,12 @@ namespace Corehold
 
         // ---------------- Level flow ----------------
 
-        // The menu shows the first level as a live backdrop.
+        // The menu shows the vehicle garage as a live backdrop.
         public void ShowMenu()
         {
             ClearLevel();
             Time.timeScale = 1f;
-            var preview = Balance.levels[0];
-            var view = FitCamera();
-            levelRoot = LevelView.Build(preview, new LevelPath(ExtendStartOffscreen(preview.path, view)),
-                Balance.economy.roadWidth, view, 1000, world, new List<BuildSpot>());
+            levelRoot = GarageView.Build(world, cam).transform;
             State = GameState.Menu;
             StateChanged?.Invoke();
         }
@@ -123,7 +123,7 @@ namespace Corehold
             Kills = 0;
             WavesStarted = 0;
             Spawning = false;
-            NextWaveTimer = 0f;
+            NextWaveTimer = Balance.economy.firstWaveDelay;
             State = GameState.Playing;
             StateChanged?.Invoke();
         }
@@ -217,7 +217,7 @@ namespace Corehold
                     StateChanged?.Invoke();
                 }
             }
-            else if (WavesStarted > 0 && WavesStarted < WaveCount)
+            else if (WavesStarted < WaveCount && !StressMode)
             {
                 NextWaveTimer -= dt;
                 if (NextWaveTimer <= 0f) StartNextWave();
@@ -237,7 +237,7 @@ namespace Corehold
             e.angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
             e.height = type.air ? DroneHeight : 0f;
 
-            e.filter.sharedMesh = type.id == "tank" ? Models.Tank : type.air ? Models.Drone : Models.Soldier;
+            SetupParts(e, type.id == "tank" ? Tank : type.air ? Drone : Soldier);
             e.root.localScale = Vector3.one * (type.size * UnitScale);
             e.root.localPosition = View.World(e.position, e.height);
             e.root.localRotation = View.Yaw(e.angle);
@@ -261,10 +261,7 @@ namespace Corehold
                 float target = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
                 e.angle = Mathf.MoveTowardsAngle(e.angle, target, EnemyTurnSpeed * dt);
 
-                // Cheap life: soldiers bob as they walk, drones hover.
-                float bob = e.type.air
-                    ? Mathf.Sin(time * 3f + e.activeIndex) * 0.08f
-                    : e.type.id == "soldier" ? Mathf.Abs(Mathf.Sin(e.distance * 9f)) * 0.05f : 0f;
+                float bob = Animate(e, time);
                 e.root.localPosition = View.World(e.position, e.height + bob);
                 e.root.localRotation = View.Yaw(e.angle);
                 if (e.flash > 0f) SetFlash(e, Mathf.Max(0f, e.flash - FlashFade * dt));
@@ -308,7 +305,62 @@ namespace Corehold
         {
             e.flash = value;
             flashBlock.SetFloat(FlashId, value);
-            e.renderer.SetPropertyBlock(flashBlock);
+            foreach (var r in e.renderers)
+                if (r.gameObject.activeSelf) r.SetPropertyBlock(flashBlock);
+        }
+
+        // Puts the right meshes on a pooled enemy's body and parts (only when its unit kind changes).
+        static void SetupParts(Enemy e, int kind)
+        {
+            if (e.kind == kind) return;
+            e.kind = kind;
+            e.body.sharedMesh = kind == Tank ? Models.Tank : kind == Drone ? Models.Drone : Models.Soldier;
+            int used = kind == Soldier ? 2 : kind == Tank ? 1 : 4;
+            for (int i = 0; i < Enemy.PartCount; i++)
+            {
+                var part = e.parts[i];
+                part.gameObject.SetActive(i < used);
+                if (i >= used) continue;
+                part.localRotation = Quaternion.identity;
+                if (kind == Soldier)
+                {
+                    e.partFilters[i].sharedMesh = Models.SoldierLeg;
+                    part.localPosition = new Vector3(0f, Models.SoldierHip, i == 0 ? Models.SoldierLegOffset : -Models.SoldierLegOffset);
+                }
+                else if (kind == Tank)
+                {
+                    e.partFilters[i].sharedMesh = Models.TankTurret;
+                    part.localPosition = Models.TankTurretPivot;
+                }
+                else
+                {
+                    e.partFilters[i].sharedMesh = Models.DroneRotor;
+                    float r = Models.DroneRotorReach;
+                    part.localPosition = new Vector3(i < 2 ? r : -r, Models.DroneRotorHeight, i % 2 == 0 ? r : -r);
+                }
+            }
+        }
+
+        // Walk cycle, turret sway, spinning rotors. Returns the body's vertical bob.
+        static float Animate(Enemy e, float time)
+        {
+            switch (e.kind)
+            {
+                case Soldier:
+                {
+                    float swing = Mathf.Sin(e.distance * 7f);
+                    e.parts[0].localRotation = Quaternion.Euler(0f, 0f, swing * 35f);
+                    e.parts[1].localRotation = Quaternion.Euler(0f, 0f, -swing * 35f);
+                    return Mathf.Abs(swing) * 0.04f;
+                }
+                case Tank:
+                    e.parts[0].localRotation = Quaternion.Euler(0f, Mathf.Sin(time * 0.7f + e.activeIndex) * 18f, 0f);
+                    return Mathf.Sin(time * 40f + e.activeIndex) * 0.006f;      // engine rumble
+                default:
+                    for (int i = 0; i < 4; i++)
+                        e.parts[i].localRotation = Quaternion.Euler(0f, time * (i % 2 == 0 ? 1500f : -1500f), 0f);
+                    return Mathf.Sin(time * 3f + e.activeIndex) * 0.08f;
+            }
         }
 
         void SetHealthBar(Enemy e)
@@ -462,9 +514,16 @@ namespace Corehold
                 }
 
                 t.cooldown -= dt;
+                if (t.recoil > 0f)
+                {
+                    t.recoil = Mathf.Max(0f, t.recoil - RecoilRecovery * dt);
+                    t.turret.localPosition = new Vector3(0f, TowerTop, 0f) - View.Yaw(t.angle) * Vector3.right * (RecoilDistance * t.recoil);
+                }
                 if (t.target == null)
                 {
                     if (t.cooldown < 0f) t.cooldown = 0f;
+                    t.angle += TurretScanSpeed * dt;
+                    t.turret.localRotation = View.Yaw(t.angle);
                     continue;
                 }
 
@@ -510,6 +569,7 @@ namespace Corehold
             SpawnEffect(p.position, MuzzleHeight, 0.06f, MuzzleColor, t.type.splash > 0f ? 0.7f : 0.4f, 0.2f);
             if (t.type.splash > 0f) Smoke(p.position, MuzzleHeight, 1, 0.5f);
             p.source = t;
+            t.recoil = 1f;
             p.damage = Formulas.TowerDamage(t.type, t.level);
             p.target = target;
             p.targetGeneration = target.generation;
@@ -740,11 +800,22 @@ namespace Corehold
             barRoot.SetParent(overlay, false);
             enemies = new Pool<Enemy>(EnemyPrewarm, () =>
             {
-                var root = MeshObject("Enemy", Models.Soldier, enemyRoot);
+                var root = new GameObject("Enemy").transform;
+                root.SetParent(enemyRoot, false);
                 var hp = new GameObject("HealthBar").transform;
                 hp.SetParent(barRoot, false);
                 hp.rotation = billboard;
-                var e = new Enemy { root = root, filter = root.GetComponent<MeshFilter>(), renderer = root.GetComponent<MeshRenderer>(), hpRoot = hp };
+                var body = MeshObject("Body", Models.Soldier, root);
+                var e = new Enemy { root = root, body = body.GetComponent<MeshFilter>(), hpRoot = hp };
+                e.renderers[0] = body.GetComponent<MeshRenderer>();
+                for (int i = 0; i < Enemy.PartCount; i++)
+                {
+                    var part = MeshObject("Part", Models.SoldierLeg, root);
+                    e.parts[i] = part;
+                    e.partFilters[i] = part.GetComponent<MeshFilter>();
+                    e.renderers[i + 1] = part.GetComponent<MeshRenderer>();
+                }
+                SetupParts(e, Soldier);
                 e.hpBackRenderer = Billboard("Back", Art.Pixel, new Color(0f, 0f, 0f, 0.65f), Layers.HealthBar, hp);
                 e.hpBackRenderer.transform.localScale = new Vector3(HealthBarWidth + 0.05f, 0.13f, 1f);
                 e.hpFillRenderer = Billboard("Fill", Art.Pixel, Art.Palette.Good, Layers.HealthBar + 1, hp);

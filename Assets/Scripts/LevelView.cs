@@ -36,9 +36,15 @@ namespace Corehold
         // Fraction of the screen height covered by the HUD row at the top.
         public const float HudFraction = 0.13f;
 
+        public static readonly Color Haze = Art.Hex("BCD3C8");
+
         public static void Fit(Camera cam)
         {
             cam.orthographic = false;
+            cam.backgroundColor = Haze;
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogColor = Haze;
             cam.fieldOfView = View.FieldOfView;
             var rot = Quaternion.Euler(View.Pitch, 0f, 0f);
             cam.transform.rotation = rot;

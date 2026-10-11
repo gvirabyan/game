@@ -27,6 +27,7 @@ namespace Corehold
     {
         public float sellRefund;        // share of everything spent on a tower that selling returns
         public float timeBetweenWaves;  // seconds after a wave finishes spawning before the next starts on its own
+        public float firstWaveDelay;    // seconds after the level starts before the first wave starts on its own
         public float roadWidth;
     }
 

@@ -77,6 +77,7 @@ adb shell am start -n com.virabyan.corehold/com.unity3d.player.UnityPlayerGameAc
   - `Balance.cs` — data classes for `balance.json` + `Formulas`.
   - `Art/Models.cs`, `Art/MeshBuilder.cs` — low-poly 3D models. `Art/Art.cs`, `Art/Atlas.cs` — UI sprites/icons atlas.
   - `GameUI.cs`, `UIFactory.cs` — menu, HUD, build/tower panels, pause, result, debug overlay (fps, enemies, stress toggle).
+  - `GarageView.cs` — main menu backdrop: animated hangar with the player's vehicles (own camera, no fog).
 - `Assets/Editor/` — `ProjectSetup.cs` (player settings + scene), `BuildScript.cs` (APK builds).
 - `Assets/Tests/EditMode` — balance + level geometry. `Assets/Tests/PlayMode` — lose/retry, build/upgrade/sell,
   win all levels with full defense, 200-enemy stress (PlayMode takes ~3 min).
@@ -90,5 +91,7 @@ adb shell am start -n com.virabyan.corehold/com.unity3d.player.UnityPlayerGameAc
 - Level coordinates (landscape): x in -8.5..8.5, pads in y -4.7..3.6 (HUD row on top). Canvas reference 1920x1080,
   scaled by height. The wave button sits in the HUD row; build/tower panels open on the screen side away from the pad. The first path point is
   extended off-screen automatically; the last one is the HQ.
+- Units are animated from parts (soldier legs, tank turret, drone rotors) set up by `Game.SetupParts`; pooled enemies
+  keep their part objects and only swap meshes. The first wave starts by itself after `economy.firstWaveDelay`.
 - Stress mode keeps exactly `Game.StressEnemyCount` enemies walking (leaks loop back to the start, no lives lost).
 - Commit at every working milestone with a descriptive message.

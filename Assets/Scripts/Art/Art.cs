@@ -11,7 +11,7 @@ namespace Corehold
         // UI icons (the world itself is 3D, see Models).
         public static Sprite TowerBase, MgTurret, CannonTurret, AaTurret, Headquarters;
         public static Sprite Coin, Heart, Flag, Pause, Play, FastForward, Close;
-        public static Sprite Panel, PanelShadow, ButtonFace, Vignette;
+        public static Sprite Panel, PanelShadow, ButtonFace, Vignette, Star, Pill, Header, Fade;
         // World helpers: billboards, range indicator, health bars.
         public static Sprite Glow, Disc, Ring, Pixel;
 
@@ -52,7 +52,16 @@ namespace Corehold
             FastForward = Draw(64, 1f, DrawFastForward, "FastForward");
             Close = Draw(64, 1f, p => { p.Box(0f, 0f, 0.62f, 0.11f, 0.08f, White, 45f); p.Box(0f, 0f, 0.62f, 0.11f, 0.08f, White, -45f); }, "Close");
             // Rounded panel (sliced), its soft drop shadow, and a button face with a darker bottom lip.
-            Panel = Draw(64, 0.64f, p => p.Box(0f, 0f, 1f, 1f, 0.75f, White), "Panel", border: new Vector4(26, 26, 26, 26));
+            // Panels are tinted by Image.color: a bright rim around a slightly darker body.
+            Panel = Draw(64, 0.64f, p => { p.Box(0f, 0f, 1f, 1f, 0.75f, White); p.Box(0f, 0f, 0.93f, 0.93f, 0.68f, Grey(0.78f)); },
+                "Panel", border: new Vector4(26, 26, 26, 26));
+            // Panel title strip: rounded top corners only.
+            Header = Draw(64, 0.64f, p => { p.Box(0f, 0f, 1f, 1f, 0.75f, White); p.Box(0f, -0.6f, 1f, 0.4f, 0f, White); },
+                "Header", border: new Vector4(26, 26, 26, 26));
+            Pill = Draw(32, 0.32f, p => p.Box(0f, 0f, 1f, 1f, 1f, White), "Pill", border: new Vector4(15, 15, 15, 15));
+            Star = Draw(64, 1f, DrawStar, "Star");
+            // Opaque on the left, fading out to the right.
+            Fade = Draw(64, 1f, p => p.Box(-0.9f, 0f, 1.1f, 1.5f, 0f, White, 0f, 0.9f), "Fade");
             PanelShadow = Draw(96, 0.96f, p => p.Box(0f, 0f, 0.8f, 0.8f, 0.5f, new Color(0f, 0f, 0f, 0.5f), 0f, 0.3f), "PanelShadow", border: new Vector4(46, 46, 46, 46));
             ButtonFace = Draw(64, 0.64f, DrawButtonFace, "ButtonFace", border: new Vector4(26, 26, 26, 26));
 
@@ -155,11 +164,31 @@ namespace Corehold
             p.Polygon(new[] { new Vector2(0f, 0.55f), new Vector2(0.8f, 0f), new Vector2(0f, -0.55f) }, White);
         }
 
+        // Chunky game button (tinted by Image.color): dark bottom lip, face, and a lighter glossy top half.
         static void DrawButtonFace(Painter p)
         {
-            p.Box(0f, 0f, 1f, 1f, 0.75f, new Color(0.72f, 0.72f, 0.72f, 1f));     // lip, shows at the bottom
-            p.Box(0f, 0.1f, 1f, 0.9f, 0.75f, White);
-            p.Box(0f, 0.55f, 0.8f, 0.3f, 0.3f, new Color(1f, 1f, 1f, 0.12f), 0f, 0.2f);
+            p.Box(0f, 0f, 1f, 1f, 0.75f, Grey(0.5f));
+            p.Box(0f, 0.1f, 1f, 0.9f, 0.75f, Grey(0.86f));
+            p.Box(0f, 0.42f, 0.9f, 0.5f, 0.6f, White, 0f, 0.25f);
+            p.Box(0f, 0.72f, 0.7f, 0.07f, 0.07f, new Color(1f, 1f, 1f, 0.6f), 0f, 0.05f);
+        }
+
+        static Color Grey(float v) => new Color(v, v, v, 1f);
+
+        // Five-pointed star from convex pieces: a pentagon and five triangles.
+        static void DrawStar(Painter p)
+        {
+            var outer = new Vector2[5];
+            var inner = new Vector2[5];
+            for (int i = 0; i < 5; i++)
+            {
+                float a = (90f + i * 72f) * Mathf.Deg2Rad, b = (126f + i * 72f) * Mathf.Deg2Rad;
+                outer[i] = new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * 0.95f;
+                inner[i] = new Vector2(Mathf.Cos(b), Mathf.Sin(b)) * 0.4f;
+            }
+            p.Polygon(inner, White);
+            for (int i = 0; i < 5; i++)
+                p.Polygon(new[] { outer[i], inner[i], inner[(i + 4) % 5] }, White);
         }
 
         static void DrawHeart(Painter p)

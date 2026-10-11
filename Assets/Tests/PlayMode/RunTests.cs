@@ -52,6 +52,21 @@ namespace Corehold.Tests
         }
 
         [UnityTest]
+        public IEnumerator FirstWave_StartsOnItsOwn()
+        {
+            yield return LoadScene();
+            var game = Game.Instance;
+            Click("Level_1");
+            Assert.AreEqual(0, game.WavesStarted);
+            float delay = game.Balance.economy.firstWaveDelay;
+            Assert.Greater(delay, 0f);
+            Time.timeScale = TimeScale;
+            float start = Time.time;
+            yield return WaitUntil(() => game.WavesStarted == 1, "the first wave to start without a tap");
+            Assert.AreEqual(delay, Time.time - start, 0.5f, "first wave started at the wrong time");
+        }
+
+        [UnityTest]
         public IEnumerator BuildUpgradeSell_ThroughPanels()
         {
             yield return LoadScene();
