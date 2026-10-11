@@ -83,7 +83,7 @@ adb shell am start -n com.virabyan.corehold/com.unity3d.player.UnityPlayerGameAc
 
 ## Conventions
 - Namespace `Corehold`. Editor scripts in the global namespace so `-executeMethod ClassName.Method` stays short.
-- UI is uGUI built in code with the legacy `Text` and built-in `LegacyRuntime.ttf`, reference resolution 1080x1920,
+- UI is uGUI built in code with the legacy `Text` (Russo One font), reference resolution 1920x1080,
   rounded panels use the sliced `Art.Panel` sprite. Object names used by tests — keep them stable:
   `Level_1..3`, `WaveBar`, `WaveButton`, `BuildPanel`, `Build_mg|cannon|aa`, `TowerPanel`, `UpgradeButton`, `SellButton`,
   `ResultPanel`, `RetryButton`, `NextLevelButton`, `MenuButton`, `PauseButton`, `ResumeButton`, `SpeedButton`, `StressButton`.
