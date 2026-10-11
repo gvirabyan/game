@@ -6,11 +6,10 @@ namespace Corehold
     // The only object in the scene. Builds art, camera, light, game and UI at startup.
     public sealed class Bootstrap : MonoBehaviour
     {
-        // Level layouts in balance.json are authored for this visible area (map units).
+        // Level layouts in balance.json are authored for this map width (see CameraRig.PlayArea).
         public const float WorldHalfWidth = 8.5f;
-        public const float MinHalfHeight = 5f;
 
-        static readonly Color Sky = Art.Hex("6F9A55");
+        static readonly Color Haze = Art.Hex("BCD3C8");
 
         void Awake()
         {
@@ -21,37 +20,35 @@ namespace Corehold
             QualitySettings.shadowResolution = ShadowResolution.Medium;
             QualitySettings.shadowProjection = ShadowProjection.CloseFit;
             QualitySettings.shadowCascades = 1;
-            QualitySettings.shadowDistance = 120f;
+            QualitySettings.shadowDistance = 60f;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
             Art.Build();
             Models.Build();
 
             var cam = new GameObject("Main Camera") { tag = "MainCamera" }.AddComponent<Camera>();
-            cam.orthographic = true;
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = Sky;
-            cam.nearClipPlane = 1f;
-            cam.farClipPlane = 120f;
-            // Landscape: fixed map height on phones; narrower screens (tablets) keep the full level width instead.
-            cam.orthographicSize = Mathf.Max(WorldHalfWidth / cam.aspect, MinHalfHeight);
-            cam.transform.rotation = Quaternion.Euler(View.Pitch, 0f, 0f);
-            cam.transform.position = -(cam.transform.rotation * Vector3.forward) * 50f;
+            cam.backgroundColor = Haze;
+            CameraRig.Fit(cam);
 
+            // Warm low sun, cool sky fill, soft shadows and distance haze.
             var light = new GameObject("Sun").AddComponent<Light>();
             light.type = LightType.Directional;
-            light.color = Art.Hex("FFF4E0");
-            light.intensity = 0.8f;
-            light.shadows = LightShadows.Hard;
-            light.shadowStrength = 0.7f;
+            light.color = Art.Hex("FFE7C4");
+            light.intensity = 0.9f;
+            light.shadows = LightShadows.Soft;
+            light.shadowStrength = 0.75f;
             light.shadowBias = 0.05f;
-            light.shadowNormalBias = 0.1f;
-            light.transform.rotation = Quaternion.Euler(42f, -50f, 0f);
+            light.shadowNormalBias = 0.2f;
+            light.transform.rotation = Quaternion.Euler(48f, -35f, 0f);
 
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = Art.Hex("7D8A99");
-            RenderSettings.ambientEquatorColor = Art.Hex("6A7466");
-            RenderSettings.ambientGroundColor = Art.Hex("3A4034");
+            RenderSettings.ambientSkyColor = Art.Hex("6E84A3");
+            RenderSettings.ambientEquatorColor = Art.Hex("65705A");
+            RenderSettings.ambientGroundColor = Art.Hex("3A3528");
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogColor = Haze;
 
             var game = new GameObject("Game").AddComponent<Game>();
             game.Init(cam);

@@ -8,9 +8,11 @@ namespace Corehold
 
     public sealed class Enemy
     {
-        public Transform root;              // under the stretched 3D world root
+        public Transform root;              // 3D model under the world root
         public MeshFilter filter;
-        public Transform hpRoot, hpFill;    // billboard outside the stretched root
+        public MeshRenderer renderer;
+        public float flash;                 // hit flash, 1 right after a hit, fades to 0
+        public Transform hpRoot, hpFill;    // billboard under the overlay root
         public SpriteRenderer hpBackRenderer, hpFillRenderer;
         public EnemyConfig type;
         public Vector2 position;
@@ -38,7 +40,8 @@ namespace Corehold
     {
         public Transform transform;
         public SpriteRenderer renderer;
-        public float age, life, size;
+        public float age, life, startSize, endSize;
+        public Vector3 velocity;
         public Color color;
         public int activeIndex;
     }

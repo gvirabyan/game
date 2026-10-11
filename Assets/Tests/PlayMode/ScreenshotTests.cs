@@ -25,7 +25,6 @@ namespace Corehold.Tests
             // Match the phone's aspect ratio before anything is laid out.
             var cam = Camera.main;
             cam.aspect = Width / (float)Height;
-            cam.orthographicSize = Mathf.Max(Bootstrap.WorldHalfWidth / cam.aspect, Bootstrap.MinHalfHeight);
             game.ShowMenu();
             yield return null;
             Capture("menu");

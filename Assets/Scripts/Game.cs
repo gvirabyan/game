@@ -14,7 +14,7 @@ namespace Corehold
         public const int StressEnemyCount = 200;
         const int EnemyPrewarm = 260;
         const int ProjectilePrewarm = 200;
-        const int EffectPrewarm = 80;
+        const int EffectPrewarm = 240;
         const float TurretTurnSpeed = 540f;
         const float EnemyTurnSpeed = 360f;
         const float HitRadius = 0.12f;
@@ -22,6 +22,11 @@ namespace Corehold
         const float DroneHeight = 1.3f;
         const float TowerTop = 0.32f;          // turret mount height on the tower base
         const float MuzzleHeight = 0.45f;
+        const float UnitScale = 1.3f;          // models are drawn larger than their logic size for readability
+        const float FlashFade = 8f;            // enemy hit flash fades in 1/8 s
+        static readonly Color SmokeColor = new Color(0.42f, 0.42f, 0.4f, 0.55f);
+        static readonly Color MuzzleColor = Art.Hex("FFE9A8"), SparkColor = Art.Hex("FFD27A"), FireCoreColor = Art.Hex("FFF4D6");
+        static readonly int FlashId = Shader.PropertyToID("_Flash");
 
         public static Game Instance { get; private set; }
 
@@ -49,6 +54,9 @@ namespace Corehold
         public event Action SelectionChanged;
 
         Camera cam;
+        Vector3 camHome;
+        float shake;
+        MaterialPropertyBlock flashBlock;
         Quaternion billboard;
         LevelPath path;
         Transform levelRoot, world, overlay;
@@ -68,6 +76,8 @@ namespace Corehold
         {
             Instance = this;
             cam = camera;
+            flashBlock = new MaterialPropertyBlock();
+            FitCamera();
             billboard = cam.transform.rotation;
             Balance = Corehold.Balance.Load();
 
@@ -91,7 +101,7 @@ namespace Corehold
             ClearLevel();
             Time.timeScale = 1f;
             var preview = Balance.levels[0];
-            var view = ViewRect();
+            var view = FitCamera();
             levelRoot = LevelView.Build(preview, new LevelPath(ExtendStartOffscreen(preview.path, view)),
                 Balance.economy.roadWidth, view, 1000, world, new List<BuildSpot>());
             State = GameState.Menu;
@@ -104,7 +114,7 @@ namespace Corehold
             LevelIndex = Mathf.Clamp(index, 0, Balance.levels.Length - 1);
             Level = Balance.levels[LevelIndex];
 
-            var view = ViewRect();
+            var view = FitCamera();
             path = new LevelPath(ExtendStartOffscreen(Level.path, view));
             levelRoot = LevelView.Build(Level, path, Balance.economy.roadWidth, view, 1000 + LevelIndex * 97, world, spots);
 
@@ -135,12 +145,13 @@ namespace Corehold
             StressMode = false;
         }
 
-        // Visible map area. The camera is orthographic and the world is stretched so map units equal screen units.
-        Rect ViewRect()
+        // Frames the play area for the current screen; returns the visible map area.
+        Rect FitCamera()
         {
-            float halfH = cam.orthographicSize;
-            float halfW = halfH * cam.aspect;
-            return new Rect(-halfW, -halfH, halfW * 2f, halfH * 2f);
+            CameraRig.Fit(cam);
+            camHome = cam.transform.position;
+            shake = 0f;
+            return CameraRig.VisibleMap(cam);
         }
 
         // Enemies should walk in from beyond the screen edge on every aspect ratio.
@@ -227,7 +238,7 @@ namespace Corehold
             e.height = type.air ? DroneHeight : 0f;
 
             e.filter.sharedMesh = type.id == "tank" ? Models.Tank : type.air ? Models.Drone : Models.Soldier;
-            e.root.localScale = Vector3.one * type.size;
+            e.root.localScale = Vector3.one * (type.size * UnitScale);
             e.root.localPosition = View.World(e.position, e.height);
             e.root.localRotation = View.Yaw(e.angle);
             SetHealthBar(e);
@@ -256,7 +267,8 @@ namespace Corehold
                     : e.type.id == "soldier" ? Mathf.Abs(Mathf.Sin(e.distance * 9f)) * 0.05f : 0f;
                 e.root.localPosition = View.World(e.position, e.height + bob);
                 e.root.localRotation = View.Yaw(e.angle);
-                if (e.hpRoot.gameObject.activeSelf) e.hpRoot.position = View.World(e.position, e.height + e.type.size * 1.3f + 0.25f);
+                if (e.flash > 0f) SetFlash(e, Mathf.Max(0f, e.flash - FlashFade * dt));
+                if (e.hpRoot.gameObject.activeSelf) e.hpRoot.position = View.World(e.position, e.height + e.type.size * 1.3f * UnitScale + 0.2f);
             }
         }
 
@@ -270,7 +282,9 @@ namespace Corehold
                 return;
             }
             Lives = Mathf.Max(0, Lives - e.type.leakDamage);
-            SpawnEffect(e.position, 0.8f, 1.4f, Art.Palette.Danger);
+            Flash(e.position, 0.8f, 1.6f, Art.Palette.Danger);
+            Smoke(e.position, 0.6f, 3, 1f);
+            shake = Mathf.Max(shake, 0.12f);
             ReleaseEnemy(e);
         }
 
@@ -279,13 +293,22 @@ namespace Corehold
             e.health -= amount;
             if (e.health > 0f)
             {
+                e.flash = 1f;
                 SetHealthBar(e);
                 return;
             }
             Kills++;
             Coins += e.type.reward;
-            SpawnEffect(e.position, e.height + 0.3f, e.type.size * 2f, Art.Palette.Explosion);
+            Explosion(e.position, e.height + 0.3f, e.type.size);
+            if (e.type.id == "tank") shake = Mathf.Max(shake, 0.08f);
             ReleaseEnemy(e);
+        }
+
+        void SetFlash(Enemy e, float value)
+        {
+            e.flash = value;
+            flashBlock.SetFloat(FlashId, value);
+            e.renderer.SetPropertyBlock(flashBlock);
         }
 
         void SetHealthBar(Enemy e)
@@ -298,11 +321,12 @@ namespace Corehold
             e.hpFill.localScale = new Vector3(w, 0.08f, 1f);
             e.hpFill.localPosition = new Vector3(-HealthBarWidth * 0.5f + w * 0.5f, 0f, -0.01f);
             e.hpFillRenderer.color = frac > 0.5f ? Art.Palette.Good : frac > 0.25f ? Art.Palette.Gold : Art.Palette.Danger;
-            e.hpRoot.position = View.World(e.position, e.height + e.type.size * 1.3f + 0.25f);
+            e.hpRoot.position = View.World(e.position, e.height + e.type.size * 1.3f * UnitScale + 0.2f);
         }
 
         void ReleaseEnemy(Enemy e)
         {
+            if (e.flash > 0f) SetFlash(e, 0f);
             e.generation++;
             enemies.Release(e);
         }
@@ -386,7 +410,8 @@ namespace Corehold
             }
 
             spot.tower = tower;
-            SpawnEffect(spot.position, 0.4f, 1.3f, Art.Palette.Accent);
+            Flash(spot.position, 0.4f, 1.4f, Art.Palette.Accent);
+            Smoke(spot.position, 0.1f, 4, 0.8f);
             Select(spot);
             return true;
         }
@@ -405,7 +430,7 @@ namespace Corehold
             t.spent += cost;
             t.pips[t.level].SetActive(true);
             t.level++;
-            SpawnEffect(Selected.position, 0.5f, 1.1f, Art.Palette.Gold);
+            Flash(Selected.position, 0.6f, 1.3f, Art.Palette.Gold);
             Select(Selected);
             return true;
         }
@@ -482,6 +507,8 @@ namespace Corehold
             float rad = t.angle * Mathf.Deg2Rad;
             p.position = pos + new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * 0.45f;
             p.height = MuzzleHeight;
+            SpawnEffect(p.position, MuzzleHeight, 0.06f, MuzzleColor, t.type.splash > 0f ? 0.7f : 0.4f, 0.2f);
+            if (t.type.splash > 0f) Smoke(p.position, MuzzleHeight, 1, 0.5f);
             p.source = t;
             p.damage = Formulas.TowerDamage(t.type, t.level);
             p.target = target;
@@ -538,26 +565,54 @@ namespace Corehold
                     var e = list[i];
                     if (CanHit(type, e) && (e.position - at).sqrMagnitude <= r2) Damage(e, damage);
                 }
-                SpawnEffect(at, 0.3f, type.splash * 2.2f, Art.Palette.Explosion);
+                Explosion(at, 0.2f, type.splash);
                 return;
             }
             if (target == null) return;
-            if (type.projectile == "missile") SpawnEffect(at, height, 0.9f, Art.Palette.Explosion);
+            if (type.projectile == "missile") Explosion(at, height, 0.45f);
+            else SpawnEffect(at, height, 0.08f, SparkColor, 0.35f, 0.15f);
             Damage(target, damage);
         }
 
         // ---------------- Effects ----------------
 
-        void SpawnEffect(Vector2 at, float height, float size, Color color)
+        Effect SpawnEffect(Vector2 at, float height, float life, Color color, float startSize, float endSize)
         {
             var fx = effects.Get();
             fx.age = 0f;
-            fx.life = 0.35f;
-            fx.size = size;
+            fx.life = life;
+            fx.startSize = startSize;
+            fx.endSize = endSize;
             fx.color = color;
+            fx.velocity = Vector3.zero;
             fx.transform.position = View.World(at, height);
-            fx.transform.localScale = Vector3.one * (size * 0.4f);
+            fx.transform.localScale = Vector3.one * startSize;
             fx.renderer.color = color;
+            return fx;
+        }
+
+        // Bright expanding flash.
+        void Flash(Vector2 at, float height, float size, Color color) =>
+            SpawnEffect(at, height, 0.3f, color, size * 0.4f, size);
+
+        // Puffs of grey smoke drifting up and out.
+        void Smoke(Vector2 at, float height, int puffs, float size)
+        {
+            for (int i = 0; i < puffs; i++)
+            {
+                var fx = SpawnEffect(at + UnityEngine.Random.insideUnitCircle * 0.2f * size, height,
+                    UnityEngine.Random.Range(0.7f, 1.1f), SmokeColor, size * 0.5f, size * UnityEngine.Random.Range(1.1f, 1.5f));
+                var drift = UnityEngine.Random.insideUnitCircle * 0.5f;
+                fx.velocity = new Vector3(drift.x, UnityEngine.Random.Range(0.6f, 1.1f), drift.y);
+            }
+        }
+
+        // Fireball, a white core and smoke; size ~ blast radius in map units.
+        void Explosion(Vector2 at, float height, float size)
+        {
+            SpawnEffect(at, height, 0.3f, Art.Palette.Explosion, size * 0.8f, size * 2.4f);
+            SpawnEffect(at, height + 0.05f, 0.15f, FireCoreColor, size * 0.6f, size * 1.2f);
+            Smoke(at, height, 3, size * 1.4f);
         }
 
         void UpdateEffects(float dt)
@@ -573,11 +628,20 @@ namespace Corehold
                     effects.Release(fx);
                     continue;
                 }
-                fx.transform.localScale = Vector3.one * (fx.size * Mathf.Lerp(0.4f, 1f, Mathf.Sqrt(t)));
+                if (fx.velocity != Vector3.zero) fx.transform.position += fx.velocity * dt;
+                fx.transform.localScale = Vector3.one * Mathf.Lerp(fx.startSize, fx.endSize, Mathf.Sqrt(t));
                 var c = fx.color;
-                c.a = 1f - t;
+                c.a = fx.color.a * (1f - t * t);
                 fx.renderer.color = c;
             }
+        }
+
+        // Short camera shake for big hits; decays quickly.
+        void UpdateShake(float dt)
+        {
+            if (shake <= 0f) return;
+            shake = Mathf.Max(0f, shake - dt * 0.6f);
+            cam.transform.position = camHome + (Vector3)(UnityEngine.Random.insideUnitCircle * shake);
         }
 
         // ---------------- Frame loop ----------------
@@ -593,6 +657,7 @@ namespace Corehold
             UpdateTowers(dt);
             UpdateProjectiles(dt);
             UpdateEffects(dt);
+            UpdateShake(Time.unscaledDeltaTime);
 
             if (Lives <= 0)
                 Finish(GameState.Lost);
@@ -603,6 +668,8 @@ namespace Corehold
         void Finish(GameState result)
         {
             Deselect();
+            cam.transform.position = camHome;
+            shake = 0f;
             State = result;
             Time.timeScale = 1f;
             StateChanged?.Invoke();
@@ -677,7 +744,7 @@ namespace Corehold
                 var hp = new GameObject("HealthBar").transform;
                 hp.SetParent(barRoot, false);
                 hp.rotation = billboard;
-                var e = new Enemy { root = root, filter = root.GetComponent<MeshFilter>(), hpRoot = hp };
+                var e = new Enemy { root = root, filter = root.GetComponent<MeshFilter>(), renderer = root.GetComponent<MeshRenderer>(), hpRoot = hp };
                 e.hpBackRenderer = Billboard("Back", Art.Pixel, new Color(0f, 0f, 0f, 0.65f), Layers.HealthBar, hp);
                 e.hpBackRenderer.transform.localScale = new Vector3(HealthBarWidth + 0.05f, 0.13f, 1f);
                 e.hpFillRenderer = Billboard("Fill", Art.Pixel, Art.Palette.Good, Layers.HealthBar + 1, hp);

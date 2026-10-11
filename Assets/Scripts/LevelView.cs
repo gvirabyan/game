@@ -3,14 +3,15 @@ using UnityEngine;
 
 namespace Corehold
 {
-    // 2.5D view setup. Game logic works in flat 2D "map" coordinates (x, y), exactly as levels are authored.
-    // A low orthographic camera tilted by `Pitch` looks at the battlefield from the side. Map positions are
-    // stretched along Z by 1/sin(pitch), so the ground still looks exactly like the 2D map on screen,
-    // while models keep their real proportions and show their sides.
+    // 3D view setup. Game logic works in flat 2D "map" coordinates (x, y), exactly as levels are authored.
+    // A low perspective camera tilted by `Pitch` looks at the battlefield. Map positions are stretched along Z
+    // by `ZStretch` so the foreshortened map still roughly keeps its authored proportions on screen, while
+    // models keep their real proportions. CameraRig fits the camera so the whole play area is visible.
     public static class View
     {
-        public const float Pitch = 20f;
-        public static readonly float ZStretch = 1f / Mathf.Sin(Pitch * Mathf.Deg2Rad);
+        public const float Pitch = 38f;
+        public const float FieldOfView = 32f;
+        public const float ZStretch = 1.4f;
 
         // Map -> world stretch for flat geometry built in map coordinates (ground, road).
         public static readonly Matrix4x4 GroundTransform = Matrix4x4.Scale(new Vector3(1f, 1f, ZStretch));
@@ -27,32 +28,93 @@ namespace Corehold
         }
     }
 
+    // Places the perspective camera so a map-space rectangle fills the screen below the HUD.
+    public static class CameraRig
+    {
+        // The play area every level must fit into (pads, road, base and the height of models).
+        public static readonly Rect PlayArea = new Rect(-8.7f, -5.1f, 17.4f, 9.6f);
+        // Fraction of the screen height covered by the HUD row at the top.
+        public const float HudFraction = 0.13f;
+
+        public static void Fit(Camera cam)
+        {
+            cam.orthographic = false;
+            cam.fieldOfView = View.FieldOfView;
+            var rot = Quaternion.Euler(View.Pitch, 0f, 0f);
+            cam.transform.rotation = rot;
+            var forward = rot * Vector3.forward;
+
+            var corners = new[]
+            {
+                View.World(new Vector2(PlayArea.xMin, PlayArea.yMin)), View.World(new Vector2(PlayArea.xMax, PlayArea.yMin)),
+                View.World(new Vector2(PlayArea.xMin, PlayArea.yMax), 0.8f), View.World(new Vector2(PlayArea.xMax, PlayArea.yMax), 0.8f),
+            };
+            float top = 1f - HudFraction;
+            float centerZ = View.World(PlayArea.center).z, distance = 30f;
+            float depth = PlayArea.height * View.ZStretch;
+            // Converges in a few steps: scale the distance to fit, then shift to centre vertically.
+            for (int i = 0; i < 30; i++)
+            {
+                cam.transform.position = new Vector3(0f, 0f, centerZ) - forward * distance;
+                float minX = 1f, maxX = 0f, minY = 1f, maxY = 0f;
+                foreach (var c in corners)
+                {
+                    var v = cam.WorldToViewportPoint(c);
+                    minX = Mathf.Min(minX, v.x); maxX = Mathf.Max(maxX, v.x);
+                    minY = Mathf.Min(minY, v.y); maxY = Mathf.Max(maxY, v.y);
+                }
+                float scale = Mathf.Max((maxX - minX) / 1f, (maxY - minY) / top);
+                distance *= Mathf.Lerp(1f, scale, 0.7f);
+                float shift = (minY + maxY) * 0.5f - top * 0.5f;
+                centerZ += shift * depth / Mathf.Max(maxY - minY, 0.05f) * 0.7f;
+            }
+            cam.transform.position = new Vector3(0f, 0f, centerZ) - forward * distance;
+            cam.nearClipPlane = 1f;
+            cam.farClipPlane = distance * 3f;
+            RenderSettings.fogStartDistance = distance * 1.05f;
+            RenderSettings.fogEndDistance = distance * 2.4f;
+        }
+
+        // Map-space bounds of what the camera sees on the ground (the far edge is wider than the near one).
+        public static Rect VisibleMap(Camera cam)
+        {
+            var ground = new Plane(Vector3.up, Vector3.zero);
+            float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
+            foreach (var v in new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1) })
+            {
+                var ray = cam.ViewportPointToRay(v);
+                if (!ground.Raycast(ray, out float enter)) enter = cam.farClipPlane;
+                var p = ray.GetPoint(enter);
+                minX = Mathf.Min(minX, p.x); maxX = Mathf.Max(maxX, p.x);
+                minY = Mathf.Min(minY, p.z / View.ZStretch); maxY = Mathf.Max(maxY, p.z / View.ZStretch);
+            }
+            return Rect.MinMaxRect(minX, minY, maxX, maxY);
+        }
+    }
+
     // Sorting orders for the few sprites still in the world (range ring, health bars, effects).
     public static class Layers
     {
         public const int Range = 0, HealthBar = 10, Effect = 20;
     }
 
-    // Builds the static part of a level (ground, road, build pads, base, decor) as one combined mesh.
+    // Builds the static part of a level (terrain, road, build pads, base, props) as one combined mesh.
     public static class LevelView
     {
         public static readonly float SpotPickRadius = 0.6f;
-
-        static readonly Color GroundA = Art.Hex("5B7F45"), GroundB = Art.Hex("54773F");
-        static readonly Color RoadColor = Art.Hex("D2BE92"), RoadEdgeColor = Art.Hex("A48F62"), TrackColor = Art.Hex("BBA67A");
 
         public static Transform Build(LevelConfig level, LevelPath path, float roadWidth, Rect view, int seed,
                                       Transform worldRoot, List<BuildSpot> spots)
         {
             var root = new GameObject("Level " + level.name).transform;
             root.SetParent(worldRoot, false);
-            var random = new System.Random(seed);
+            var site = new Site(level, path, roadWidth, seed);
             var b = new MeshBuilder();
 
             // Flat parts are built in map coordinates and stretched; everything with height keeps its proportions.
             b.Transform = View.GroundTransform;
-            BuildGround(b, view, random);
-            BuildRoad(b, path, roadWidth);
+            site.Terrain(b, view);
+            site.Road(b);
             b.Transform = Matrix4x4.identity;
 
             spots.Clear();
@@ -61,10 +123,8 @@ namespace Corehold
                 Models.Pad(b, View.World(level.spots[i]));
                 spots.Add(new BuildSpot { index = i, position = level.spots[i] });
             }
-
-            var hq = path.Points[path.Points.Length - 1];
-            Models.Headquarters(b, View.World(hq));
-            BuildDecor(b, level, path, roadWidth, view, random, hq);
+            Models.Headquarters(b, View.World(site.Hq));
+            site.Props(b, view);
 
             var go = new GameObject("StaticLevel");
             go.transform.SetParent(root, false);
@@ -73,87 +133,223 @@ namespace Corehold
             return root;
         }
 
-        // Faceted ground: a grid of slightly differently coloured triangles, larger than any screen.
-        static void BuildGround(MeshBuilder b, Rect view, System.Random random)
+        // One level's terrain shape and prop placement rules.
+        sealed class Site
         {
-            float x0 = Mathf.Floor(view.xMin) - 3f, x1 = Mathf.Ceil(view.xMax) + 3f;
-            float y0 = Mathf.Floor(view.yMin) - 3f, y1 = Mathf.Ceil(view.yMax) + 6f;
-            const float cell = 1.25f;
-            for (float y = y0; y < y1; y += cell)
-            for (float x = x0; x < x1; x += cell)
+            static readonly Color GrassLight = Art.Hex("74A843"), GrassDark = Art.Hex("4A8436"), GrassDry = Art.Hex("A0A852");
+            static readonly Color HillRock = Art.Hex("9A8F78"), HillTop = Art.Hex("8DBA55");
+            static readonly Color RoadColor = Art.Hex("C29C66"), RoadEdgeColor = Art.Hex("85663F"), TrackColor = Art.Hex("A68352");
+            const float Cell = 0.7f;
+
+            public readonly Vector2 Hq;
+            readonly LevelConfig level;
+            readonly LevelPath path;
+            readonly float roadHalf;
+            readonly System.Random random;
+            readonly float nx, ny;
+            readonly List<Vector3> taken = new List<Vector3>();      // x, y = map position, z = radius
+
+            public Site(LevelConfig level, LevelPath path, float roadWidth, int seed)
             {
-                var p00 = new Vector3(x, 0f, y); var p10 = new Vector3(x + cell, 0f, y);
-                var p01 = new Vector3(x, 0f, y + cell); var p11 = new Vector3(x + cell, 0f, y + cell);
-                b.Triangle(p00, p01, p11, Vary(random));
-                b.Triangle(p00, p11, p10, Vary(random));
+                this.level = level;
+                this.path = path;
+                roadHalf = roadWidth * 0.5f;
+                random = new System.Random(seed);
+                nx = (float)random.NextDouble() * 100f;
+                ny = (float)random.NextDouble() * 100f;
+                Hq = path.Points[path.Points.Length - 1];
             }
-        }
 
-        static Color Vary(System.Random r) => Color.Lerp(GroundA, GroundB, (float)r.NextDouble()) * (0.96f + 0.08f * (float)r.NextDouble());
-
-        static void BuildRoad(MeshBuilder b, LevelPath path, float width)
-        {
-            var pts = path.Points;
-            for (int i = 0; i < pts.Length - 1; i++)
+            // Flat battlefield framed by hills beyond the play area; flattened under the road, pads and base.
+            public float Height(Vector2 p)
             {
-                var a = pts[i];
-                var c = pts[i + 1];
-                var dir = (c - a).normalized;
-                var normal = new Vector2(-dir.y, dir.x);
-                float len = (c - a).magnitude;
-                float yaw = -Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-                var mid = (a + c) * 0.5f;
+                var a = CameraRig.PlayArea;
+                float dx = Mathf.Max(a.xMin - p.x, p.x - a.xMax, 0f);
+                float dy = Mathf.Max(p.y - a.yMax + 0.4f, 0f);
+                float outside = Mathf.Sqrt(dx * dx + dy * dy);
+                float n = Mathf.PerlinNoise(p.x * 0.33f + nx, p.y * 0.33f + ny);
+                float hill = Mathf.Min(outside * 0.6f, 3.2f) * (0.45f + n);
+                float bumps = Mathf.Max(0f, Mathf.PerlinNoise(p.x * 0.8f + ny, p.y * 0.8f + nx) - 0.55f) * 0.35f;
 
-                b.Box(Map(mid, 0.015f), new Vector3(len, 0.03f, width + 0.24f), RoadEdgeColor, yaw);
-                b.Box(Map(mid, 0.03f), new Vector3(len, 0.03f, width), RoadColor, yaw);
-                b.Box(Map(mid + normal * (width * 0.24f), 0.046f), new Vector3(len, 0.004f, 0.08f), TrackColor, yaw);
-                b.Box(Map(mid - normal * (width * 0.24f), 0.046f), new Vector3(len, 0.004f, 0.08f), TrackColor, yaw);
+                float clear = Mathf.InverseLerp(roadHalf + 0.3f, roadHalf + 1.8f, path.DistanceTo(p));
+                clear = Mathf.Min(clear, Mathf.InverseLerp(1.6f, 2.8f, (p - Hq).magnitude));
+                foreach (var s in level.spots) clear = Mathf.Min(clear, Mathf.InverseLerp(0.6f, 1.1f, (p - s).magnitude));
+                return (hill + bumps) * clear;
             }
-            // Rounded joints so corners look continuous.
-            for (int i = 1; i < pts.Length - 1; i++)
-            {
-                b.Cylinder(Map(pts[i]), (width + 0.24f) * 0.5f, 0.03f, 16, RoadEdgeColor);
-                b.Cylinder(Map(pts[i]), width * 0.5f, 0.0455f, 16, RoadColor);
-            }
-        }
 
-        static void BuildDecor(MeshBuilder b, LevelConfig level, LevelPath path, float roadWidth, Rect view,
-                               System.Random random, Vector2 hq)
-        {
-            int placed = 0;
-            for (int attempt = 0; attempt < 500 && placed < 40; attempt++)
+            public void Terrain(MeshBuilder b, Rect view)
             {
-                int kind = random.Next(10);         // 0-4 tree, 5-7 bush, 8-9 rock
-                float size = kind < 5 ? Range(random, 0.9f, 1.35f) : kind < 8 ? Range(random, 0.8f, 1.2f) : Range(random, 0.7f, 1.2f);
-                float radius = (kind < 5 ? 0.42f : 0.34f) * size;
-                var p = new Vector2(Range(random, view.xMin + 0.2f, view.xMax - 0.2f), Range(random, view.yMin + 0.2f, view.yMax + 2f));
+                float x0 = view.xMin - 2f, y0 = view.yMin - 2f;
+                int cols = Mathf.CeilToInt((view.width + 4f) / Cell), rows = Mathf.CeilToInt((view.height + 5f) / Cell);
+                var h = new float[cols + 1, rows + 1];
+                for (int y = 0; y <= rows; y++)
+                for (int x = 0; x <= cols; x++)
+                    h[x, y] = Height(new Vector2(x0 + x * Cell, y0 + y * Cell));
 
-                if (path.DistanceTo(p) < roadWidth * 0.5f + 0.15f + radius) continue;
-                if ((p - hq).magnitude < 1.2f + radius) continue;
-                bool blocked = false;
-                foreach (var s in level.spots)
-                    if ((p - s).magnitude < 0.75f + radius) { blocked = true; break; }
-                // Tall props are drawn shifted up the screen; keep them out of the band right below a pad
-                // or the base so they never hide a tower.
-                if (kind < 5)
+                for (int y = 0; y < rows; y++)
+                for (int x = 0; x < cols; x++)
                 {
-                    foreach (var s in level.spots)
-                        if (Mathf.Abs(s.x - p.x) < 0.9f && s.y - p.y > 0f && s.y - p.y < 2.2f) { blocked = true; break; }
-                    if (Mathf.Abs(hq.x - p.x) < 1.3f && hq.y - p.y > 0f && hq.y - p.y < 2.4f) blocked = true;
+                    float px = x0 + x * Cell, py = y0 + y * Cell;
+                    var p00 = new Vector3(px, h[x, y], py); var p10 = new Vector3(px + Cell, h[x + 1, y], py);
+                    var p01 = new Vector3(px, h[x, y + 1], py + Cell); var p11 = new Vector3(px + Cell, h[x + 1, y + 1], py + Cell);
+                    // Alternate the diagonal so the facets do not line up into stripes.
+                    if (((x + y) & 1) == 0)
+                    {
+                        b.Triangle(p00, p01, p11, GroundColor(p00, p01, p11));
+                        b.Triangle(p00, p11, p10, GroundColor(p00, p11, p10));
+                    }
+                    else
+                    {
+                        b.Triangle(p00, p01, p10, GroundColor(p00, p01, p10));
+                        b.Triangle(p01, p11, p10, GroundColor(p01, p11, p10));
+                    }
                 }
-                if (blocked) continue;
-
-                int seed = random.Next();
-                if (kind < 5) Models.Tree(b, View.World(p), size, seed);
-                else if (kind < 8) Models.Bush(b, View.World(p), size, seed);
-                else Models.Rock(b, View.World(p), size, seed);
-                placed++;
             }
+
+            Color GroundColor(Vector3 a, Vector3 b, Vector3 c)
+            {
+                var center = (a + b + c) / 3f;
+                var n = Vector3.Cross(b - a, c - a).normalized;
+                float m = Mathf.PerlinNoise(center.x * 0.22f + nx + 7f, center.z * 0.22f + ny + 3f);
+                var col = Color.Lerp(GrassDark, GrassLight, Mathf.SmoothStep(0f, 1f, m));
+                float dry = Mathf.PerlinNoise(center.x * 0.45f + nx + 21f, center.z * 0.45f + ny + 11f);
+                col = Color.Lerp(col, GrassDry, Mathf.InverseLerp(0.6f, 0.8f, dry) * 0.75f);
+                col = Color.Lerp(col, HillRock, Mathf.InverseLerp(0.3f, 0.65f, 1f - Mathf.Abs(n.y)));
+                col = Color.Lerp(col, HillTop, Mathf.InverseLerp(1.2f, 3f, center.y) * 0.5f);     // sunlit hilltops
+                col *= 0.97f + 0.06f * (float)random.NextDouble();
+                col.a = 1f;
+                return col;
+            }
+
+            public void Road(MeshBuilder b)
+            {
+                var pts = path.Points;
+                float width = roadHalf * 2f;
+                for (int i = 0; i < pts.Length - 1; i++)
+                {
+                    var a = pts[i];
+                    var c = pts[i + 1];
+                    var dir = (c - a).normalized;
+                    var normal = new Vector2(-dir.y, dir.x);
+                    float len = (c - a).magnitude;
+                    float yaw = -Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+                    var mid = (a + c) * 0.5f;
+
+                    b.Box(Map(mid, 0.01f), new Vector3(len, 0.02f, width + 0.3f), RoadEdgeColor, yaw);
+                    b.Box(Map(mid, 0.025f), new Vector3(len, 0.03f, width), RoadColor, yaw);
+                    b.Box(Map(mid + normal * (width * 0.25f), 0.042f), new Vector3(len, 0.004f, 0.1f), TrackColor, yaw);
+                    b.Box(Map(mid - normal * (width * 0.25f), 0.042f), new Vector3(len, 0.004f, 0.1f), TrackColor, yaw);
+                }
+                // Rounded joints so corners look continuous.
+                for (int i = 1; i < pts.Length - 1; i++)
+                {
+                    b.Cylinder(Map(pts[i]), roadHalf + 0.15f, 0.02f, 16, RoadEdgeColor);
+                    b.Cylinder(Map(pts[i]), roadHalf, 0.0415f, 16, RoadColor);
+                }
+            }
+
+            public void Props(MeshBuilder b, Rect view)
+            {
+                var area = Rect.MinMaxRect(view.xMin - 1f, view.yMin, view.xMax + 1f, view.yMax + 3f);
+
+                // Pebbles along the road edges.
+                for (int i = 0; i < path.Points.Length - 1; i++)
+                {
+                    var a = path.Points[i];
+                    var d = path.Points[i + 1] - a;
+                    var dir = d.normalized;
+                    var normal = new Vector2(-dir.y, dir.x);
+                    for (float t = 0.3f; t < d.magnitude; t += 0.45f)
+                    {
+                        if (random.NextDouble() < 0.45) continue;
+                        float side = random.Next(2) == 0 ? 1f : -1f;
+                        var p = a + dir * t + normal * side * (roadHalf + 0.12f + Range(0f, 0.15f));
+                        if (path.DistanceTo(p) < roadHalf + 0.08f) continue;
+                        Models.Rock(b, View.World(p), Range(0.25f, 0.42f), random.Next());
+                    }
+                }
+
+                // Base camp around the HQ.
+                PlaceNear(Hq, 1.4f, 2.2f, 4, 0.35f, p => Models.Crates(b, Ground(p), random.Next()));
+                PlaceNear(Hq, 1.3f, 2.2f, 3, 0.3f, p => Models.Barrels(b, Ground(p), random.Next()));
+
+                // Military clutter on the battlefield and tank traps beside the road.
+                Scatter(area, 6, 0.4f, false, true, p => Models.Crates(b, Ground(p), random.Next()));
+                Scatter(area, 5, 0.35f, false, true, p => Models.Barrels(b, Ground(p), random.Next()));
+                Scatter(area, 5, 0.6f, false, true, p => Models.Sandbags(b, Ground(p), Range(0f, 180f)));
+                for (int i = 0, placed = 0; i < 200 && placed < 6; i++)
+                {
+                    int seg = 0;
+                    var on = path.Sample(Range(0f, path.Length), ref seg, out var dir);
+                    var p = on + new Vector2(-dir.y, dir.x) * (random.Next(2) == 0 ? 1f : -1f) * (roadHalf + Range(0.45f, 0.8f));
+                    if (!CameraRig.PlayArea.Contains(p) || !Free(p, 0.25f, false)) continue;
+                    Models.TankTrap(b, Ground(p), Range(0f, 90f));
+                    Take(p, 0.25f);
+                    placed++;
+                }
+
+                // Vegetation: trees mostly on the hills, bushes, rocks, grass and flowers on the field.
+                Scatter(area, 70, 0.42f, true, false, p => Models.Tree(b, Ground(p), Range(0.9f, 1.4f), random.Next()));
+                Scatter(area, 30, 0.3f, false, false, p => Models.Bush(b, Ground(p), Range(0.8f, 1.2f), random.Next()));
+                Scatter(area, 16, 0.3f, false, false, p => Models.Rock(b, Ground(p), Range(0.7f, 1.2f), random.Next()));
+                Scatter(area, 320, 0f, false, false, p => Models.GrassTuft(b, Ground(p), Range(0.7f, 1.3f), random.Next()));
+                Scatter(area, 90, 0f, false, false, p => Models.Flower(b, Ground(p), random.Next()));
+            }
+
+            Vector3 Ground(Vector2 p) => View.World(p, Height(p));
+
+            void Scatter(Rect area, int count, float radius, bool tall, bool fieldOnly, System.Action<Vector2> place)
+            {
+                for (int attempt = 0, placed = 0; attempt < count * 12 && placed < count; attempt++)
+                {
+                    var p = new Vector2(Range(area.xMin, area.xMax), Range(area.yMin, area.yMax));
+                    bool onField = CameraRig.PlayArea.Contains(p);
+                    if (fieldOnly && !onField) continue;
+                    // Few trees on the battlefield itself so they do not hide the action.
+                    if (tall && onField && random.NextDouble() < 0.75) continue;
+                    if (!Free(p, radius, tall)) continue;
+                    place(p);
+                    if (radius > 0f) Take(p, radius);
+                    placed++;
+                }
+            }
+
+            void PlaceNear(Vector2 center, float minR, float maxR, int count, float radius, System.Action<Vector2> place)
+            {
+                for (int attempt = 0, placed = 0; attempt < count * 20 && placed < count; attempt++)
+                {
+                    float a = Range(0f, Mathf.PI * 2f);
+                    var p = center + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * Range(minR, maxR);
+                    if (!Free(p, radius, false)) continue;
+                    place(p);
+                    Take(p, radius);
+                    placed++;
+                }
+            }
+
+            bool Free(Vector2 p, float radius, bool tall)
+            {
+                if (path.DistanceTo(p) < roadHalf + 0.12f + radius) return false;
+                if ((p - Hq).magnitude < 1.15f + radius) return false;
+                foreach (var s in level.spots)
+                {
+                    if ((p - s).magnitude < 0.62f + radius) return false;
+                    // Tall props in front of (below) a pad or the base would hide it.
+                    if (tall && Mathf.Abs(s.x - p.x) < 0.9f && s.y - p.y > 0f && s.y - p.y < 2.2f) return false;
+                }
+                if (tall && Mathf.Abs(Hq.x - p.x) < 1.3f && Hq.y - p.y > 0f && Hq.y - p.y < 2.4f) return false;
+                foreach (var t in taken)
+                    if ((p - new Vector2(t.x, t.y)).magnitude < radius + t.z) return false;
+                return true;
+            }
+
+            void Take(Vector2 p, float radius) => taken.Add(new Vector3(p.x, p.y, radius));
+
+            float Range(float min, float max) => min + (float)random.NextDouble() * (max - min);
         }
 
         // Map point + height in unstretched map coordinates (used under View.GroundTransform).
         static Vector3 Map(Vector2 p, float height = 0f) => new Vector3(p.x, height, p.y);
-
-        static float Range(System.Random r, float min, float max) => min + (float)r.NextDouble() * (max - min);
     }
 }
+

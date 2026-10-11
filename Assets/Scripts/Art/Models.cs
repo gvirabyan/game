@@ -18,8 +18,8 @@ namespace Corehold
         static readonly Color Track = Art.Hex("2B2B2B"), Gun = Art.Hex("2A2F35"), Skin = Art.Hex("D9A97E");
         static readonly Color Steel = Art.Hex("5F7D9C"), SteelLight = Art.Hex("7FA0C2"), SteelDark = Art.Hex("3B4C61");
         static readonly Color Concrete = Art.Hex("8E959C"), ConcreteLight = Art.Hex("A9B0B8");
-        static readonly Color Leaf = Art.Hex("3F6B34"), LeafLight = Art.Hex("5A8C45"), Pine = Art.Hex("2F5A33"), Bark = Art.Hex("6B4A2F");
-        static readonly Color Stone = Art.Hex("8A8C88");
+        static readonly Color Leaf = Art.Hex("4C8A38"), LeafLight = Art.Hex("6EA84C"), Pine = Art.Hex("2E6A40"), Bark = Art.Hex("7A5434");
+        static readonly Color Stone = Art.Hex("9A9A92");
         static readonly Color Red = Art.Hex("D64541"), White = Art.Hex("EDEFF2");
 
         static Color Glow(Color c, float amount = 1f) => new Color(c.r, c.g, c.b, 1f - amount);
@@ -146,40 +146,67 @@ namespace Corehold
 
         // ---------------- Level props, added into the combined static level mesh ----------------
 
+        // Round concrete build pad with a yellow/black hazard ring and a glowing plus.
         public static void Pad(MeshBuilder b, Vector3 at)
         {
-            b.Box(at + new Vector3(0f, 0.05f, 0f), new Vector3(0.92f, 0.1f, 0.92f), Concrete, 0f, false, ConcreteLight);
-            b.Box(at + new Vector3(0f, 0.105f, 0f), new Vector3(0.34f, 0.012f, 0.07f), Glow(White, 0.25f));
-            b.Box(at + new Vector3(0f, 0.105f, 0f), new Vector3(0.07f, 0.012f, 0.34f), Glow(White, 0.25f));
+            b.Cylinder(at, 0.5f, 0.06f, 16, Art.Hex("6E747A"), Art.Hex("7C838A"));
+            b.Cylinder(at + new Vector3(0f, 0.06f, 0f), 0.46f, 0.05f, 16, Concrete, ConcreteLight);
+            const int stripes = 16;
+            for (int i = 0; i < stripes; i++)
+            {
+                float a0 = i * Mathf.PI * 2f / stripes, a1 = (i + 1) * Mathf.PI * 2f / stripes;
+                var c = i % 2 == 0 ? Art.Hex("F2C14E") : Art.Hex("2B2E33");
+                Vector3 P(float a, float r) => at + new Vector3(Mathf.Cos(a) * r, 0.112f, Mathf.Sin(a) * r);
+                b.Quad(P(a0, 0.36f), P(a1, 0.36f), P(a1, 0.44f), P(a0, 0.44f), c);
+            }
+            b.Box(at + new Vector3(0f, 0.115f, 0f), new Vector3(0.3f, 0.01f, 0.07f), Glow(White, 0.35f));
+            b.Box(at + new Vector3(0f, 0.115f, 0f), new Vector3(0.07f, 0.01f, 0.3f), Glow(White, 0.35f));
         }
 
+        // Command bunker: concrete block behind sandbags, radar dish, antenna with a beacon, flag and a helipad.
         public static void Headquarters(MeshBuilder b, Vector3 at)
         {
-            b.Box(at + new Vector3(0f, 0.07f, 0f), new Vector3(1.7f, 0.14f, 1.7f), Art.Hex("3A4656"), 0f, false, Art.Hex("465468"));
-            b.Box(at + new Vector3(0f, 0.45f, 0.05f), new Vector3(1.15f, 0.62f, 1.05f), Art.Hex("4B5D75"), 0f, false, Art.Hex("5F7590"));
-            b.Box(at + new Vector3(0.12f, 0.88f, 0.15f), new Vector3(0.6f, 0.26f, 0.55f), Art.Hex("3E4D63"), 0f, false, Art.Hex("52647E"));
+            b.Cylinder(at, 1.05f, 0.08f, 12, Art.Hex("6B7178"), Art.Hex("7A8189"));
+            b.Box(at + new Vector3(0f, 0.42f, 0.12f), new Vector3(1.2f, 0.7f, 0.95f), Art.Hex("5E6E5A"), 0f, false, Art.Hex("6F8069"));
+            b.Box(at + new Vector3(0f, 0.8f, 0.12f), new Vector3(1.3f, 0.08f, 1.05f), Art.Hex("4D5B4A"));
+            b.Box(at + new Vector3(0.2f, 0.98f, 0.25f), new Vector3(0.5f, 0.3f, 0.45f), Art.Hex("56664F"), 0f, false, Art.Hex("677A60"));
             for (int i = -1; i <= 1; i++)
-                b.Box(at + new Vector3(i * 0.32f, 0.5f, -0.48f), new Vector3(0.16f, 0.14f, 0.02f), Glow(Art.Hex("FFD27A"), 0.75f));
-            b.Box(at + new Vector3(0f, 0.22f, -0.48f), new Vector3(0.3f, 0.28f, 0.02f), Art.Hex("2A3442"));
-            b.Cylinder(at + new Vector3(-0.35f, 0.76f, 0.3f), 0.03f, 0.75f, 5, Gun);
-            b.Sphere(at + new Vector3(-0.35f, 1.53f, 0.3f), Vector3.one * 0.06f, Glow(Red), 3, 6);
-            b.Cylinder(at + new Vector3(0.68f, 0.14f, -0.68f), 0.025f, 1.1f, 5, ConcreteLight);
-            b.Box(at + new Vector3(0.83f, 1.1f, -0.68f), new Vector3(0.3f, 0.18f, 0.02f), Art.Palette.Gold);
+                b.Box(at + new Vector3(i * 0.36f, 0.52f, -0.36f), new Vector3(0.2f, 0.12f, 0.02f), Glow(Art.Hex("FFD27A"), 0.8f));
+            b.Box(at + new Vector3(0f, 0.25f, -0.36f), new Vector3(0.3f, 0.34f, 0.02f), Art.Hex("2E352C"));
+            // Sandbag walls on both sides of the door.
+            for (int side = -1; side <= 1; side += 2)
+                for (int row = 0; row < 2; row++)
+                    for (int i = 0; i < 3; i++)
+                        b.Sphere(at + new Vector3(side * (0.42f + i * 0.17f) + (row == 1 ? 0.08f : 0f), 0.13f + row * 0.1f, -0.62f),
+                            new Vector3(0.1f, 0.06f, 0.08f), Art.Hex("C9B07A"), 2, 6);
+            // Radar dish and antenna.
+            b.Cylinder(at + new Vector3(-0.38f, 0.84f, 0.35f), 0.04f, 0.25f, 6, Gun);
+            b.Cylinder(at + new Vector3(-0.38f, 1.06f, 0.35f), 0.05f, 0.1f, 10, Art.Hex("B8C0C6"), Art.Hex("D9DEE2"), 0.26f);
+            b.Cylinder(at + new Vector3(0.4f, 1.13f, 0.4f), 0.025f, 0.75f, 5, Gun);
+            b.Sphere(at + new Vector3(0.4f, 1.9f, 0.4f), Vector3.one * 0.06f, Glow(Red), 3, 6);
+            b.Cylinder(at + new Vector3(0.82f, 0.08f, -0.55f), 0.025f, 1.2f, 5, ConcreteLight);
+            b.Box(at + new Vector3(0.99f, 1.15f, -0.55f), new Vector3(0.34f, 0.2f, 0.02f), Art.Hex("2F80ED"));
+            b.Box(at + new Vector3(0.99f, 1.15f, -0.56f), new Vector3(0.12f, 0.08f, 0.02f), Art.Palette.Gold);
         }
 
         public static void Tree(MeshBuilder b, Vector3 at, float size, int seed)
         {
             var random = new System.Random(seed);
-            b.Cylinder(at, 0.07f * size, 0.3f * size, 5, Bark);
+            var tint = 0.9f + 0.2f * (float)random.NextDouble();
+            b.Cylinder(at, 0.07f * size, 0.34f * size, 5, Bark);
             if (random.Next(2) == 0)
             {
-                b.Cylinder(at + new Vector3(0f, 0.22f * size, 0f), 0.42f * size, 0.6f * size, 7, Pine, null, 0f);
-                b.Cylinder(at + new Vector3(0f, 0.55f * size, 0f), 0.32f * size, 0.55f * size, 7, MeshBuilder.Shade(Pine, 1.2f), null, 0f);
+                var pine = MeshBuilder.Shade(Pine, tint);
+                b.Cylinder(at + new Vector3(0f, 0.2f * size, 0f), 0.46f * size, 0.55f * size, 7, pine, null, 0f);
+                b.Cylinder(at + new Vector3(0f, 0.5f * size, 0f), 0.36f * size, 0.5f * size, 7, MeshBuilder.Shade(pine, 1.12f), null, 0f);
+                b.Cylinder(at + new Vector3(0f, 0.78f * size, 0f), 0.24f * size, 0.45f * size, 7, MeshBuilder.Shade(pine, 1.25f), null, 0f);
             }
             else
             {
-                b.Sphere(at + new Vector3(0f, 0.62f * size, 0f), new Vector3(0.42f, 0.4f, 0.42f) * size, Leaf, 4, 7, 0.12f, seed);
-                b.Sphere(at + new Vector3(-0.1f * size, 0.82f * size, -0.08f * size), new Vector3(0.24f, 0.22f, 0.24f) * size, LeafLight, 3, 6, 0.1f, seed + 1);
+                var leaf = MeshBuilder.Shade(Leaf, tint);
+                b.Sphere(at + new Vector3(0f, 0.62f * size, 0f), new Vector3(0.44f, 0.4f, 0.44f) * size, leaf, 4, 7, 0.12f, seed);
+                b.Sphere(at + new Vector3(-0.16f * size, 0.86f * size, -0.1f * size), new Vector3(0.28f, 0.26f, 0.28f) * size, MeshBuilder.Shade(LeafLight, tint), 3, 6, 0.1f, seed + 1);
+                b.Sphere(at + new Vector3(0.2f * size, 0.78f * size, 0.08f * size), new Vector3(0.24f, 0.22f, 0.24f) * size, MeshBuilder.Shade(LeafLight, tint * 1.08f), 3, 6, 0.1f, seed + 2);
             }
         }
 
@@ -192,6 +219,85 @@ namespace Corehold
         public static void Rock(MeshBuilder b, Vector3 at, float size, int seed)
         {
             b.Sphere(at + new Vector3(0f, 0.06f * size, 0f), new Vector3(0.32f, 0.2f, 0.26f) * size, Stone, 3, 6, 0.25f, seed);
+        }
+
+        // A few thin blades of grass.
+        public static void GrassTuft(MeshBuilder b, Vector3 at, float size, int seed)
+        {
+            var random = new System.Random(seed);
+            var c = Color.Lerp(Art.Hex("5E9A44"), Art.Hex("9CC963"), (float)random.NextDouble());
+            for (int i = 0; i < 3; i++)
+            {
+                var o = new Vector3(((float)random.NextDouble() - 0.5f) * 0.12f, 0f, ((float)random.NextDouble() - 0.5f) * 0.12f) * size;
+                b.Cylinder(at + o, 0.025f * size, (0.12f + 0.1f * (float)random.NextDouble()) * size, 3, c, null, 0f);
+            }
+        }
+
+        public static void Flower(MeshBuilder b, Vector3 at, int seed)
+        {
+            var random = new System.Random(seed);
+            var colors = new[] { Art.Hex("F5F0E6"), Art.Hex("F2C14E"), Art.Hex("E87EA1"), Art.Hex("9DB7F5") };
+            b.Cylinder(at, 0.012f, 0.1f, 3, Art.Hex("4F8A3A"));
+            b.Sphere(at + new Vector3(0f, 0.11f, 0f), new Vector3(0.04f, 0.025f, 0.04f), colors[random.Next(colors.Length)], 2, 5);
+        }
+
+        // Stack of wooden ammo crates.
+        public static void Crates(MeshBuilder b, Vector3 at, int seed)
+        {
+            var random = new System.Random(seed);
+            var wood = Art.Hex("9C7A4A");
+            float yaw = (float)random.NextDouble() * 90f;
+            var r = Quaternion.Euler(0f, yaw, 0f);
+            Crate(b, at + r * new Vector3(-0.13f, 0f, 0f), 0.24f, wood, yaw);
+            Crate(b, at + r * new Vector3(0.14f, 0f, 0.04f), 0.22f, MeshBuilder.Shade(wood, 0.92f), yaw + 10f);
+            if (random.Next(2) == 0) Crate(b, at + r * new Vector3(-0.08f, 0.24f, 0f), 0.2f, MeshBuilder.Shade(wood, 1.08f), yaw - 8f);
+        }
+
+        static void Crate(MeshBuilder b, Vector3 at, float s, Color wood, float yaw)
+        {
+            b.Box(at + new Vector3(0f, s * 0.5f, 0f), Vector3.one * s, wood, yaw, false, MeshBuilder.Shade(wood, 1.12f));
+            b.Box(at + new Vector3(0f, s * 0.5f, 0f), new Vector3(s * 1.02f, s * 0.18f, s * 1.02f), Art.Hex("5E4A2C"), yaw);
+        }
+
+        public static void Barrels(MeshBuilder b, Vector3 at, int seed)
+        {
+            var random = new System.Random(seed);
+            var colors = new[] { Art.Hex("4F6B3A"), Art.Hex("B5473A"), Art.Hex("4A5866") };
+            int n = 1 + random.Next(3);
+            for (int i = 0; i < n; i++)
+            {
+                var o = new Vector3((i - (n - 1) * 0.5f) * 0.2f, 0f, ((float)random.NextDouble() - 0.5f) * 0.12f);
+                var c = colors[random.Next(colors.Length)];
+                b.Cylinder(at + o, 0.09f, 0.26f, 8, c, MeshBuilder.Shade(c, 1.15f));
+                b.Cylinder(at + o + new Vector3(0f, 0.17f, 0f), 0.093f, 0.025f, 8, MeshBuilder.Shade(c, 0.7f), MeshBuilder.Shade(c, 1.15f));
+            }
+        }
+
+        // Short curved wall of sandbags.
+        public static void Sandbags(MeshBuilder b, Vector3 at, float yaw)
+        {
+            var r = Quaternion.Euler(0f, yaw, 0f);
+            for (int row = 0; row < 2; row++)
+                for (int i = 0; i < 5 - row; i++)
+                {
+                    float x = (i - (4 - row) * 0.5f) * 0.26f;
+                    var o = new Vector3(x, 0.08f + row * 0.13f, x * x * 0.45f);
+                    b.Sphere(at + r * o, new Vector3(0.15f, 0.085f, 0.11f), i % 2 == 0 ? Art.Hex("C9B07A") : Art.Hex("BBA16C"), 2, 6);
+                }
+        }
+
+        // Czech hedgehog anti-tank obstacle.
+        public static void TankTrap(MeshBuilder b, Vector3 at, float yaw)
+        {
+            var steel = Art.Hex("3C4148");
+            var center = at + new Vector3(0f, 0.17f, 0f);
+            const float length = 0.5f, pitch = 40f;
+            for (int i = 0; i < 3; i++)
+            {
+                float y = yaw + i * 120f;
+                var dir = Quaternion.Euler(0f, y, pitch) * Vector3.right;
+                b.Barrel(center - dir * (length * 0.5f), length, 0.035f, 4, steel, y, pitch);
+            }
         }
     }
 }

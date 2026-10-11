@@ -91,6 +91,13 @@ namespace Corehold
             Fill(x - r, y - r, x + r, y + r, soft, c, p => (p - center).magnitude - r);
         }
 
+        // Everything outside a circle of radius r (a vignette when soft is large).
+        public void Outside(float r, Color c, float soft)
+        {
+            float aspect = W / (float)H;
+            Fill(-aspect, -1f, aspect, 1f, soft, c, p => r - p.magnitude);
+        }
+
         public void Ring(float x, float y, float r, float thickness, Color c)
         {
             var center = new Vector2(x, y);

@@ -31,6 +31,12 @@ namespace Corehold
         public static GameUI Create(Game game)
         {
             UIFactory.EnsureEventSystem();
+            // Soft dark edges over the 3D view, under all UI.
+            var back = UIFactory.CreateCanvas("Vignette", 0);
+            var vignette = UIFactory.Fill("Vignette", back.transform).gameObject.AddComponent<Image>();
+            vignette.sprite = Art.Vignette;
+            vignette.raycastTarget = false;
+            Object.Destroy(back.GetComponent<GraphicRaycaster>());
             var canvas = UIFactory.CreateCanvas("UI", 10);
             var ui = canvas.gameObject.AddComponent<GameUI>();
             ui.Build(game, canvas.transform);
