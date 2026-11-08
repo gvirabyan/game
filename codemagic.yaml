@@ -1,10 +1,11 @@
 # Codemagic: Bastion Road iOS -> App Store Connect / TestFlight.
-# Set up once in the Codemagic UI (Team settings):
-#   1. Integrations -> Developer Portal: add the App Store Connect API key, name it "AppStoreConnect".
-#   2. Code signing identities: let Codemagic generate/fetch an iOS Distribution certificate and an
-#      App Store provisioning profile for com.virabyan.bastionroad.
-#   3. Environment variable group "unity": UNITY_EMAIL, UNITY_PASSWORD (secure) and UNITY_SERIAL (secure, Plus/Pro serial).
-#   4. Replace APP_STORE_APP_ID below with the numeric Apple ID of the app (App Store Connect -> App Information).
+# No Unity on the build machine (Unity Personal cannot be activated in CI): the Xcode project is exported on the
+# developer's Windows PC (BuildScript.BuildIOS) and committed to the `ios-export` branch (big binaries via Git LFS).
+# Codemagic only installs CocoaPods, signs, builds the IPA and uploads it to TestFlight.
+# How to release a new iOS build: see "Releasing a new iOS build" in Store/SUBMISSION.md.
+# Set up once in the Codemagic UI:
+#   1. Integrations -> Developer Portal: App Store Connect API key named "codemagic".
+#   2. Code signing: automatic (ios_signing below) for com.virabyan.bastionroad.
 workflows:
   ios-release:
     name: Bastion Road iOS
@@ -13,52 +14,40 @@ workflows:
     integrations:
       app_store_connect: codemagic
     environment:
-      groups:
-        - unity
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.virabyan.bastionroad
       vars:
-        UNITY_VERSION: 6000.6.5f1
-        UNITY_CHANGESET: 3ff58d469c8a
         APP_STORE_APP_ID: 6832220428
         XCODE_PROJECT: Builds/iOS/Unity-iPhone.xcodeproj
         XCODE_WORKSPACE: Builds/iOS/Unity-iPhone.xcworkspace
         XCODE_SCHEME: Unity-iPhone
       xcode: latest
+      cocoapods: default
     triggering:
       events:
         - tag
       tag_patterns:
         - pattern: 'v*'
     scripts:
-      - name: Install Unity with the iOS module (same version as the project)
+      - name: Fetch Git LFS files (UnityRuntime, *.a)
         script: |
-          UNITY_APP="/Applications/Unity/Hub/Editor/$UNITY_VERSION/Unity.app"
-          if [ ! -d "$UNITY_APP" ]; then
-            "/Applications/Unity Hub.app/Contents/MacOS/Unity Hub" -- --headless install \
-              --version "$UNITY_VERSION" --changeset "$UNITY_CHANGESET" --module ios
-          fi
-          echo "UNITY_BIN=$UNITY_APP/Contents/MacOS/Unity" >> $CM_ENV
-      - name: Activate Unity license
-        script: |
-          "$UNITY_BIN" -batchmode -quit -nographics -logFile - \
-            -serial "$UNITY_SERIAL" -username "$UNITY_EMAIL" -password "$UNITY_PASSWORD"
-      - name: Build number = latest App Store build + 1
+          git lfs install && git lfs pull
+      - name: Build number = latest App Store / TestFlight build + 1
         script: |
           LATEST=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APP_ID" || echo 0)
           LATEST_TF=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APP_ID" || echo 0)
           [ "$LATEST_TF" -gt "$LATEST" ] && LATEST=$LATEST_TF
-          echo "BUILD_NUMBER=$((LATEST + 1))" >> $CM_ENV
-      - name: Export Xcode project from Unity
-        script: |
-          "$UNITY_BIN" -batchmode -quit -nographics -logFile - -projectPath "$CM_BUILD_DIR" \
-            -buildTarget iOS -executeMethod BuildScript.BuildIOS
-      - name: CocoaPods (AdMob, Unity Ads adapter, Firebase)
-        script: |
-          # EDM writes the Podfile during the Unity build and usually runs pod install itself; make sure.
+          BUILD_NUMBER=$((LATEST + 1))
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $CM_ENV
+          # The Unity export has no apple-generic versioning (agvtool would not work) and a literal
+          # CFBundleVersion in Info.plist, so set it there directly.
           cd Builds/iOS
-          [ -d Unity-iPhone.xcworkspace ] || pod install --repo-update
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" Info.plist
+          echo "CFBundleVersion = $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Info.plist)"
+      - name: CocoaPods (AdMob, Unity Ads adapter, UMP; Firebase comes via Swift Package Manager)
+        script: |
+          cd Builds/iOS && pod install --repo-update
       - name: Apply signing profiles
         script: xcode-project use-profiles --project "$XCODE_PROJECT"
       - name: Build IPA
@@ -70,9 +59,3 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-    # Free the Unity seat after every build (also on failure).
-      scripts:
-        - name: Return Unity license
-          script: |
-            "$UNITY_BIN" -batchmode -quit -nographics -logFile - -returnlicense \
-              -username "$UNITY_EMAIL" -password "$UNITY_PASSWORD" || true

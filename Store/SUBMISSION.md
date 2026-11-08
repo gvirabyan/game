@@ -50,12 +50,22 @@ Repository: https://github.com/gvirabyan/game (public). Store assets live in its
 
 - **Android:** `Builds/Android/BastionRoad.aab` (local file on the developer PC, not in git), signed with the upload key.
   Use **Play App Signing** (default). Upload to Internal testing first.
-- **iOS:** built in the cloud by Codemagic (`codemagic.yaml` in the repo) and sent to App Store Connect / TestFlight
-  when a git tag `v*` is pushed (e.g. `v1.0.0`). Codemagic still needs: App Store Connect API key integration named
-  `AppStoreConnect`, iOS signing, a `unity` env group (UNITY_EMAIL, UNITY_PASSWORD, UNITY_SERIAL) and the numeric
-  Apple ID of the app in `APP_STORE_APP_ID`.
+- **iOS:** the Xcode project is exported locally (Unity Personal cannot run in CI) and committed to the
+  `ios-export` branch; Codemagic (`codemagic.yaml`) runs `pod install`, signs, builds the IPA and uploads it to
+  TestFlight when a tag `v*` is pushed. App Store Connect API key integration: `codemagic`; Apple ID of the app:
+  `6832220428`. See "Releasing a new iOS build" below.
 - Export compliance (iOS): `ITSAppUsesNonExemptEncryption = NO` is already in Info.plist → answer **"None of the
   algorithms mentioned above" / no non-exempt encryption** (only HTTPS via the OS).
+
+### Releasing a new iOS build
+1. On the Windows PC (Unity 6000.6.5f1 with iOS Build Support): `git checkout ios-export && git merge main`, then export:
+   `"C:\Program Files\Unity\Hub\Editor\6000.6.5f1\Editor\Unity.exe" -batchmode -quit -nographics -projectPath D:\Corehold -buildTarget iOS -executeMethod BuildScript.BuildIOS -logFile D:\Corehold\ios-export.log`
+   and check the log for `[BuildScript] Succeeded: Builds/iOS`.
+2. Commit the export on `ios-export`: `git add -A Builds/iOS && git commit -m "iOS export X.Y.Z" && git push`
+   (Git LFS takes `*.a` and `UnityRuntime`; `Pods/` and `*.xcworkspace` are ignored, Codemagic creates them).
+3. Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`. Codemagic builds it and sends it to TestFlight;
+   the build number is set automatically (latest + 1). For a new marketing version change
+   `PlayerSettings.bundleVersion` in `Assets/Editor/ProjectSetup.cs` (and run ProjectSetup) before exporting.
 
 ---
 
@@ -303,5 +313,5 @@ the next wave. Endless mode is the orange button at the top right.
    in Privacy & messaging; link the AdMob apps to Firebase; after the apps are live, link them to their store listings.
 3. **app-ads.txt:** publish `https://<developer website>/app-ads.txt` with the line from AdMob → Apps → app-ads.txt, and
    put that website into both store listings.
-4. **Codemagic:** see §2.
+4. **Codemagic:** connect the repo, the `codemagic` API key integration and automatic iOS signing (see §2).
 5. **Google Play (new personal accounts):** closed testing with at least 12 testers for 14 days before production access.
