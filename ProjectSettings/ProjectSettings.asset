@@ -9,11 +9,11 @@ PlayerSettings:
   AndroidFilterTouchesWhenObscured: 0
   AndroidEnableSustainedPerformanceMode: 0
   defaultScreenOrientation: 4
-  targetDevice: 2
+  targetDevice: 0
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: Virabyan
-  productName: Corehold
+  productName: Bastion Road
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.12156863, g: 0.12156863, b: 0.1254902, a: 1}
@@ -149,7 +149,7 @@ PlayerSettings:
   loadStoreDebugModeEnabled: 0
   visionOSBundleVersion: 1.0
   tvOSBundleVersion: 1.0
-  bundleVersion: 0.1.0
+  bundleVersion: 1.0.0
   preloadedAssets: []
   metroInputSource: 0
   wsaTransparentSwapchain: 0
@@ -170,8 +170,8 @@ PlayerSettings:
   androidMaxAspectRatio: 2.4
   androidMinAspectRatio: 1
   applicationIdentifier:
-    Android: com.virabyan.corehold
-    iPhone: com.virabyan.corehold
+    Android: com.virabyan.bastionroad
+    iPhone: com.virabyan.bastionroad
   buildNumber:
     Standalone: 0
     VisionOS: 0
@@ -274,7 +274,7 @@ PlayerSettings:
   AndroidTargetArchitectures: 2
   AndroidSplashScreenScale: 0
   androidSplashScreen: {fileID: 0}
-  AndroidKeystoreName: 
+  AndroidKeystoreName: '{inproject}: '
   AndroidKeyaliasName: 
   AndroidEnableArmv9SecurityFeatures: 0
   AndroidEnableArm64MTE: 0
@@ -299,36 +299,55 @@ PlayerSettings:
   AndroidAppBundleSizeToValidate: 200
   AndroidReportGooglePlayAppDependencies: 1
   androidSymbolsSizeThreshold: 800
-  m_BuildTargetIcons: []
+  m_BuildTargetIcons:
+  - m_BuildTarget: 
+    m_Icons:
+    - serializedVersion: 2
+      m_Icon: {fileID: 2800000, guid: 292815265686fc84387a000e0d91ea9e, type: 3}
+      m_Width: 128
+      m_Height: 128
+      m_Kind: 0
   m_BuildTargetPlatformIcons:
   - m_BuildTarget: Android
     m_Icons:
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: edf57ea735e62da4180fee8e9750c34a, type: 3}
+      - {fileID: 2800000, guid: c8f6c8d36f41d8c45bc530bd89fb02b8, type: 3}
       m_Width: 432
       m_Height: 432
       m_Kind: 2
       m_SubKind: 
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: edf57ea735e62da4180fee8e9750c34a, type: 3}
+      - {fileID: 2800000, guid: c8f6c8d36f41d8c45bc530bd89fb02b8, type: 3}
       m_Width: 324
       m_Height: 324
       m_Kind: 2
       m_SubKind: 
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: edf57ea735e62da4180fee8e9750c34a, type: 3}
+      - {fileID: 2800000, guid: c8f6c8d36f41d8c45bc530bd89fb02b8, type: 3}
       m_Width: 216
       m_Height: 216
       m_Kind: 2
       m_SubKind: 
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: edf57ea735e62da4180fee8e9750c34a, type: 3}
+      - {fileID: 2800000, guid: c8f6c8d36f41d8c45bc530bd89fb02b8, type: 3}
       m_Width: 162
       m_Height: 162
       m_Kind: 2
       m_SubKind: 
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: edf57ea735e62da4180fee8e9750c34a, type: 3}
+      - {fileID: 2800000, guid: c8f6c8d36f41d8c45bc530bd89fb02b8, type: 3}
       m_Width: 108
       m_Height: 108
       m_Kind: 2
       m_SubKind: 
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: edf57ea735e62da4180fee8e9750c34a, type: 3}
+      - {fileID: 2800000, guid: c8f6c8d36f41d8c45bc530bd89fb02b8, type: 3}
       m_Width: 81
       m_Height: 81
       m_Kind: 2

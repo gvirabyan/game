@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.IO;
 using NUnit.Framework;
 using UnityEngine;
@@ -98,11 +98,92 @@ namespace Corehold.Tests
             Time.timeScale = 1f;
         }
 
+        // App Store / Google Play screenshots in Store/screenshots/<set>/NN.png (iPhone 6.7" and 16:9 for Play).
+        [UnityTest]
+        public IEnumerator CaptureStoreScreenshots()
+        {
+            foreach (var (set, w, h) in new[] { ("iphone-6.7", 2796, 1290), ("play-16x9", 1920, 1080) })
+            {
+                Progress.ResetAll();
+                SceneManager.LoadScene("Main");
+                yield return null;
+                yield return null;
+                var game = Game.Instance;
+                // Lay the UI out at the target resolution for the whole run (not the batch window's size).
+                var cam = Camera.main;
+                var target = new RenderTexture(w, h, 24) { antiAliasing = 2 };
+                cam.targetTexture = target;
+                foreach (var c in Object.FindObjectsByType<Canvas>())
+                {
+                    c.renderMode = RenderMode.ScreenSpaceCamera;
+                    c.worldCamera = cam;
+                    c.planeDistance = 5f;
+                }
+                game.ShowMenu();
+                yield return null;
+                yield return null;
+                string dir = "Store/screenshots/" + set;
+                StoreCapture("01", target, dir);
+
+                var picks = new[] { 2, 33, 58, 84 };
+                for (int n = 0; n < picks.Length; n++)
+                {
+                    game.LoadLevel(picks[n]);
+                    var ok = GameObject.Find("IntroOk");
+                    if (ok != null) ok.GetComponent<Button>().onClick.Invoke();
+                    game.AddCoins(20000);
+                    var towers = game.Balance.towers;
+                    for (int i = 0; i < game.Spots.Count; i++)
+                    {
+                        if (i % 3 == 2) continue; // leave a few pads free
+                        game.Select(i);
+                        for (int k = 0; k < towers.Length; k++)
+                            if (game.TryBuild(towers[(i + k + n * 3) % towers.Length].id)) break;
+                        for (int u = 0; u < (i + n) % 4; u++) game.TryUpgrade();
+                    }
+                    game.Deselect();
+                    game.AddCoins(-(game.Coins - (340 + n * 115))); // a believable purse in the HUD
+                    game.StartNextWave();
+                    Time.timeScale = 2f;
+                    for (int f = 0; f < 100 + n * 15; f++) yield return null;
+                    if (game.CanStartNextWave) game.StartNextWave();
+                    for (int f = 0; f < 40; f++) yield return null;
+                    Time.timeScale = 1f;
+                    if (n == 1) game.Select(1);
+                    yield return null;
+                    StoreCapture((n + 2).ToString("00"), target, dir);
+                }
+                cam.targetTexture = null;
+                target.Release();
+            }
+            Progress.ResetAll();
+        }
+
+        // Renders the camera (already targeting `rt`, canvases in camera space) without the debug overlay.
+        static void StoreCapture(string name, RenderTexture rt, string dir)
+        {
+            var debug = GameObject.Find("Debug");
+            if (debug != null) debug.SetActive(false);
+            Canvas.ForceUpdateCanvases();
+            Camera.main.Render();
+            RenderTexture.active = rt;
+            var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = null;
+            if (debug != null) debug.SetActive(true);
+            Directory.CreateDirectory(dir);
+            File.WriteAllBytes($"{dir}/{name}.png", tex.EncodeToPNG());
+            Object.Destroy(tex);
+        }
+
+        static void Capture(string name) => Capture(name, Width, Height, "Logs/Screens");
+
         // Renders the main camera and every overlay canvas (switched to camera space) into one image.
-        static void Capture(string name)
+        static void Capture(string name, int width, int height, string dir)
         {
             var cam = Camera.main;
-            var rt = new RenderTexture(Width, Height, 24) { antiAliasing = 2 };
+            var rt = new RenderTexture(width, height, 24) { antiAliasing = 2 };
             var canvases = Object.FindObjectsByType<Canvas>();
             foreach (var c in canvases)
             {
@@ -113,15 +194,15 @@ namespace Corehold.Tests
             cam.targetTexture = rt;
             cam.Render();
             RenderTexture.active = rt;
-            var tex = new Texture2D(Width, Height, TextureFormat.RGB24, false);
-            tex.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);
+            var tex = new Texture2D(width, height, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             tex.Apply();
             cam.targetTexture = null;
             RenderTexture.active = null;
             foreach (var c in canvases) c.renderMode = RenderMode.ScreenSpaceOverlay;
 
-            Directory.CreateDirectory("Logs/Screens");
-            File.WriteAllBytes($"Logs/Screens/{name}.png", tex.EncodeToPNG());
+            Directory.CreateDirectory(dir);
+            File.WriteAllBytes($"{dir}/{name}.png", tex.EncodeToPNG());
             Object.Destroy(tex);
             rt.Release();
         }

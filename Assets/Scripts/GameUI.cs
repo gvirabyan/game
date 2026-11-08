@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,6 +13,8 @@ namespace Corehold
         const float HudHeight = 104f;
         const float SideWidth = 620f;
         const int PreviewSlots = 4;
+        const float PreviewOffset = 400f, PreviewLabelWidth = 92f, PreviewSlotWidth = 118f;
+        const float PreviewWidth = PreviewLabelWidth + PreviewSlots * PreviewSlotWidth;
         static readonly Color ChipColor = new Color(0.07f, 0.1f, 0.16f, 0.82f);
         static readonly Color BubbleColor = new Color(0.16f, 0.21f, 0.31f, 1f);
         static readonly Color Shade = new Color(0f, 0f, 0f, 0.3f);
@@ -29,6 +31,7 @@ namespace Corehold
         readonly Image[] resultStars = new Image[3];
         readonly StatBar[] statBars = new StatBar[3];
         readonly Image[] previewIcons = new Image[PreviewSlots];
+        RectTransform previewRect, waveBarRect;
         readonly Text[] previewCounts = new Text[PreviewSlots];
         readonly List<RectTransform> nodeButtons = new List<RectTransform>();
         readonly List<Image> nodeFaces = new List<Image>();
@@ -240,13 +243,15 @@ namespace Corehold
             waveTimerFill.fillMethod = Image.FillMethod.Horizontal;
             waveButtonLabel.rectTransform.offsetMin = new Vector2(0f, 22f);
 
-            var preview = UIFactory.Box("Preview", bar, new Vector2(0, 1), new Vector2(400, -10), new Vector2(92 + PreviewSlots * 118, 84));
+            var preview = UIFactory.Box("Preview", bar, new Vector2(0, 1), new Vector2(PreviewOffset, -10), new Vector2(PreviewWidth, 84));
+            previewRect = preview;
+            waveBarRect = bar;
             UIFactory.Image(preview, ChipColor);
             previewLabel = UIFactory.Text(UIFactory.Rect("Label", preview, Vector2.zero, new Vector2(0, 1), new Vector2(14, 0), new Vector2(86, 0)),
                 Loc.T("ui.next"), 22, TextAnchor.MiddleCenter, UIFactory.TextDim);
             for (int i = 0; i < PreviewSlots; i++)
             {
-                var slot = UIFactory.Box("Slot" + i, preview, new Vector2(0, 0.5f), new Vector2(92 + i * 118, 0), new Vector2(112, 76));
+                var slot = UIFactory.Box("Slot" + i, preview, new Vector2(0, 0.5f), new Vector2(PreviewLabelWidth + i * PreviewSlotWidth, 0), new Vector2(112, 76));
                 previewIcons[i] = UIFactory.Icon(UIFactory.Box("Icon", slot, new Vector2(0, 0.5f), Vector2.zero, new Vector2(70, 70)), Art.Coin);
                 previewCounts[i] = UIFactory.Text(UIFactory.Rect("Count", slot, Vector2.zero, Vector2.one, new Vector2(58, 0), Vector2.zero),
                     "", 26, TextAnchor.LowerLeft, UIFactory.TextMain, true);
@@ -646,8 +651,9 @@ namespace Corehold
             // Top bar.
             UIFactory.Image(UIFactory.Rect("TopShade", root, new Vector2(0, 1), Vector2.one, new Vector2(0, -190), Vector2.zero),
                 new Color(0.03f, 0.05f, 0.09f, 0.55f), false, false).sprite = Art.Fade;
-            var title = UIFactory.Text(UIFactory.Box("Title", root, new Vector2(0, 1), new Vector2(60, -26), new Vector2(700, 100)),
-                "COREHOLD", 84, TextAnchor.MiddleLeft, UIFactory.TextMain, true);
+            var title = UIFactory.Text(UIFactory.Box("Title", root, new Vector2(0, 1), new Vector2(60, -26), new Vector2(900, 100)),
+                "BASTION ROAD", 84, // brand name: the same in every language
+                TextAnchor.MiddleLeft, UIFactory.TextMain, true);
             title.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.4f);
             UIFactory.Text(UIFactory.Box("Subtitle", root, new Vector2(0, 1), new Vector2(64, -122), new Vector2(700, 44)),
                 Loc.T("ui.swipe"), 28, TextAnchor.MiddleLeft, Art.Palette.Gold).gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.6f);
@@ -952,14 +958,21 @@ namespace Corehold
             waveButtonLabel.text = game.WavesStarted == 0 ? Loc.F("ui.start", seconds) : game.Spawning ? Loc.T("ui.incoming") : !all ? Loc.F("ui.next_wave", seconds) : "";
             waveButtonImage.color = game.CanStartNextWave ? UIFactory.Go : UIFactory.DisabledColor;
 
-            // What the next wave brings: one icon per enemy type with its count.
+            // What the next wave brings: one icon per enemy type with its count. On narrower screens (16:9) the
+            // strip shrinks (down to 80%) and drops slots so it never covers the buttons on the right.
+            float avail = waveBarRect.rect.width - PreviewOffset;
+            float fit = Mathf.Clamp(avail / PreviewWidth, 0.8f, 1f);
+            int slots = Mathf.Clamp(Mathf.FloorToInt((avail / fit - PreviewLabelWidth) / PreviewSlotWidth), 0, PreviewSlots);
+            previewRect.localScale = new Vector3(fit, fit, 1f);
+            previewRect.sizeDelta = new Vector2(PreviewLabelWidth + slots * PreviewSlotWidth, previewRect.sizeDelta.y);
+            previewRect.gameObject.SetActive(slots > 0);
             var next = game.PeekNextWave();
             previewLabel.text = Loc.T(next == null ? "ui.last_wave" : "ui.next");
             int slot = 0;
             if (next != null)
                 foreach (var g in next.groups)
                 {
-                    if (slot >= PreviewSlots) break;
+                    if (slot >= slots) break;
                     previewIcons[slot].sprite = Icons.Enemy(g.enemy);
                     previewCounts[slot].text = "x" + g.count;
                     previewIcons[slot].transform.parent.gameObject.SetActive(true);

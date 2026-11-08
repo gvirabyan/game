@@ -9,13 +9,14 @@ using UnityEngine;
 public static class ProjectSetup
 {
     public const string ScenePath = "Assets/Scenes/Main.unity";
-    public const string BundleId = "com.virabyan.corehold";
+    public const string BundleId = "com.virabyan.bastionroad";
+    public const string DisplayName = "Bastion Road";
 
     public static void Run()
     {
         PlayerSettings.companyName = "Virabyan";
-        PlayerSettings.productName = "Corehold";
-        PlayerSettings.bundleVersion = "0.1.0";
+        PlayerSettings.productName = DisplayName;
+        PlayerSettings.bundleVersion = "1.0.0"; // store version; build numbers come from BuildScript
         PlayerSettings.Android.bundleVersionCode = 1;
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, BundleId);
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, BundleId);
@@ -30,6 +31,7 @@ public static class ProjectSetup
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.iOS, ScriptingImplementation.IL2CPP);
         PlayerSettings.iOS.buildNumber = "1";
+        PlayerSettings.iOS.targetDevice = iOSTargetDevice.iPhoneOnly; // landscape phone game; no iPad screenshots needed
         PlayerSettings.iOS.requiresFullScreen = true; // landscape-only game: opt out of iPad multitasking
         PlayerSettings.iOS.hideHomeButton = true;
 
