@@ -5,3 +5,5 @@
 *.wav binary
 *.ogg binary
 *.ttf binary
+*.a filter=lfs diff=lfs merge=lfs -text
+Builds/iOS/Frameworks/UnityRuntime.framework/UnityRuntime filter=lfs diff=lfs merge=lfs -text

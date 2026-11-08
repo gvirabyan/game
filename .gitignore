@@ -3,7 +3,12 @@
 /[Tt]emp/
 /[Oo]bj/
 /[Bb]uild/
-/[Bb]uilds/
+/[Bb]uilds/*
+# ios-export branch: the exported Xcode project is committed for Codemagic (pods/workspace are made by pod install there)
+!/[Bb]uilds/iOS/
+/[Bb]uilds/iOS/Pods/
+/[Bb]uilds/iOS/*.xcworkspace/
+/[Bb]uilds/iOS/Podfile.lock
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 /[Mm]emoryCaptures/
@@ -65,3 +70,6 @@ sysinfo.txt
 /Assets/Plugins/Android/FirebaseApp.androidlib/
 /Assets/Plugins/Android/FirebaseApp.androidlib.meta
 /Assets/StreamingAssets/google-services-desktop.json*
+
+# ios-export: Firebase framework folder name ends with .app (must come after the *.app rule)
+!/[Bb]uilds/iOS/Frameworks/com.google.firebase.app/

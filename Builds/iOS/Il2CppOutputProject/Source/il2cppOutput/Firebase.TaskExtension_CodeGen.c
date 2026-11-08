@@ -1,0 +1,67 @@
+﻿#include "pch-c.h"
+
+
+#include "codegen/il2cpp-codegen-metadata.h"
+
+
+
+
+
+extern void TaskExtension_ContinueWithOnMainThread_m6BDD5EFACC9A21E8AA0A27D6C6BCCA15C000566C (void);
+extern void TaskExtension_ContinueWithOnMainThread_m093F341816E1C4F7A5D02D489EB7E6A4F0DA7C6B (void);
+extern void U3CU3Ec__DisplayClass0_0__ctor_m67145261D040D8D18AD53C4C0EFEEFE357764B0D (void);
+extern void U3CU3Ec__DisplayClass0_0_U3CContinueWithOnMainThreadU3Eb__0_m57C5BAF2301E78C6779DFAEEE2465E5D4B8036AE (void);
+extern void U3CU3Ec__DisplayClass0_1__ctor_mD126323565E560E67C5AA420D0330A595E3251FD (void);
+extern void U3CU3Ec__DisplayClass0_1_U3CContinueWithOnMainThreadU3Eb__1_m623E3350D3FEEF92F8BDE22C7F101F187F40CE99 (void);
+extern void U3CU3Ec__DisplayClass1_0__ctor_m6A6098F9A3F287392A9D611054EA5E5F6FCFD66D (void);
+extern void U3CU3Ec__DisplayClass1_0_U3CContinueWithOnMainThreadU3Eb__0_m85B61A9E727814F8F04C89D8E0B25173AFD9C2EC (void);
+extern void U3CU3Ec__DisplayClass1_1__ctor_mC273FC864CD8F1578F7DD67C658EC0FDFFF5B921 (void);
+extern void U3CU3Ec__DisplayClass1_1_U3CContinueWithOnMainThreadU3Eb__1_m26029F929FD4E444A5B34D4A61D14165455AEB76 (void);
+static Il2CppMethodPointer s_methodPointers[30] = 
+{
+	TaskExtension_ContinueWithOnMainThread_m6BDD5EFACC9A21E8AA0A27D6C6BCCA15C000566C,
+	TaskExtension_ContinueWithOnMainThread_m093F341816E1C4F7A5D02D489EB7E6A4F0DA7C6B,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	U3CU3Ec__DisplayClass0_0__ctor_m67145261D040D8D18AD53C4C0EFEEFE357764B0D,
+	U3CU3Ec__DisplayClass0_0_U3CContinueWithOnMainThreadU3Eb__0_m57C5BAF2301E78C6779DFAEEE2465E5D4B8036AE,
+	U3CU3Ec__DisplayClass0_1__ctor_mD126323565E560E67C5AA420D0330A595E3251FD,
+	U3CU3Ec__DisplayClass0_1_U3CContinueWithOnMainThreadU3Eb__1_m623E3350D3FEEF92F8BDE22C7F101F187F40CE99,
+	U3CU3Ec__DisplayClass1_0__ctor_m6A6098F9A3F287392A9D611054EA5E5F6FCFD66D,
+	U3CU3Ec__DisplayClass1_0_U3CContinueWithOnMainThreadU3Eb__0_m85B61A9E727814F8F04C89D8E0B25173AFD9C2EC,
+	U3CU3Ec__DisplayClass1_1__ctor_mC273FC864CD8F1578F7DD67C658EC0FDFFF5B921,
+	U3CU3Ec__DisplayClass1_1_U3CContinueWithOnMainThreadU3Eb__1_m26029F929FD4E444A5B34D4A61D14165455AEB76,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+};
+IL2CPP_EXTERN_C const Il2CppCodeGenModule g_Firebase_TaskExtension_CodeGenModule;
+const Il2CppCodeGenModule g_Firebase_TaskExtension_CodeGenModule = 
+{
+	"Firebase.TaskExtension.dll",
+	30,
+	s_methodPointers,
+	0,
+	NULL,
+	0,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+};

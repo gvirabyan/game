@@ -1,0 +1,13 @@
+source 'https://cdn.cocoapods.org/'
+source 'https://github.com/CocoaPods/Specs'
+
+platform :ios, '15.0'
+
+target 'UnityFramework' do
+  pod 'GoogleMobileAdsMediationUnity', '4.21.0.0'
+  pod 'Google-Mobile-Ads-SDK', '~> 13.11'
+  pod 'GoogleUserMessagingPlatform', '3.1.0'
+end
+target 'Unity-iPhone' do
+end
+use_frameworks! :linkage => :static
