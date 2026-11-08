@@ -6,7 +6,7 @@ aa, flame, tesla, mortar, sniper, cryo) on pads. Two modes: a 100-mission campai
 desert, snow, autumn; a new enemy every 5 missions, a boss every 10th, towers unlock along the way; missions unlock in order)
 and Endless. Progress (stars, endless best, mute) is saved with PlayerPrefs in `Progress.cs`.
 Store name **Bastion Road** (`ProjectSetup.DisplayName`), bundle id `com.virabyan.bastionroad`; code, namespace and the
-repo still say Corehold. Store texts, graphics and screenshots live in `Store/`, the privacy policy in `docs/privacy.html` (GitHub Pages). The user asked for chat replies in Russian.
+repo still say Corehold. Store texts, graphics, screenshots and the full submission brief (`Store/SUBMISSION.md`) live in `Store/`, the privacy policy in `docs/privacy.html` (GitHub Pages). The user asked for chat replies in Russian.
 
 ## Hard rules
 - The user never opens the Unity editor. Everything is created from C# at runtime; run Unity **only in batch mode**.
