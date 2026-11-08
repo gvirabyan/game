@@ -240,7 +240,8 @@ ads. The game works the same either way."). SKAdNetwork IDs added by the AdMob p
 - **Description:** English description in §10.
 - **Keywords (100):** `tower,defense,td,strategy,towers,base,army,tank,offline,war,defend,convoy,lowpoly,missions`
 - **Support URL / Marketing URL:** see §1.
-- **Screenshots:** 6.7"/6.9" iPhone display: `Store/screenshots/iphone-6.7/01–05.png` (2796×1290, landscape).
+- **Screenshots:** 6.7"/6.9" iPhone display: `Store/screenshots/iphone-6.7/01–05.png` (2796×1290, landscape);
+  6.1"/6.3" display: `Store/screenshots/iphone-6.1/01–05.png` (2556×1179, landscape).
   No iPad screenshots needed (iPhone-only build).
 - **App icon:** inside the build (1024×1024, no transparency).
 - **Sign-in required:** No. **Demo account:** not needed.

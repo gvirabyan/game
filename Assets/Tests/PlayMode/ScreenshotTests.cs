@@ -102,7 +102,7 @@ namespace Corehold.Tests
         [UnityTest]
         public IEnumerator CaptureStoreScreenshots()
         {
-            foreach (var (set, w, h) in new[] { ("iphone-6.7", 2796, 1290), ("play-16x9", 1920, 1080) })
+            foreach (var (set, w, h) in new[] { ("iphone-6.7", 2796, 1290), ("iphone-6.1", 2556, 1179), ("play-16x9", 1920, 1080) })
             {
                 Progress.ResetAll();
                 SceneManager.LoadScene("Main");
