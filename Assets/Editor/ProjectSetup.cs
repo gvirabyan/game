@@ -29,6 +29,9 @@ public static class ProjectSetup
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.iOS, ScriptingImplementation.IL2CPP);
+        PlayerSettings.iOS.buildNumber = "1";
+        PlayerSettings.iOS.requiresFullScreen = true; // landscape-only game: opt out of iPad multitasking
+        PlayerSettings.iOS.hideHomeButton = true;
 
         EditorSettings.defaultBehaviorMode = EditorBehaviorMode.Mode2D;
         EditorSettings.serializationMode = SerializationMode.ForceText;

@@ -850,7 +850,7 @@ namespace Corehold
             }
             if (s != GameState.Menu && settingsPanel.activeSelf) OpenSettings(false);
             hud.SetActive(s != GameState.Menu);
-            debugRoot.SetActive(s != GameState.Menu);
+            debugRoot.SetActive(s != GameState.Menu && Debug.isDebugBuild); // fps/stress overlay: editor and development builds only
             resultPanel.SetActive(s == GameState.Won || s == GameState.Lost);
             pausePanel.SetActive(false);
             paused = false;

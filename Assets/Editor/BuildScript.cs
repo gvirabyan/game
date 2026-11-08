@@ -15,6 +15,28 @@ public static class BuildScript
     public static void BuildAndroidPerf() =>
         BuildAndroid("Builds/Android/Corehold-perf.apk", BuildOptions.None);
 
+    // Release Xcode project for the App Store (built on a Mac, e.g. Codemagic):
+    //   Unity -batchmode -quit -buildTarget iOS -projectPath . -executeMethod BuildScript.BuildIOS -logFile -
+    // Output: Builds/iOS (Unity-iPhone.xcodeproj). CFBundleVersion comes from $BUILD_NUMBER (set by Codemagic) when present.
+    public static void BuildIOS()
+    {
+        const string path = "Builds/iOS";
+        var build = System.Environment.GetEnvironmentVariable("BUILD_NUMBER");
+        if (!string.IsNullOrEmpty(build)) PlayerSettings.iOS.buildNumber = build;
+
+        var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+        {
+            scenes = new[] { ProjectSetup.ScenePath },
+            locationPathName = path,
+            target = BuildTarget.iOS,
+            options = BuildOptions.None
+        });
+
+        var summary = report.summary;
+        Debug.Log($"[BuildScript] {summary.result}: {path} (build {PlayerSettings.iOS.buildNumber}, {summary.totalErrors} errors, {summary.totalTime})");
+        if (Application.isBatchMode && summary.result != BuildResult.Succeeded) EditorApplication.Exit(1);
+    }
+
     static void BuildAndroid(string path, BuildOptions options)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path));
