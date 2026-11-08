@@ -11,7 +11,7 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 120
     integrations:
-      app_store_connect: AppStoreConnect
+      app_store_connect: codemagic
     environment:
       groups:
         - unity
@@ -21,7 +21,7 @@ workflows:
       vars:
         UNITY_VERSION: 6000.6.5f1
         UNITY_CHANGESET: 3ff58d469c8a
-        APP_STORE_APP_ID: 0000000000
+        APP_STORE_APP_ID: 6832220428
         XCODE_PROJECT: Builds/iOS/Unity-iPhone.xcodeproj
         XCODE_WORKSPACE: Builds/iOS/Unity-iPhone.xcworkspace
         XCODE_SCHEME: Unity-iPhone
