@@ -2266,6 +2266,69 @@
     "飛びながらドローンを発進させる。",
     "비행하며 드론을 출격시킨다."
    ]
+  },
+  {
+   "key": "ui.revive",
+   "values": [
+    "Watch ad: +{0} lives",
+    "Реклама: +{0} жизней",
+    "Գովազդ՝ +{0} կյանք",
+    "Ver anuncio: +{0} vidas",
+    "Pub : +{0} vies",
+    "Werbung: +{0} Leben",
+    "Guarda video: +{0} vite",
+    "Ver anúncio: +{0} vidas",
+    "Reklama: +{0} żyć",
+    "Реклама: +{0} життів",
+    "Advertentie: +{0} levens",
+    "Se reklam: +{0} liv",
+    "Tonton iklan: +{0} nyawa",
+    "看广告：+{0} 生命",
+    "広告で +{0} ライフ",
+    "광고 보고 +{0} 생명"
+   ]
+  },
+  {
+   "key": "ui.privacy",
+   "values": [
+    "Privacy",
+    "Конфиденциальность",
+    "Գաղտնիություն",
+    "Privacidad",
+    "Confidentialité",
+    "Datenschutz",
+    "Privacy",
+    "Privacidade",
+    "Prywatność",
+    "Конфіденційність",
+    "Privacy",
+    "Integritet",
+    "Privasi",
+    "隐私",
+    "プライバシー",
+    "개인정보"
+   ]
+  },
+  {
+   "key": "ui.ad_unavailable",
+   "values": [
+    "Ad not available, try again later",
+    "Реклама недоступна, попробуйте позже",
+    "Գովազդը հասանելի չէ, փորձեք ավելի ուշ",
+    "Anuncio no disponible, inténtalo más tarde",
+    "Pub indisponible, réessayez plus tard",
+    "Werbung nicht verfügbar, später erneut versuchen",
+    "Video non disponibile, riprova più tardi",
+    "Anúncio indisponível, tente mais tarde",
+    "Reklama niedostępna, spróbuj później",
+    "Реклама недоступна, спробуйте пізніше",
+    "Advertentie niet beschikbaar, probeer later",
+    "Reklam ej tillgänglig, försök senare",
+    "Iklan tidak tersedia, coba lagi nanti",
+    "广告暂不可用，请稍后再试",
+    "広告を表示できません。後でお試しください",
+    "광고를 사용할 수 없습니다. 나중에 다시 시도하세요"
+   ]
   }
  ]
 }

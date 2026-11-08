@@ -23,6 +23,7 @@ workflows:
         UNITY_CHANGESET: 3ff58d469c8a
         APP_STORE_APP_ID: 0000000000
         XCODE_PROJECT: Builds/iOS/Unity-iPhone.xcodeproj
+        XCODE_WORKSPACE: Builds/iOS/Unity-iPhone.xcworkspace
         XCODE_SCHEME: Unity-iPhone
       xcode: latest
     triggering:
@@ -53,10 +54,15 @@ workflows:
         script: |
           "$UNITY_BIN" -batchmode -quit -nographics -logFile - -projectPath "$CM_BUILD_DIR" \
             -buildTarget iOS -executeMethod BuildScript.BuildIOS
+      - name: CocoaPods (AdMob, Unity Ads adapter, Firebase)
+        script: |
+          # EDM writes the Podfile during the Unity build and usually runs pod install itself; make sure.
+          cd Builds/iOS
+          [ -d Unity-iPhone.xcworkspace ] || pod install --repo-update
       - name: Apply signing profiles
         script: xcode-project use-profiles --project "$XCODE_PROJECT"
       - name: Build IPA
-        script: xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+        script: xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM

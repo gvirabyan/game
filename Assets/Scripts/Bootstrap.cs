@@ -52,6 +52,8 @@ namespace Corehold
 
             var game = new GameObject("Game").AddComponent<Game>();
             game.Init(cam);
+            Analytics.Init();
+            Ads.Create(new GameObject("Ads"), game.Balance.ads);
             GameUI.Create(game);
         }
     }

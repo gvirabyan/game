@@ -24,7 +24,7 @@ namespace Corehold
         Text coinsText, livesText, waveText, waveButtonLabel, speedLabel, debugText, stressLabel, previewLabel, endlessBestText;
         Text towerTitle, upgradeLabel, sellLabel, resultTitle, resultStats;
         Image waveButtonImage, waveTimerFill, upgradeImage, towerIcon, towerHeader, resultHeader;
-        Button waveButton, nextLevelButton;
+        Button waveButton, nextLevelButton, reviveButton, privacyButton;
         readonly List<Button> buildButtons = new List<Button>();
         readonly List<Text> buildCosts = new List<Text>();
         readonly Image[] towerPips = new Image[4];
@@ -524,12 +524,17 @@ namespace Corehold
                 game.ShowMenu();
                 Toast(Loc.T("ui.reset_done"));
             });
+            // GDPR: a way to change the ad consent later (only shown where UMP says it is required).
+            var privacyRt = UIFactory.Box("PrivacyButton", card, new Vector2(0, 1), new Vector2(40, y - 110), new Vector2(530, 90));
+            privacyButton = UIFactory.Button(privacyRt, UIFactory.CardColor, out _, Loc.T("ui.privacy"), 30);
+            privacyButton.onClick.AddListener(Ads.ShowPrivacyOptions);
             settingsPanel.SetActive(false);
         }
 
         void OpenSettings(bool on)
         {
             settingsPanel.SetActive(on);
+            privacyButton.gameObject.SetActive(Ads.PrivacyOptionsRequired);
             resetArmed = false;
             resetLabel.text = Loc.T("ui.reset");
             resetLabel.fontSize = 30;
@@ -562,10 +567,20 @@ namespace Corehold
             resultStats = UIFactory.Text(UIFactory.Box("Stats", card, new Vector2(0.5f, 1), new Vector2(0, -290), new Vector2(760, 150)),
                 "", 36, TextAnchor.MiddleCenter, UIFactory.TextDim);
             resultStats.rectTransform.pivot = new Vector2(0.5f, 1f);
-            nextLevelButton = CardButton(card, "NextLevelButton", Loc.T("ui.next_level"), UIFactory.Go, -460, game.NextLevel);
-            CardButton(card, "RetryButton", Loc.T("ui.retry"), UIFactory.Warn, -600, game.RestartLevel);
-            CardButton(card, "MenuButton", Loc.T("ui.main_menu"), UIFactory.CardColor, -740, game.ShowMenu);
+            // Leaving the result screen is the only place an interstitial may appear (see Ads.BetweenMissions).
+            nextLevelButton = CardButton(card, "NextLevelButton", Loc.T("ui.next_level"), UIFactory.Go, -460, () => AfterResult(game.NextLevel));
+            // Defeat: same slot as Next. Watch a rewarded ad to continue the fight with a few lives.
+            reviveButton = CardButton(card, "ReviveButton", Loc.F("ui.revive", game.Balance.ads.reviveLives), UIFactory.Go, -460, () =>
+                Ads.ShowRewarded("revive", game.Revive, () => Toast(Loc.T("ui.ad_unavailable"))));
+            UIFactory.Icon(UIFactory.Box("Icon", (RectTransform)reviveButton.transform, new Vector2(0, 0.5f), new Vector2(34, 0), new Vector2(56, 56)), Art.Play)
+                .rectTransform.pivot = new Vector2(0f, 0.5f);
+            reviveButton.gameObject.SetActive(false);
+            CardButton(card, "RetryButton", Loc.T("ui.retry"), UIFactory.Warn, -600, () => AfterResult(game.RestartLevel));
+            CardButton(card, "MenuButton", Loc.T("ui.main_menu"), UIFactory.CardColor, -740, () => AfterResult(game.ShowMenu));
         }
+
+        void AfterResult(System.Action next) =>
+            Ads.BetweenMissions(game.Endless ? int.MaxValue : game.Level.number, next);
 
         RectTransform Overlay(string name, Transform canvas, out GameObject root, float cardHeight, out Image header, float cardWidth = 820f)
         {
@@ -927,6 +942,7 @@ namespace Corehold
                 bool left = sel.position.x > 0f;
                 PlaceSidePanel((RectTransform)towerPanel.transform, left);
             }
+            reviveButton.gameObject.SetActive(game.CanRevive && Ads.RewardedReady);
             if (game.Level == null) return;
 
             coinsText.text = game.Coins.ToString();

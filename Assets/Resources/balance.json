@@ -1,6 +1,16 @@
 {
   "_readme": "All balance numbers and level layouts. Formulas are in Assets/Scripts/Balance.cs (class Formulas). waveIndex and tower level start at 0.",
   "_formulas": "enemyHealth = enemy.health * level.healthMultiplier * waves.healthGrowth^waveIndex | towerDamage = damage + damagePerLevel*level | towerFireRate = fireRate + fireRatePerLevel*level | towerRange = range + rangePerLevel*level | upgradeCost = round(upgradeCost * upgradeCostGrowth^level) | sellValue = floor(totalSpent * economy.sellRefund) | chainTargets = chain + level | slow = slow + slowPerLevel*level | endlessBudget = endless.budget * endless.budgetGrowth^waveIndex | endlessHealth = enemy.health * endless.healthGrowth^waveIndex | campaign: healthMultiplier = 1 + healthPerLevel*(level-1) | waves = min(maxWaves, waves + (level-1)/levelsPerExtraWave) | waveBudget = (budget + budgetPerLevel*(level-1)) * budgetGrowthPerWave^waveIndex | armor: damage taken = max(damage*0.25, damage - armor)",
+  "ads": {
+    "androidInterstitial": "ca-app-pub-9425467580147795/7775347883",
+    "androidRewarded": "",
+    "iosInterstitial": "ca-app-pub-9425467580147795/6437169303",
+    "iosRewarded": "",
+    "interstitialFromMission": 4,
+    "interstitialEveryResults": 2,
+    "interstitialCooldown": 90,
+    "reviveLives": 5
+  },
   "economy": {
     "sellRefund": 0.6,
     "timeBetweenWaves": 8.0,

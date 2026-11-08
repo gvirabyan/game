@@ -53,6 +53,30 @@ namespace Corehold.Tests
             Assert.AreEqual(0, game.EnemyCount);
         }
 
+        // Defeat screen offers one rewarded "continue" (granted instantly in the editor), then never again.
+        [UnityTest]
+        public IEnumerator Defeat_RewardedRevive_ContinuesOnce()
+        {
+            yield return LoadScene();
+            var game = Game.Instance;
+            OpenLevel(1);
+            Click("WaveButton");
+            Time.timeScale = TimeScale;
+            yield return WaitUntil(() => game.State == GameState.Lost, "level to be lost");
+            yield return new WaitForSecondsRealtime(0.2f); // UI refresh shows the button
+            Click("ReviveButton");
+            Assert.AreEqual(GameState.Playing, game.State);
+            Assert.AreEqual(game.Balance.ads.reviveLives, game.Lives);
+            Assert.IsTrue(game.Revived);
+
+            Time.timeScale = TimeScale;
+            yield return WaitUntil(() => game.State == GameState.Lost, "level to be lost again");
+            yield return new WaitForSecondsRealtime(0.2f);
+            Assert.IsNull(GameObject.Find("ReviveButton"), "revive must be offered only once per attempt");
+            Click("RetryButton");
+            Assert.IsFalse(game.Revived);
+        }
+
         [UnityTest]
         public IEnumerator FirstWave_StartsOnItsOwn()
         {

@@ -16,6 +16,7 @@ namespace Corehold
         public LevelConfig[] levels;            // generated from campaign at load time
         public EndlessConfig endless;
         public CampaignConfig campaign;
+        public AdsConfig ads;
 
         public EnemyConfig Enemy(string id) =>
             Array.Find(enemies, e => e.id == id) ?? throw new InvalidOperationException($"balance.json: unknown enemy '{id}'");
@@ -31,6 +32,17 @@ namespace Corehold
         public float timeBetweenWaves;  // seconds after a wave finishes spawning before the next starts on its own
         public float firstWaveDelay;    // seconds after the level starts before the first wave starts on its own
         public float roadWidth;
+    }
+
+    // AdMob ad units (empty = Google test unit) and how often ads appear. Development builds always use test units.
+    [Serializable]
+    public class AdsConfig
+    {
+        public string androidInterstitial, androidRewarded, iosInterstitial, iosRewarded;
+        public int interstitialFromMission;     // no interstitials before this mission number (1-based)
+        public int interstitialEveryResults;    // at most one interstitial per this many finished missions
+        public float interstitialCooldown;      // and at least this many seconds apart
+        public int reviveLives;                 // lives restored by the rewarded "continue" on the defeat screen
     }
 
     [Serializable]

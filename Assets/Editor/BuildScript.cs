@@ -36,7 +36,7 @@ public static class BuildScript
         if (int.TryParse(Env("BUILD_NUMBER"), out var code)) PlayerSettings.Android.bundleVersionCode = code;
         try
         {
-            BuildAndroid("Builds/Android/BastionRoad.aab", BuildOptions.None, true);
+            BuildAndroid("Builds/Android/BastionRoad.aab", BuildOptions.CleanBuildCache, true); // releases always from scratch
         }
         finally
         {
@@ -58,6 +58,7 @@ public static class BuildScript
         const string path = "Builds/iOS";
         var build = Env("BUILD_NUMBER");
         if (!string.IsNullOrEmpty(build)) PlayerSettings.iOS.buildNumber = build;
+        PrepareSdks(BuildTarget.iOS);
 
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
         {
@@ -72,6 +73,33 @@ public static class BuildScript
         if (Application.isBatchMode && summary.result != BuildResult.Succeeded) EditorApplication.Exit(1);
     }
 
+    // Firebase config files (from the Firebase console) go here; without them analytics is compiled out.
+    const string FirebaseAndroidConfig = "Assets/Firebase/google-services.json";
+    const string FirebaseIosConfig = "Assets/Firebase/GoogleService-Info.plist";
+
+    // Before every player build: FIREBASE_CONFIGURED define per platform, and (Android) resolve the Gradle
+    // dependencies of AdMob, the Unity Ads adapter and Firebase into the custom Gradle templates.
+    static void PrepareSdks(BuildTarget target)
+    {
+        bool ios = target == BuildTarget.iOS;
+        var named = ios ? UnityEditor.Build.NamedBuildTarget.iOS : UnityEditor.Build.NamedBuildTarget.Android;
+        bool firebase = File.Exists(ios ? FirebaseIosConfig : FirebaseAndroidConfig);
+        PlayerSettings.GetScriptingDefineSymbols(named, out var defines);
+        var list = new System.Collections.Generic.List<string>(defines);
+        list.Remove("FIREBASE_CONFIGURED");
+        if (firebase) list.Add("FIREBASE_CONFIGURED");
+        PlayerSettings.SetScriptingDefineSymbols(named, list.ToArray());
+        Debug.Log($"[BuildScript] Firebase analytics {(firebase ? "enabled" : "disabled (no config file)")} for {target}");
+
+        if (!ios)
+        {
+            var resolver = Type.GetType("GooglePlayServices.PlayServicesResolver, Google.JarResolver");
+            var resolve = resolver?.GetMethod("ResolveSync", new[] { typeof(bool) });
+            if (resolve == null) Debug.LogWarning("[BuildScript] EDM PlayServicesResolver.ResolveSync not found; relying on resolve-on-build");
+            else Debug.Log("[BuildScript] Android dependencies resolved: " + resolve.Invoke(null, new object[] { true }));
+        }
+    }
+
     static string Env(string name)
     {
         var v = Environment.GetEnvironmentVariable(name);
@@ -82,6 +110,7 @@ public static class BuildScript
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         EditorUserBuildSettings.buildAppBundle = appBundle;
+        PrepareSdks(BuildTarget.Android);
 
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
         {

@@ -48,6 +48,7 @@ namespace Corehold
         public bool Endless { get; private set; }
         public int Coins { get; private set; }
         public int Lives { get; private set; }
+        public bool Revived { get; private set; }   // the rewarded "continue" is offered once per attempt
         public int Kills { get; private set; }
         public int WavesStarted { get; private set; }
         public int WaveCount => Endless ? int.MaxValue : Level != null ? Level.waves.Length : 0;
@@ -170,13 +171,33 @@ namespace Corehold
             Coins = Level.startCoins;
             Lives = Level.lives;
             Kills = 0;
+            Revived = false;
             WavesStarted = 0;
             Spawning = false;
             NextWaveTimer = Balance.economy.firstWaveDelay;
             Sfx.Music(Sounds.BattleMusic, 0.32f);
             State = GameState.Playing;
             StateChanged?.Invoke();
+            Analytics.LevelStart(AnalyticsName);
         }
+
+        string AnalyticsName => Endless ? "endless" : "mission_" + Level.number;
+
+        public bool CanRevive => State == GameState.Lost && !Revived && !StressMode;
+
+        // Rewarded ad watched on the defeat screen: back into the same fight with a few lives.
+        public void Revive()
+        {
+            if (!CanRevive) return;
+            Revived = true;
+            Lives = Balance.ads.reviveLives;
+            Sfx.Music(Sounds.BattleMusic, 0.32f);
+            State = GameState.Playing;
+            StateChanged?.Invoke();
+            Analytics.Event("revive", FirebaseLevelParam, AnalyticsName);
+        }
+
+        const string FirebaseLevelParam = "level_name";
 
         public void RestartLevel()
         {
@@ -1236,6 +1257,9 @@ namespace Corehold
             Sfx.Play(result == GameState.Won ? Sounds.Victory : Sounds.Defeat, 0.8f, 0f, 0f);
             State = result;
             Time.timeScale = 1f;
+            Ads.OnResult();
+            Analytics.LevelEnd(AnalyticsName, result == GameState.Won,
+                result == GameState.Won && !Endless ? StarsFor(Lives, Level.lives) : 0, WavesStarted, Kills);
             StateChanged?.Invoke();
         }
 

@@ -57,3 +57,7 @@ sysinfo.txt
 
 # Unity 6 Android build intermediates
 /.utmp/
+
+# Firebase copies its Android maven repo here on every editor load
+/Assets/GeneratedLocalRepo/
+/Assets/GeneratedLocalRepo.meta

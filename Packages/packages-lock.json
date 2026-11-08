@@ -1,10 +1,60 @@
 {
   "dependencies": {
+    "com.google.ads.mobile": {
+      "version": "11.6.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.external-dependency-manager": "2.1.0",
+        "com.unity.modules.androidjni": "1.0.0"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "com.google.ads.mobile.mediation.unity": {
+      "version": "3.22.0",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.google.ads.mobile": "11.0.0"
+      },
+      "url": "https://package.openupm.com"
+    },
+    "com.google.external-dependency-manager": {
+      "version": "file:com.google.external-dependency-manager",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
+    "com.google.firebase.analytics": {
+      "version": "file:tarballs/com.google.firebase.analytics-14.1.0.tgz",
+      "depth": 0,
+      "source": "local-tarball",
+      "dependencies": {
+        "com.google.firebase.app": "14.1.0"
+      }
+    },
+    "com.google.firebase.app": {
+      "version": "file:tarballs/com.google.firebase.app-14.1.0.tgz",
+      "depth": 0,
+      "source": "local-tarball",
+      "dependencies": {
+        "com.google.external-dependency-manager": "1.2.190"
+      }
+    },
     "com.unity.ext.nunit": {
       "version": "2.1.0",
       "depth": 1,
       "source": "builtin",
       "dependencies": {}
+    },
+    "com.unity.external-dependency-manager": {
+      "version": "2.1.0",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.modules.uielements": "1.0.0"
+      },
+      "url": "https://packages.unity.com"
     },
     "com.unity.ide.rider": {
       "version": "3.0.38",

@@ -27,7 +27,18 @@ repo still say Corehold. Store texts, graphics and screenshots live in `Store/`,
   No tuning constants in gameplay code.
 - Enemies, projectiles and effects are pooled plain C# objects updated by `Game.Update` — no per-enemy MonoBehaviour,
   no Instantiate/Destroy or allocations during play. Performance target: 200 enemies at 60 fps on a low-end Android phone.
-- Out of scope: ads, IAP, analytics. The only save is campaign progress (`Progress.cs`, PlayerPrefs).
+- Ads: AdMob only (`Ads.cs`), Unity Ads as an AdMob mediation network (adapter package, configured in the AdMob console).
+  Interstitials only when leaving the result screen; rewarded "+lives" revive on defeat. Ad unit ids + frequency in
+  balance.json `ads`, app ids in `ProjectSetup` (AdMob settings asset). Dev builds use Google test units; an empty id in a
+  release build disables that format. UMP consent first; "Privacy" button in Settings when required. In the editor no SDK runs.
+- Analytics: Firebase (`Analytics.cs`), only events at level boundaries. Compiled in only when `Assets/Firebase/google-services.json`
+  / `GoogleService-Info.plist` exists (BuildScript sets `FIREBASE_CONFIGURED`). No IAP. The only save is `Progress.cs` (PlayerPrefs).
+- Packages: AdMob + adapter from OpenUPM (scoped registry), Firebase from tarballs in `Packages/tarballs`. Unity's EDM
+  (`com.unity.external-dependency-manager`) resolves native deps; `Packages/com.google.external-dependency-manager` is EDM's own
+  dummy that satisfies Firebase's dependency on the old Google EDM. `ProjectSettings/ExternalDependencyManagerSettings.json`
+  must keep `edmEnabled: true` (otherwise EDM switches itself off with `UNITY_EDM_DISABLED`). Android deps go into the custom
+  Gradle templates in `Assets/Plugins/Android` (EDM patches them). Release AABs build with CleanBuildCache (incremental IL2CPP
+  builds once failed with duplicate symbols after the SDKs were added). iOS on Codemagic builds the `.xcworkspace` (CocoaPods).
 - After every meaningful change: compile in batch mode, read the log, fix all errors, run tests, then commit.
 
 ## Tools
@@ -94,6 +105,7 @@ adb shell am start -n com.virabyan.bastionroad/com.unity3d.player.UnityPlayerGam
   - `Balance.cs` — data classes for `balance.json` + `Formulas`. `Campaign.cs` — generates the 100 missions.
   - `Loc.cs` + `Resources/localization.json` — UI text in 16 languages (keys ui.*, zone.*, tower.<id>, enemy.<id>[.info]).
     Armenian/CJK use phone system fonts. Changing language rebuilds the UI (`GameUI.Rebuild`). Settings: `SettingsButton`, `Lang_<code>`.
+  - `Ads.cs` — AdMob/UMP wrapper (MonoBehaviour on "Ads"). `Analytics.cs` — Firebase events (no-op without config).
   - `Progress.cs` — saved progress. `Art/Biomes.cs` — zone palettes and vegetation.
   - `Art/Models.cs`, `Art/MeshBuilder.cs` — low-poly 3D models (towers per level, enemy rigs). `Art/Icons.cs` — UI icons
     rendered from the 3D models at startup (atlas fallback without a GPU). `Art/Art.cs`, `Art/Atlas.cs` — UI sprites/icons atlas.
@@ -112,7 +124,7 @@ adb shell am start -n com.virabyan.bastionroad/com.unity3d.player.UnityPlayerGam
 - UI is uGUI built in code with the legacy `Text` (Russo One font), reference resolution 1920x1080,
   rounded panels use the sliced `Art.Panel` sprite. Object names used by tests — keep them stable:
   `ModeEndless`, `Level_1..100`, `PlayButton`, `IntroOk` (new enemy/tower card), `WaveBar`, `WaveButton`, `BuildPanel`, `Build_<towerId>`, `TowerPanel`, `UpgradeButton`, `SellButton`,
-  `ResultPanel`, `RetryButton`, `NextLevelButton`, `MenuButton`, `PauseButton`, `ResumeButton`, `SpeedButton`, `StressButton`.
+  `ResultPanel`, `RetryButton`, `ReviveButton`, `PrivacyButton`, `NextLevelButton`, `MenuButton`, `PauseButton`, `ResumeButton`, `SpeedButton`, `StressButton`.
 - Level coordinates (landscape): x in -8.5..8.5, pads in y -4.7..3.6 (HUD row on top). Canvas reference 1920x1080,
   scaled by height. The wave button sits in the HUD row; build/tower panels open on the screen side away from the pad. The first path point is
   extended off-screen automatically; the last one is the HQ.

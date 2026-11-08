@@ -1,5 +1,9 @@
 {
   "dependencies": {
+    "com.google.ads.mobile": "11.6.0",
+    "com.google.ads.mobile.mediation.unity": "3.22.0",
+    "com.google.firebase.app": "file:tarballs/com.google.firebase.app-14.1.0.tgz",
+    "com.google.firebase.analytics": "file:tarballs/com.google.firebase.analytics-14.1.0.tgz",
     "com.unity.test-framework": "1.8.0",
     "com.unity.ugui": "2.6.0",
     "com.unity.ide.rider": "3.0.38",
@@ -40,5 +44,14 @@
     "com.unity.modules.video": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0"
-  }
+  },
+  "scopedRegistries": [
+    {
+      "name": "OpenUPM",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.google.ads.mobile"
+      ]
+    }
+  ]
 }
