@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "804166070181",
+    "project_id": "bastion-road-td",
+    "storage_bucket": "bastion-road-td.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:804166070181:android:1525f74a9dc27c37a7c24c",
+        "android_client_info": {
+          "package_name": "com.virabyan.bastionroad"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuCLzgr7rsiEw5ZLBcOEOtHT6lAO9Q2r8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
